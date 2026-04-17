@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h4 class="mb-3">新增訂閱</h4>
+<form method="POST" action="/subscriptions/create" style="max-width:540px">
+  <div class="mb-3">
+    <label class="form-label">服務名稱</label>
+    <input type="text" name="service_name" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">登入帳號</label>
+    <input type="text" name="login_account" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">到期日</label>
+    <input type="date" name="expiry_date" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">負責人 Email</label>
+    <input type="email" name="responsible_person_email" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">提前通知天數</label>
+    <select name="notification_days" class="form-select" required>
+      {% for value, label in notification_options %}
+      <option value="{{ value }}">{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primary">儲存</button>
+  <a href="/" class="btn btn-secondary ms-2">取消</a>
+</form>
+{% endblock %}
