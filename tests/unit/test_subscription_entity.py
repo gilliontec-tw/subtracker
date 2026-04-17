@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 import pytest
 from src.domain.entities.subscription import Subscription, NotificationDays
 
@@ -45,7 +45,6 @@ def test_all_threshold_values_trigger_correctly():
     ]
     expiry = date(2026, 12, 31)
     for enum_val, days in thresholds:
-        from datetime import timedelta
         trigger = expiry - timedelta(days=days)
         sub = make_sub(expiry, enum_val)
         assert sub.should_notify_today(trigger) is True, f"Failed for {days} days"
@@ -53,7 +52,7 @@ def test_all_threshold_values_trigger_correctly():
         assert sub.should_notify_today(trigger + timedelta(days=1)) is False
 
 
-def test_inactive_subscription_is_created_active_by_default():
+def test_subscription_is_active_by_default():
     sub = make_sub(date(2026, 12, 31), NotificationDays.SEVEN)
     assert sub.is_active is True
 
