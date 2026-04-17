@@ -23,8 +23,6 @@ class SmtpEmailSender(EmailSender):
         msg["Subject"] = subject
         msg.attach(MIMEText(body, "plain", "utf-8"))
 
-        with smtplib.SMTP(self._host, self._port) as smtp:
-            smtp.ehlo()
-            smtp.starttls()
+        with smtplib.SMTP_SSL(self._host, self._port) as smtp:
             smtp.login(self._username, self._password)
             smtp.sendmail(self._from_address, to, msg.as_string())

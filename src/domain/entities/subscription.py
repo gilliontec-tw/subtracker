@@ -17,10 +17,11 @@ class Subscription:
     service_name: str
     login_account: str
     expiry_date: date
-    responsible_person_email: str
+    notification_emails: str  # 逗號分隔，例如 "alice@co.com,bob@co.com"
     notification_days: NotificationDays
     id: int | None = None
     is_active: bool = True
+    notes: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

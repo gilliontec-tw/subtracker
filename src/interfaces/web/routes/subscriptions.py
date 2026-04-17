@@ -45,16 +45,18 @@ def create_submit(
     service_name: str = Form(...),
     login_account: str = Form(...),
     expiry_date: str = Form(...),
-    responsible_person_email: str = Form(...),
+    notification_emails: str = Form(...),
     notification_days: int = Form(...),
+    notes: str | None = Form(None),
     uc=Depends(get_create_uc),
 ):
     uc.execute(
         service_name=service_name,
         login_account=login_account,
         expiry_date=datetime.strptime(expiry_date, "%Y-%m-%d").date(),
-        responsible_person_email=responsible_person_email,
+        notification_emails=notification_emails,
         notification_days=NotificationDays(notification_days),
+        notes=notes or None,
     )
     return RedirectResponse("/", status_code=303)
 
@@ -75,8 +77,9 @@ def edit_submit(
     service_name: str = Form(...),
     login_account: str = Form(...),
     expiry_date: str = Form(...),
-    responsible_person_email: str = Form(...),
+    notification_emails: str = Form(...),
     notification_days: int = Form(...),
+    notes: str | None = Form(None),
     uc=Depends(get_update_uc),
 ):
     uc.execute(
@@ -84,8 +87,9 @@ def edit_submit(
         service_name=service_name,
         login_account=login_account,
         expiry_date=datetime.strptime(expiry_date, "%Y-%m-%d").date(),
-        responsible_person_email=responsible_person_email,
+        notification_emails=notification_emails,
         notification_days=NotificationDays(notification_days),
+        notes=notes or None,
     )
     return RedirectResponse("/", status_code=303)
 

@@ -13,8 +13,9 @@ class UpdateSubscriptionUseCase:
         service_name: str,
         login_account: str,
         expiry_date: date,
-        responsible_person_email: str,
+        notification_emails: str,
         notification_days: NotificationDays,
+        notes: str | None = None,
     ):
         entity = self._repo.get_by_id(subscription_id)
         if entity is None:
@@ -22,6 +23,7 @@ class UpdateSubscriptionUseCase:
         entity.service_name = service_name
         entity.login_account = login_account
         entity.expiry_date = expiry_date
-        entity.responsible_person_email = responsible_person_email
+        entity.notification_emails = notification_emails
         entity.notification_days = notification_days
+        entity.notes = notes
         return self._repo.update(entity)

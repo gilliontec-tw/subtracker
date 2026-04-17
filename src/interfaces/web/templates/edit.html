@@ -15,8 +15,9 @@
     <input type="date" name="expiry_date" class="form-control" value="{{ sub.expiry_date }}" required>
   </div>
   <div class="mb-3">
-    <label class="form-label">負責人 Email</label>
-    <input type="email" name="responsible_person_email" class="form-control" value="{{ sub.responsible_person_email }}" required>
+    <label class="form-label">通知收件人 Email</label>
+    <input type="text" name="notification_emails" class="form-control" value="{{ sub.notification_emails }}" required>
+    <div class="form-text">多個收件人請用逗號分隔</div>
   </div>
   <div class="mb-3">
     <label class="form-label">提前通知天數</label>
@@ -25,6 +26,10 @@
       <option value="{{ value }}" {% if value == sub.notification_days.value %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">備註</label>
+    <textarea name="notes" class="form-control" rows="3" placeholder="合約編號、購買廠商、授權數量等（選填）">{{ sub.notes or '' }}</textarea>
   </div>
   <button type="submit" class="btn btn-primary">更新</button>
   <a href="/" class="btn btn-secondary ms-2">取消</a>

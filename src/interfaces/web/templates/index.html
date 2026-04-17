@@ -5,13 +5,14 @@
   <p class="text-muted">目前沒有訂閱資料。</p>
 {% else %}
 <table class="table table-bordered table-hover align-middle">
-  <thead class="table-dark">
+  <thead class="table-header">
     <tr>
       <th>服務名稱</th>
       <th>登入帳號</th>
       <th>到期日</th>
       <th>提前通知</th>
-      <th>負責人 Email</th>
+      <th>通知收件人</th>
+      <th>備註</th>
       <th>操作</th>
     </tr>
   </thead>
@@ -23,7 +24,8 @@
       <td>{{ sub.login_account }}</td>
       <td>{{ sub.expiry_date }} <small class="text-muted">({{ days_left }} 天後)</small></td>
       <td>{{ sub.notification_days.value }} 天前</td>
-      <td>{{ sub.responsible_person_email }}</td>
+      <td><small>{{ sub.notification_emails }}</small></td>
+      <td><small class="text-muted">{{ sub.notes or '' }}</small></td>
       <td>
         <a href="/subscriptions/{{ sub.id }}/edit" class="btn btn-sm btn-outline-primary">編輯</a>
         <form method="POST" action="/subscriptions/{{ sub.id }}/delete" class="d-inline"

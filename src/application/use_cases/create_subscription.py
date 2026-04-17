@@ -12,14 +12,16 @@ class CreateSubscriptionUseCase:
         service_name: str,
         login_account: str,
         expiry_date: date,
-        responsible_person_email: str,
+        notification_emails: str,
         notification_days: NotificationDays,
+        notes: str | None = None,
     ) -> Subscription:
         entity = Subscription(
             service_name=service_name,
             login_account=login_account,
             expiry_date=expiry_date,
-            responsible_person_email=responsible_person_email,
+            notification_emails=notification_emails,
             notification_days=notification_days,
+            notes=notes,
         )
         return self._repo.add(entity)

@@ -15,9 +15,10 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             service_name=model.service_name,
             login_account=model.login_account,
             expiry_date=model.expiry_date,
-            responsible_person_email=model.responsible_person_email,
+            notification_emails=model.notification_emails,
             notification_days=NotificationDays(model.notification_days),
             is_active=model.is_active,
+            notes=model.notes,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -27,8 +28,9 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             service_name=subscription.service_name,
             login_account=subscription.login_account,
             expiry_date=subscription.expiry_date,
-            responsible_person_email=subscription.responsible_person_email,
+            notification_emails=subscription.notification_emails,
             notification_days=subscription.notification_days.value,
+            notes=subscription.notes,
         )
         self._session.add(model)
         self._session.commit()
@@ -55,8 +57,9 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         model.service_name = subscription.service_name
         model.login_account = subscription.login_account
         model.expiry_date = subscription.expiry_date
-        model.responsible_person_email = subscription.responsible_person_email
+        model.notification_emails = subscription.notification_emails
         model.notification_days = subscription.notification_days.value
+        model.notes = subscription.notes
         model.updated_at = datetime.now()
         self._session.commit()
         self._session.refresh(model)

@@ -32,14 +32,15 @@ class CheckAndNotifyUseCase:
                 f"請於到期前完成續約評估，並於系統中更新狀態。\n\n"
                 f"此信為系統自動發送，請勿回覆。"
             )
-            try:
-                self._email_sender.send(
-                    to=sub.responsible_person_email,
-                    subject=subject,
-                    body=body,
-                )
+            recipients = [e.strip() for e in sub.notification_emails.split(",") if e.strip()]
+            success = True
+            for recipient in recipients:
+                try:
+                    self._email_sender.send(to=recipient, subject=subject, body=body)
+                except Exception as exc:
+                    print(f"[ERROR] Failed to send email to {recipient} for subscription {sub.id}: {exc}")
+                    success = False
+            if success:
                 notified_ids.append(sub.id)
-            except Exception as exc:
-                print(f"[ERROR] Failed to send email for subscription {sub.id}: {exc}")
 
         return notified_ids

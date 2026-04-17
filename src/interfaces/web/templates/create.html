@@ -15,8 +15,10 @@
     <input type="date" name="expiry_date" class="form-control" required>
   </div>
   <div class="mb-3">
-    <label class="form-label">負責人 Email</label>
-    <input type="email" name="responsible_person_email" class="form-control" required>
+    <label class="form-label">通知收件人 Email</label>
+    <input type="text" name="notification_emails" class="form-control" required
+           placeholder="可填多人，以逗號分隔：alice@co.com,bob@co.com">
+    <div class="form-text">多個收件人請用逗號分隔</div>
   </div>
   <div class="mb-3">
     <label class="form-label">提前通知天數</label>
@@ -25,6 +27,10 @@
       <option value="{{ value }}">{{ label }}</option>
       {% endfor %}
     </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">備註</label>
+    <textarea name="notes" class="form-control" rows="3" placeholder="合約編號、購買廠商、授權數量等（選填）"></textarea>
   </div>
   <button type="submit" class="btn btn-primary">儲存</button>
   <a href="/" class="btn btn-secondary ms-2">取消</a>
