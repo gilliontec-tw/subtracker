@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-sm-10 col-md-6 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h5 class="card-title text-center mb-4" style="color:#1565c0;">🔐 登入系統</h5>
+        {% if error %}
+        <div class="alert alert-danger py-2">{{ error }}</div>
+        {% endif %}
+        <form method="POST" action="/login">
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control"
+                   placeholder="yourname@gilliontec.com.tw" required autofocus>
+          </div>
+          <div class="mb-4">
+            <label class="form-label">密碼</label>
+            <input type="password" name="password" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">登入</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

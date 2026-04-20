@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h4 class="mb-3">編輯使用者權限：{{ user.display_name }}</h4>
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+<form method="POST" action="/admin/users/{{ user.id }}/edit" style="max-width:480px">
+  <div class="mb-3">
+    <label class="form-label text-muted">Email</label>
+    <p class="form-control-plaintext fw-semibold">{{ user.email }}</p>
+  </div>
+  <div class="mb-3">
+    <label class="form-label d-block">權限</label>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="can_create" id="can_create" value="true"
+             {% if user.can_create %}checked{% endif %}>
+      <label class="form-check-label" for="can_create">可新增訂閱</label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="can_update" id="can_update" value="true"
+             {% if user.can_update %}checked{% endif %}>
+      <label class="form-check-label" for="can_update">可修改訂閱</label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="can_delete" id="can_delete" value="true"
+             {% if user.can_delete %}checked{% endif %}>
+      <label class="form-check-label" for="can_delete">可刪除訂閱</label>
+    </div>
+  </div>
+  <div class="mb-4">
+    <label class="form-label d-block">帳號狀態</label>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="is_active" id="is_active" value="true"
+             {% if user.is_active %}checked{% endif %}>
+      <label class="form-check-label" for="is_active">啟用中</label>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary">儲存</button>
+  <a href="/admin/users" class="btn btn-secondary ms-2">取消</a>
+</form>
+{% endblock %}

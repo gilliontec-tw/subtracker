@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<h4 class="mb-3">新增使用者</h4>
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+<form method="POST" action="/admin/users/create" style="max-width:480px">
+  <div class="mb-3">
+    <label class="form-label">Email（需為 @gilliontec.com.tw）</label>
+    <input type="email" name="email" class="form-control" required
+           placeholder="name@gilliontec.com.tw">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">姓名</label>
+    <input type="text" name="display_name" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">初始密碼</label>
+    <input type="password" name="password" class="form-control" required>
+  </div>
+  <div class="mb-4">
+    <label class="form-label d-block">權限</label>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="can_create" id="can_create" value="true">
+      <label class="form-check-label" for="can_create">可新增訂閱</label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="can_update" id="can_update" value="true">
+      <label class="form-check-label" for="can_update">可修改訂閱</label>
+    </div>
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" name="can_delete" id="can_delete" value="true">
+      <label class="form-check-label" for="can_delete">可刪除訂閱</label>
+    </div>
+  </div>
+  <button type="submit" class="btn btn-primary">建立</button>
+  <a href="/admin/users" class="btn btn-secondary ms-2">取消</a>
+</form>
+{% endblock %}

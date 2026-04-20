@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from src.domain.entities.subscription import NotificationDays
 from src.interfaces.web.dependencies import (
     get_create_uc, get_delete_uc, get_list_uc, get_single_uc, get_update_uc,
+    get_current_user, require_create, require_update, require_delete,
 )
 
 router = APIRouter()
@@ -21,21 +22,23 @@ NOTIFICATION_OPTIONS = [
 
 
 @router.get("/")
-def index(request: Request, uc=Depends(get_list_uc)):
+def index(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
     subscriptions = uc.execute()
     today = date.today()
     return templates.TemplateResponse("index.html", {
         "request": request,
         "subscriptions": subscriptions,
         "today": today,
+        "current_user": current_user,
     })
 
 
 @router.get("/subscriptions/create")
-def create_form(request: Request):
+def create_form(request: Request, current_user=Depends(require_create)):
     return templates.TemplateResponse("create.html", {
         "request": request,
         "notification_options": NOTIFICATION_OPTIONS,
+        "current_user": current_user,
     })
 
 
@@ -49,6 +52,7 @@ def create_submit(
     notification_days: int = Form(...),
     notes: str | None = Form(None),
     uc=Depends(get_create_uc),
+    current_user=Depends(require_create),
 ):
     uc.execute(
         service_name=service_name,
@@ -62,12 +66,18 @@ def create_submit(
 
 
 @router.get("/subscriptions/{subscription_id}/edit")
-def edit_form(request: Request, subscription_id: int, uc=Depends(get_single_uc)):
+def edit_form(
+    request: Request,
+    subscription_id: int,
+    uc=Depends(get_single_uc),
+    current_user=Depends(require_update),
+):
     sub = uc.execute(subscription_id)
     return templates.TemplateResponse("edit.html", {
         "request": request,
         "sub": sub,
         "notification_options": NOTIFICATION_OPTIONS,
+        "current_user": current_user,
     })
 
 
@@ -81,6 +91,7 @@ def edit_submit(
     notification_days: int = Form(...),
     notes: str | None = Form(None),
     uc=Depends(get_update_uc),
+    current_user=Depends(require_update),
 ):
     uc.execute(
         subscription_id=subscription_id,
@@ -95,6 +106,10 @@ def edit_submit(
 
 
 @router.post("/subscriptions/{subscription_id}/delete")
-def delete(subscription_id: int, uc=Depends(get_delete_uc)):
+def delete(
+    subscription_id: int,
+    uc=Depends(get_delete_uc),
+    current_user=Depends(require_delete),
+):
     uc.execute(subscription_id)
     return RedirectResponse("/", status_code=303)
