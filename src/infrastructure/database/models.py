@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import Boolean, Column, Date, DateTime, Integer, String
+from decimal import Decimal
+from sqlalchemy import Boolean, Column, Date, DateTime, Integer, Numeric, String
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -10,16 +11,19 @@ class Base(DeclarativeBase):
 class SubscriptionModel(Base):
     __tablename__ = "saas_subscriptions"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    service_name = Column(String(200), nullable=False)
-    login_account = Column(String(200), nullable=False)
-    expiry_date = Column(Date, nullable=False)
-    notification_emails = Column(String(1000), nullable=False)  # 逗號分隔多個收件人
-    notification_days = Column(Integer, nullable=False)
-    is_active = Column(Boolean, nullable=False, default=True)
-    notes = Column(String(1000), nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.now)
-    updated_at = Column(DateTime, nullable=True, onupdate=datetime.now)
+    id                  = Column(Integer, primary_key=True, autoincrement=True)
+    service_name        = Column(String(200), nullable=False)
+    login_account       = Column(String(200), nullable=False)
+    expiry_date         = Column(Date, nullable=False)
+    notification_emails = Column(String(1000), nullable=False)
+    notification_days   = Column(Integer, nullable=False)
+    is_active           = Column(Boolean, nullable=False, default=True)
+    status              = Column(String(20), nullable=False, default="active")
+    cost                = Column(Numeric(10, 2), nullable=True)
+    currency            = Column(String(10), nullable=True, default="TWD")
+    notes               = Column(String(1000), nullable=True)
+    created_at          = Column(DateTime, nullable=False, default=datetime.now)
+    updated_at          = Column(DateTime, nullable=True, onupdate=datetime.now)
 
 
 class UserModel(Base):
@@ -36,3 +40,16 @@ class UserModel(Base):
     is_active       = Column(Boolean, nullable=False, default=True)
     created_at      = Column(DateTime, nullable=False, default=datetime.now)
     last_login_at   = Column(DateTime, nullable=True)
+
+
+class AuditLogModel(Base):
+    __tablename__ = "audit_log"
+
+    id          = Column(Integer, primary_key=True, autoincrement=True)
+    user_id     = Column(Integer, nullable=False)
+    user_email  = Column(String(200), nullable=False)
+    action      = Column(String(20), nullable=False)   # create | update | delete
+    target_type = Column(String(50), nullable=False)   # subscription
+    target_id   = Column(Integer, nullable=False)
+    target_name = Column(String(200), nullable=False)
+    created_at  = Column(DateTime, nullable=False, default=datetime.now)

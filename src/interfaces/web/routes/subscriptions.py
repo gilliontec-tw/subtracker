@@ -1,8 +1,9 @@
 from datetime import date, datetime
+from decimal import Decimal
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from src.domain.entities.subscription import NotificationDays
+from src.domain.entities.subscription import NotificationDays, SubscriptionStatus
 from src.interfaces.web.dependencies import (
     get_create_uc, get_delete_uc, get_list_uc, get_single_uc, get_update_uc,
     get_current_user, require_create, require_update, require_delete,
@@ -19,6 +20,15 @@ NOTIFICATION_OPTIONS = [
     (90,  "3 個月前"),
     (120, "4 個月前"),
 ]
+
+STATUS_OPTIONS = [
+    ("active",    "使用中"),
+    ("renewed",   "已續約"),
+    ("cancelled", "已取消"),
+    ("suspended", "暫停"),
+]
+
+CURRENCY_OPTIONS = ["TWD", "USD", "EUR", "JPY"]
 
 
 @router.get("/")
@@ -38,6 +48,8 @@ def create_form(request: Request, current_user=Depends(require_create)):
     return templates.TemplateResponse("create.html", {
         "request": request,
         "notification_options": NOTIFICATION_OPTIONS,
+        "status_options": STATUS_OPTIONS,
+        "currency_options": CURRENCY_OPTIONS,
         "current_user": current_user,
     })
 
@@ -50,6 +62,9 @@ def create_submit(
     expiry_date: str = Form(...),
     notification_emails: str = Form(...),
     notification_days: int = Form(...),
+    status: str = Form("active"),
+    cost: str | None = Form(None),
+    currency: str = Form("TWD"),
     notes: str | None = Form(None),
     uc=Depends(get_create_uc),
     current_user=Depends(require_create),
@@ -60,6 +75,9 @@ def create_submit(
         expiry_date=datetime.strptime(expiry_date, "%Y-%m-%d").date(),
         notification_emails=notification_emails,
         notification_days=NotificationDays(notification_days),
+        status=SubscriptionStatus(status),
+        cost=Decimal(cost) if cost and cost.strip() else None,
+        currency=currency,
         notes=notes or None,
     )
     return RedirectResponse("/", status_code=303)
@@ -77,6 +95,8 @@ def edit_form(
         "request": request,
         "sub": sub,
         "notification_options": NOTIFICATION_OPTIONS,
+        "status_options": STATUS_OPTIONS,
+        "currency_options": CURRENCY_OPTIONS,
         "current_user": current_user,
     })
 
@@ -89,6 +109,9 @@ def edit_submit(
     expiry_date: str = Form(...),
     notification_emails: str = Form(...),
     notification_days: int = Form(...),
+    status: str = Form("active"),
+    cost: str | None = Form(None),
+    currency: str = Form("TWD"),
     notes: str | None = Form(None),
     uc=Depends(get_update_uc),
     current_user=Depends(require_update),
@@ -100,6 +123,9 @@ def edit_submit(
         expiry_date=datetime.strptime(expiry_date, "%Y-%m-%d").date(),
         notification_emails=notification_emails,
         notification_days=NotificationDays(notification_days),
+        status=SubscriptionStatus(status),
+        cost=Decimal(cost) if cost and cost.strip() else None,
+        currency=currency,
         notes=notes or None,
     )
     return RedirectResponse("/", status_code=303)

@@ -1,6 +1,7 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from enum import IntEnum
+from decimal import Decimal
+from enum import IntEnum, Enum
 
 
 class NotificationDays(IntEnum):
@@ -12,6 +13,13 @@ class NotificationDays(IntEnum):
     ONE_TWENTY = 120
 
 
+class SubscriptionStatus(str, Enum):
+    ACTIVE = "active"
+    RENEWED = "renewed"
+    CANCELLED = "cancelled"
+    SUSPENDED = "suspended"
+
+
 @dataclass
 class Subscription:
     service_name: str
@@ -21,6 +29,9 @@ class Subscription:
     notification_days: NotificationDays
     id: int | None = None
     is_active: bool = True
+    status: SubscriptionStatus = SubscriptionStatus.ACTIVE
+    cost: Decimal | None = None
+    currency: str = "TWD"
     notes: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

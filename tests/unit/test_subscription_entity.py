@@ -8,7 +8,7 @@ def make_sub(expiry_date: date, notification_days: NotificationDays) -> Subscrip
         service_name="GitHub",
         login_account="it@company.com",
         expiry_date=expiry_date,
-        responsible_person_email="alice@company.com",
+        notification_emails="alice@company.com",
         notification_days=notification_days,
     )
 
@@ -60,3 +60,17 @@ def test_subscription_is_active_by_default():
 def test_id_is_none_before_persistence():
     sub = make_sub(date(2026, 12, 31), NotificationDays.SEVEN)
     assert sub.id is None
+
+
+from src.domain.entities.subscription import Subscription, NotificationDays, SubscriptionStatus
+from decimal import Decimal
+
+def test_subscription_status_defaults_to_active():
+    sub = make_sub(date(2026, 12, 31), NotificationDays.SEVEN)
+    assert sub.status == SubscriptionStatus.ACTIVE
+
+
+def test_subscription_cost_defaults_to_none():
+    sub = make_sub(date(2026, 12, 31), NotificationDays.SEVEN)
+    assert sub.cost is None
+    assert sub.currency == "TWD"

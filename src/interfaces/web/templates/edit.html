@@ -1,35 +1,62 @@
 {% extends "base.html" %}
 {% block content %}
 <h4 class="mb-3">編輯訂閱</h4>
-<form method="POST" action="/subscriptions/{{ sub.id }}/edit" style="max-width:540px">
+<form method="POST" action="/subscriptions/{{ sub.id }}/edit" style="max-width:560px">
   <div class="mb-3">
     <label class="form-label">服務名稱</label>
-    <input type="text" name="service_name" class="form-control" value="{{ sub.service_name }}" required>
+    <input type="text" name="service_name" class="form-control"
+           value="{{ sub.service_name }}" required>
   </div>
   <div class="mb-3">
     <label class="form-label">登入帳號</label>
-    <input type="text" name="login_account" class="form-control" value="{{ sub.login_account }}" required>
+    <input type="text" name="login_account" class="form-control"
+           value="{{ sub.login_account }}" required>
   </div>
   <div class="mb-3">
     <label class="form-label">到期日</label>
-    <input type="date" name="expiry_date" class="form-control" value="{{ sub.expiry_date }}" required>
+    <input type="date" name="expiry_date" class="form-control"
+           value="{{ sub.expiry_date }}" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">狀態</label>
+    <select name="status" class="form-select" required>
+      {% for value, label in status_options %}
+      <option value="{{ value }}" {% if value == sub.status.value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">費用（選填）</label>
+    <div class="input-group">
+      <input type="number" name="cost" step="0.01" min="0" class="form-control"
+             value="{{ sub.cost if sub.cost else '' }}" placeholder="例如 1200">
+      <select name="currency" class="form-select" style="max-width:100px">
+        {% for c in currency_options %}
+        <option value="{{ c }}" {% if c == sub.currency %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
   </div>
   <div class="mb-3">
     <label class="form-label">通知收件人 Email</label>
-    <input type="text" name="notification_emails" class="form-control" value="{{ sub.notification_emails }}" required>
+    <input type="text" name="notification_emails" class="form-control"
+           value="{{ sub.notification_emails }}" required>
     <div class="form-text">多個收件人請用逗號分隔</div>
   </div>
   <div class="mb-3">
     <label class="form-label">提前通知天數</label>
     <select name="notification_days" class="form-select" required>
       {% for value, label in notification_options %}
-      <option value="{{ value }}" {% if value == sub.notification_days.value %}selected{% endif %}>{{ label }}</option>
+      <option value="{{ value }}" {% if value == sub.notification_days.value %}selected{% endif %}>
+        {{ label }}
+      </option>
       {% endfor %}
     </select>
   </div>
   <div class="mb-3">
     <label class="form-label">備註</label>
-    <textarea name="notes" class="form-control" rows="3" placeholder="合約編號、購買廠商、授權數量等（選填）">{{ sub.notes or '' }}</textarea>
+    <textarea name="notes" class="form-control" rows="3"
+              placeholder="合約編號、購買廠商、授權數量等（選填）">{{ sub.notes or '' }}</textarea>
   </div>
   <button type="submit" class="btn btn-primary">更新</button>
   <a href="/" class="btn btn-secondary ms-2">取消</a>

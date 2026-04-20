@@ -1,6 +1,7 @@
 from datetime import datetime
+from decimal import Decimal
 from sqlalchemy.orm import Session
-from src.domain.entities.subscription import Subscription, NotificationDays
+from src.domain.entities.subscription import Subscription, NotificationDays, SubscriptionStatus
 from src.domain.repositories.subscription_repository import SubscriptionRepository
 from src.infrastructure.database.models import SubscriptionModel
 
@@ -18,6 +19,9 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             notification_emails=model.notification_emails,
             notification_days=NotificationDays(model.notification_days),
             is_active=model.is_active,
+            status=SubscriptionStatus(model.status) if model.status else SubscriptionStatus.ACTIVE,
+            cost=Decimal(str(model.cost)) if model.cost is not None else None,
+            currency=model.currency or "TWD",
             notes=model.notes,
             created_at=model.created_at,
             updated_at=model.updated_at,
@@ -30,6 +34,9 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             expiry_date=subscription.expiry_date,
             notification_emails=subscription.notification_emails,
             notification_days=subscription.notification_days.value,
+            status=subscription.status.value,
+            cost=subscription.cost,
+            currency=subscription.currency,
             notes=subscription.notes,
         )
         self._session.add(model)
@@ -54,13 +61,16 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         model = self._session.get(SubscriptionModel, subscription.id)
         if model is None:
             raise ValueError(f"Subscription {subscription.id} not found")
-        model.service_name = subscription.service_name
-        model.login_account = subscription.login_account
-        model.expiry_date = subscription.expiry_date
+        model.service_name        = subscription.service_name
+        model.login_account       = subscription.login_account
+        model.expiry_date         = subscription.expiry_date
         model.notification_emails = subscription.notification_emails
-        model.notification_days = subscription.notification_days.value
-        model.notes = subscription.notes
-        model.updated_at = datetime.now()
+        model.notification_days   = subscription.notification_days.value
+        model.status              = subscription.status.value
+        model.cost                = subscription.cost
+        model.currency            = subscription.currency
+        model.notes               = subscription.notes
+        model.updated_at          = datetime.now()
         self._session.commit()
         self._session.refresh(model)
         return self._to_entity(model)
@@ -68,6 +78,6 @@ class SqlSubscriptionRepository(SubscriptionRepository):
     def deactivate(self, subscription_id: int) -> None:
         model = self._session.get(SubscriptionModel, subscription_id)
         if model:
-            model.is_active = False
+            model.is_active  = False
             model.updated_at = datetime.now()
             self._session.commit()
