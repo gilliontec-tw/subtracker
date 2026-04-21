@@ -16,7 +16,7 @@ class UpdateSubscriptionUseCase:
         expiry_date: date,
         notification_emails: str,
         notification_days: NotificationDays,
-        status: SubscriptionStatus = SubscriptionStatus.ACTIVE,
+        status: SubscriptionStatus,
         cost: Decimal | None = None,
         currency: str = "TWD",
         notes: str | None = None,

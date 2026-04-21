@@ -1,6 +1,7 @@
 from datetime import date, timedelta
+from decimal import Decimal
 import pytest
-from src.domain.entities.subscription import Subscription, NotificationDays
+from src.domain.entities.subscription import Subscription, NotificationDays, SubscriptionStatus
 
 
 def make_sub(expiry_date: date, notification_days: NotificationDays) -> Subscription:
@@ -61,9 +62,6 @@ def test_id_is_none_before_persistence():
     sub = make_sub(date(2026, 12, 31), NotificationDays.SEVEN)
     assert sub.id is None
 
-
-from src.domain.entities.subscription import Subscription, NotificationDays, SubscriptionStatus
-from decimal import Decimal
 
 def test_subscription_status_defaults_to_active():
     sub = make_sub(date(2026, 12, 31), NotificationDays.SEVEN)

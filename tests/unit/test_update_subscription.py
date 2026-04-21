@@ -1,5 +1,5 @@
 from datetime import date
-from src.domain.entities.subscription import NotificationDays, Subscription
+from src.domain.entities.subscription import NotificationDays, Subscription, SubscriptionStatus
 from src.application.use_cases.update_subscription import UpdateSubscriptionUseCase
 import pytest
 
@@ -14,8 +14,9 @@ def test_update_calls_repo_update(mock_repo, sample_subscription):
         service_name="GitLab",
         login_account="it2@company.com",
         expiry_date=date(2027, 1, 1),
-        responsible_person_email="bob@company.com",
+        notification_emails="bob@company.com",
         notification_days=NotificationDays.FOURTEEN,
+        status=SubscriptionStatus.ACTIVE,
     )
 
     mock_repo.get_by_id.assert_called_once_with(1)
@@ -34,6 +35,7 @@ def test_update_raises_if_not_found(mock_repo):
             service_name="X",
             login_account="x",
             expiry_date=date(2027, 1, 1),
-            responsible_person_email="x@x.com",
+            notification_emails="x@x.com",
             notification_days=NotificationDays.SEVEN,
+            status=SubscriptionStatus.ACTIVE,
         )
