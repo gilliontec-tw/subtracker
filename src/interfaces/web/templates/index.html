@@ -1,41 +1,227 @@
 {% extends "base.html" %}
 {% block content %}
-<h4 class="mb-3">訂閱清單</h4>
+
+{# ── Status badge lookup ───────────────────────────────────────────── #}
+{% set STATUS = {
+  'active':    ('bg-success',           '使用中'),
+  'renewed':   ('bg-primary',           '已續約'),
+  'cancelled': ('bg-secondary',         '已取消'),
+  'suspended': ('bg-warning text-dark', '暫停')
+} %}
+
+{# ── Toolbar: search + filter + page size ─────────────────────────── #}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h4 class="mb-0">訂閱清單</h4>
+</div>
+<div class="row g-2 mb-3 align-items-end">
+  <div class="col-sm-5">
+    <input type="text" id="searchInput" class="form-control form-control-sm"
+           placeholder="搜尋服務名稱…">
+  </div>
+  <div class="col-sm-3">
+    <select id="statusFilter" class="form-select form-select-sm">
+      <option value="">全部狀態</option>
+      <option value="active">使用中</option>
+      <option value="renewed">已續約</option>
+      <option value="cancelled">已取消</option>
+      <option value="suspended">暫停</option>
+    </select>
+  </div>
+  <div class="col-sm-2">
+    <select id="pageSizeSelect" class="form-select form-select-sm">
+      <option value="10">每頁 10 筆</option>
+      <option value="25">每頁 25 筆</option>
+      <option value="50">每頁 50 筆</option>
+      <option value="999">全部</option>
+    </select>
+  </div>
+</div>
+
 {% if not subscriptions %}
   <p class="text-muted">目前沒有訂閱資料。</p>
 {% else %}
+
+<div class="table-responsive">
 <table class="table table-bordered table-hover align-middle">
   <thead class="table-header">
     <tr>
-      <th>服務名稱</th>
+      <th class="sortable" data-col="service">服務名稱 <span class="sort-icon">↕</span></th>
       <th>登入帳號</th>
-      <th>到期日</th>
+      <th class="sortable" data-col="expiry">到期日 <span class="sort-icon">↕</span></th>
+      <th class="sortable" data-col="status">狀態 <span class="sort-icon">↕</span></th>
+      <th class="sortable" data-col="cost">費用 <span class="sort-icon">↕</span></th>
       <th>提前通知</th>
       <th>通知收件人</th>
       <th>備註</th>
       <th>操作</th>
     </tr>
   </thead>
-  <tbody>
+  <tbody id="subTable">
     {% for sub in subscriptions %}
     {% set days_left = (sub.expiry_date - today).days %}
-    <tr class="{% if days_left <= 7 %}table-danger{% elif days_left <= 30 %}table-warning{% endif %}">
+    {% set badge_cls, badge_txt = STATUS.get(sub.status.value, ('bg-secondary', sub.status.value)) %}
+    <tr class="{% if days_left <= 7 %}table-danger{% elif days_left <= 30 %}table-warning{% endif %}"
+        data-service="{{ sub.service_name | lower }}"
+        data-expiry="{{ sub.expiry_date }}"
+        data-status="{{ sub.status.value }}"
+        data-cost="{{ sub.cost | float if sub.cost else 0 }}">
       <td>{{ sub.service_name }}</td>
       <td>{{ sub.login_account }}</td>
-      <td>{{ sub.expiry_date }} <small class="text-muted">({{ days_left }} 天後)</small></td>
+      <td>
+        {{ sub.expiry_date }}
+        <small class="text-muted">({{ days_left }} 天後)</small>
+      </td>
+      <td><span class="badge {{ badge_cls }}">{{ badge_txt }}</span></td>
+      <td>
+        {% if sub.cost %}
+          {{ "%.2f" % sub.cost }} {{ sub.currency }}
+        {% else %}
+          <span class="text-muted">—</span>
+        {% endif %}
+      </td>
       <td>{{ sub.notification_days.value }} 天前</td>
       <td><small>{{ sub.notification_emails }}</small></td>
       <td><small class="text-muted">{{ sub.notes or '' }}</small></td>
-      <td>
-        <a href="/subscriptions/{{ sub.id }}/edit" class="btn btn-sm btn-outline-primary">編輯</a>
-        <form method="POST" action="/subscriptions/{{ sub.id }}/delete" class="d-inline"
-              onsubmit="return confirm('確認刪除 {{ sub.service_name }}？')">
-          <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
-        </form>
+      <td class="text-nowrap">
+        {% if current_user.role == 'admin' or current_user.can_update %}
+        <a href="/subscriptions/{{ sub.id }}/edit"
+           class="btn btn-sm btn-outline-primary">編輯</a>
+        {% endif %}
+        {% if current_user.role == 'admin' or current_user.can_delete %}
+        <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
+                data-id="{{ sub.id }}"
+                data-name="{{ sub.service_name }}">刪除</button>
+        {% endif %}
       </td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
+</div>
+
+{# ── Pagination controls ───────────────────────────────────────────── #}
+<div class="d-flex justify-content-between align-items-center mt-2">
+  <small id="pageInfo" class="text-muted"></small>
+  <div>
+    <button id="prevBtn" class="btn btn-sm btn-outline-secondary me-1">‹ 上一頁</button>
+    <button id="nextBtn" class="btn btn-sm btn-outline-secondary">下一頁 ›</button>
+  </div>
+</div>
+
 {% endif %}
+
+{# ── Delete confirm modal ─────────────────────────────────────────── #}
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title">確認刪除</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body py-2">
+        確認刪除「<strong id="deleteTargetName"></strong>」？<br>
+        <small class="text-muted">此操作無法復原。</small>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-sm btn-secondary"
+                data-bs-dismiss="modal">取消</button>
+        <form id="deleteForm" method="POST" class="d-inline">
+          <button type="submit" class="btn btn-sm btn-danger">確認刪除</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Delete modal ──────────────────────────────────────────────────────────
+document.querySelectorAll('.delete-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('deleteTargetName').textContent = btn.dataset.name;
+    document.getElementById('deleteForm').action =
+      '/subscriptions/' + btn.dataset.id + '/delete';
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+  });
+});
+
+// ── Table filter / sort / pagination ─────────────────────────────────────
+const tbody = document.getElementById('subTable');
+if (tbody) {
+  const allRows = Array.from(tbody.querySelectorAll('tr'));
+  let sortCol = null;
+  let sortAsc = true;
+  let currentPage = 1;
+
+  function pageSize() {
+    return parseInt(document.getElementById('pageSizeSelect').value);
+  }
+
+  function filtered() {
+    const q  = document.getElementById('searchInput').value.toLowerCase();
+    const st = document.getElementById('statusFilter').value;
+    return allRows.filter(r =>
+      r.dataset.service.includes(q) &&
+      (!st || r.dataset.status === st)
+    );
+  }
+
+  function sorted(rows) {
+    if (!sortCol) return rows;
+    return [...rows].sort((a, b) => {
+      let av = a.dataset[sortCol] || '';
+      let bv = b.dataset[sortCol] || '';
+      if (sortCol === 'cost') {
+        return sortAsc ? parseFloat(av) - parseFloat(bv)
+                       : parseFloat(bv) - parseFloat(av);
+      }
+      return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+  }
+
+  function render() {
+    const rows  = sorted(filtered());
+    const total = rows.length;
+    const ps    = pageSize();
+    const pages = Math.max(1, Math.ceil(total / ps));
+    if (currentPage > pages) currentPage = pages;
+
+    allRows.forEach(r => r.style.display = 'none');
+    const start = (currentPage - 1) * ps;
+    rows.slice(start, start + ps).forEach(r => r.style.display = '');
+
+    const end = Math.min(start + ps, total);
+    document.getElementById('pageInfo').textContent =
+      total === 0 ? '無符合資料' :
+      `顯示 ${start + 1}–${end} / 共 ${total} 筆`;
+    document.getElementById('prevBtn').disabled = currentPage <= 1;
+    document.getElementById('nextBtn').disabled = currentPage >= pages;
+  }
+
+  document.getElementById('searchInput')
+    .addEventListener('input',  () => { currentPage = 1; render(); });
+  document.getElementById('statusFilter')
+    .addEventListener('change', () => { currentPage = 1; render(); });
+  document.getElementById('pageSizeSelect')
+    .addEventListener('change', () => { currentPage = 1; render(); });
+  document.getElementById('prevBtn')
+    .addEventListener('click',  () => { currentPage--; render(); });
+  document.getElementById('nextBtn')
+    .addEventListener('click',  () => { currentPage++; render(); });
+
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.style.cursor = 'pointer';
+    th.addEventListener('click', () => {
+      const col = th.dataset.col;
+      if (sortCol === col) { sortAsc = !sortAsc; }
+      else { sortCol = col; sortAsc = true; }
+      document.querySelectorAll('.sort-icon').forEach(s => s.textContent = '↕');
+      th.querySelector('.sort-icon').textContent = sortAsc ? '↑' : '↓';
+      currentPage = 1;
+      render();
+    });
+  });
+
+  render();
+}
+</script>
 {% endblock %}
