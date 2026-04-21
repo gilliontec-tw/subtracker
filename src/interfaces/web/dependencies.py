@@ -12,6 +12,7 @@ from src.application.use_cases.auth.login_user import LoginUserUseCase
 from src.application.use_cases.auth.register_user import RegisterUserUseCase
 from src.application.use_cases.auth.update_user_permissions import UpdateUserPermissionsUseCase
 from src.application.use_cases.auth.list_users import ListUsersUseCase
+from src.application.use_cases.auth.change_password import ChangePasswordUseCase
 from src.domain.entities.user import User
 from src.interfaces.web.session import get_session_user_id
 
@@ -76,6 +77,10 @@ def get_update_permissions_uc(repo=Depends(get_user_repo)) -> UpdateUserPermissi
 
 def get_list_users_uc(repo=Depends(get_user_repo)) -> ListUsersUseCase:
     return ListUsersUseCase(repo)
+
+
+def get_change_password_uc(repo=Depends(get_user_repo)) -> ChangePasswordUseCase:
+    return ChangePasswordUseCase(repo)
 
 
 # ── Auth guards ─────────────────────────────────────────────────────────────
