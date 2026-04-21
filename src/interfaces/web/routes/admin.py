@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from src.interfaces.web.dependencies import (
     get_user_repo, get_register_uc, get_update_permissions_uc,
-    get_list_users_uc, require_admin,
+    get_list_users_uc, require_admin, get_audit_log_repo,
 )
 
 router = APIRouter(prefix="/admin")
@@ -99,3 +99,17 @@ def edit_user_submit(
         is_active=is_active,
     )
     return RedirectResponse("/admin/users", status_code=303)
+
+
+@router.get("/audit-log")
+def audit_log(
+    request: Request,
+    audit_repo=Depends(get_audit_log_repo),
+    current_user=Depends(require_admin),
+):
+    entries = audit_repo.get_recent(limit=200)
+    return templates.TemplateResponse("admin/audit_log.html", {
+        "request": request,
+        "entries": entries,
+        "current_user": current_user,
+    })

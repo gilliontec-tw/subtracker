@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h4 class="mb-3">🕵️ 操作紀錄（最近 200 筆）</h4>
+
+{% if not entries %}
+<p class="text-muted">尚無操作紀錄。</p>
+{% else %}
+<div class="table-responsive">
+<table class="table table-bordered table-hover align-middle table-sm">
+  <thead class="table-header">
+    <tr>
+      <th>時間</th>
+      <th>操作者</th>
+      <th>動作</th>
+      <th>對象</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in entries %}
+    {% if e.action == 'create' %}
+      {% set action_badge = 'bg-success' %}
+      {% set action_text  = '新增' %}
+    {% elif e.action == 'update' %}
+      {% set action_badge = 'bg-primary' %}
+      {% set action_text  = '修改' %}
+    {% else %}
+      {% set action_badge = 'bg-danger' %}
+      {% set action_text  = '刪除' %}
+    {% endif %}
+    <tr>
+      <td><small>{{ e.created_at.strftime('%Y-%m-%d %H:%M:%S') if e.created_at else '—' }}</small></td>
+      <td><small>{{ e.user_email }}</small></td>
+      <td><span class="badge {{ action_badge }}">{{ action_text }}</span></td>
+      <td>{{ e.target_name }} <small class="text-muted">(#{{ e.target_id }})</small></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

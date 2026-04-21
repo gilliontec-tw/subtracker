@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from src.infrastructure.database.session import SessionLocal
 from src.infrastructure.database.sql_subscription_repository import SqlSubscriptionRepository
 from src.infrastructure.database.sql_user_repository import SqlUserRepository
+from src.infrastructure.database.sql_audit_log_repository import SqlAuditLogRepository
 from src.application.use_cases.create_subscription import CreateSubscriptionUseCase
 from src.application.use_cases.update_subscription import UpdateSubscriptionUseCase
 from src.application.use_cases.delete_subscription import DeleteSubscriptionUseCase
@@ -39,6 +40,10 @@ def get_repo(session: Session = Depends(get_db_session)) -> SqlSubscriptionRepos
 
 def get_user_repo(session: Session = Depends(get_db_session)) -> SqlUserRepository:
     return SqlUserRepository(session)
+
+
+def get_audit_log_repo(session: Session = Depends(get_db_session)) -> SqlAuditLogRepository:
+    return SqlAuditLogRepository(session)
 
 
 # ── Subscription use cases ──────────────────────────────────────────────────

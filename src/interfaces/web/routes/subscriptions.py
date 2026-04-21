@@ -3,10 +3,12 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from src.domain.entities.audit_entry import AuditEntry
 from src.domain.entities.subscription import NotificationDays, SubscriptionStatus
 from src.interfaces.web.dependencies import (
     get_create_uc, get_delete_uc, get_list_uc, get_single_uc, get_update_uc,
     get_current_user, require_create, require_update, require_delete,
+    get_audit_log_repo,
 )
 
 router = APIRouter()
@@ -68,8 +70,9 @@ def create_submit(
     notes: str | None = Form(None),
     uc=Depends(get_create_uc),
     current_user=Depends(require_create),
+    audit_repo=Depends(get_audit_log_repo),
 ):
-    uc.execute(
+    sub = uc.execute(
         service_name=service_name,
         login_account=login_account,
         expiry_date=datetime.strptime(expiry_date, "%Y-%m-%d").date(),
@@ -80,6 +83,14 @@ def create_submit(
         currency=currency,
         notes=notes or None,
     )
+    audit_repo.add(AuditEntry(
+        user_id=current_user.id,
+        user_email=current_user.email,
+        action="create",
+        target_type="subscription",
+        target_id=sub.id,
+        target_name=sub.service_name,
+    ))
     return RedirectResponse("/", status_code=303)
 
 
@@ -115,8 +126,9 @@ def edit_submit(
     notes: str | None = Form(None),
     uc=Depends(get_update_uc),
     current_user=Depends(require_update),
+    audit_repo=Depends(get_audit_log_repo),
 ):
-    uc.execute(
+    sub = uc.execute(
         subscription_id=subscription_id,
         service_name=service_name,
         login_account=login_account,
@@ -128,6 +140,14 @@ def edit_submit(
         currency=currency,
         notes=notes or None,
     )
+    audit_repo.add(AuditEntry(
+        user_id=current_user.id,
+        user_email=current_user.email,
+        action="update",
+        target_type="subscription",
+        target_id=sub.id,
+        target_name=sub.service_name,
+    ))
     return RedirectResponse("/", status_code=303)
 
 
@@ -135,7 +155,19 @@ def edit_submit(
 def delete(
     subscription_id: int,
     uc=Depends(get_delete_uc),
+    single_uc=Depends(get_single_uc),
     current_user=Depends(require_delete),
+    audit_repo=Depends(get_audit_log_repo),
 ):
+    sub = single_uc.execute(subscription_id)
+    service_name = sub.service_name if sub else str(subscription_id)
     uc.execute(subscription_id)
+    audit_repo.add(AuditEntry(
+        user_id=current_user.id,
+        user_email=current_user.email,
+        action="delete",
+        target_type="subscription",
+        target_id=subscription_id,
+        target_name=service_name,
+    ))
     return RedirectResponse("/", status_code=303)
