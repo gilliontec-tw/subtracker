@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
@@ -32,6 +32,50 @@ STATUS_OPTIONS = [
 
 CURRENCY_OPTIONS = ["TWD", "USD", "EUR", "JPY"]
 
+CATEGORY_OPTIONS = [
+    "生產力工具", "開發工具", "資安合規", "設計工具",
+    "行銷廣告", "雲端基礎", "財務會計", "HR人資", "其他",
+]
+
+DEPARTMENT_OPTIONS = [
+    "全公司", "工程", "設計", "行銷", "業務", "財務", "HR", "IT", "其他",
+]
+
+BILLING_CYCLE_OPTIONS = [
+    ("monthly", "月付"),
+    ("annual",  "年付"),
+]
+
+
+@router.get("/dashboard")
+def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
+    subscriptions = uc.execute()
+    today = date.today()
+
+    active_subs = [s for s in subscriptions if s.status.value in ("active", "renewed")]
+    total_annual_cost = sum(
+        (s.cost * 12 if s.billing_cycle == "monthly" else s.cost)
+        for s in active_subs if s.cost is not None
+    )
+    upcoming_30 = [s for s in active_subs if 0 <= (s.expiry_date - today).days <= 30]
+    upcoming_90 = sorted(
+        [s for s in active_subs if 0 <= (s.expiry_date - today).days <= 90],
+        key=lambda s: s.expiry_date,
+    )
+    no_owner = [s for s in active_subs if not s.owner_name]
+
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "current_user": current_user,
+        "today": today,
+        "total_subscriptions": len(subscriptions),
+        "active_count": len(active_subs),
+        "total_annual_cost": total_annual_cost,
+        "upcoming_30_count": len(upcoming_30),
+        "no_owner_count": len(no_owner),
+        "upcoming_90": upcoming_90,
+    })
+
 
 @router.get("/")
 def index(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
@@ -52,6 +96,9 @@ def create_form(request: Request, current_user=Depends(require_create)):
         "notification_options": NOTIFICATION_OPTIONS,
         "status_options": STATUS_OPTIONS,
         "currency_options": CURRENCY_OPTIONS,
+        "category_options": CATEGORY_OPTIONS,
+        "department_options": DEPARTMENT_OPTIONS,
+        "billing_cycle_options": BILLING_CYCLE_OPTIONS,
         "current_user": current_user,
     })
 
@@ -68,6 +115,10 @@ def create_submit(
     cost: str | None = Form(None),
     currency: str = Form("TWD"),
     notes: str | None = Form(None),
+    owner_name: str | None = Form(None),
+    category: str | None = Form(None),
+    department: str | None = Form(None),
+    billing_cycle: str | None = Form(None),
     uc=Depends(get_create_uc),
     current_user=Depends(require_create),
     audit_repo=Depends(get_audit_log_repo),
@@ -82,6 +133,10 @@ def create_submit(
         cost=Decimal(cost) if cost and cost.strip() else None,
         currency=currency,
         notes=notes or None,
+        owner_name=owner_name or None,
+        category=category or None,
+        department=department or None,
+        billing_cycle=billing_cycle or None,
     )
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
@@ -108,6 +163,9 @@ def edit_form(
         "notification_options": NOTIFICATION_OPTIONS,
         "status_options": STATUS_OPTIONS,
         "currency_options": CURRENCY_OPTIONS,
+        "category_options": CATEGORY_OPTIONS,
+        "department_options": DEPARTMENT_OPTIONS,
+        "billing_cycle_options": BILLING_CYCLE_OPTIONS,
         "current_user": current_user,
     })
 
@@ -124,6 +182,10 @@ def edit_submit(
     cost: str | None = Form(None),
     currency: str = Form("TWD"),
     notes: str | None = Form(None),
+    owner_name: str | None = Form(None),
+    category: str | None = Form(None),
+    department: str | None = Form(None),
+    billing_cycle: str | None = Form(None),
     uc=Depends(get_update_uc),
     current_user=Depends(require_update),
     audit_repo=Depends(get_audit_log_repo),
@@ -139,6 +201,10 @@ def edit_submit(
         cost=Decimal(cost) if cost and cost.strip() else None,
         currency=currency,
         notes=notes or None,
+        owner_name=owner_name or None,
+        category=category or None,
+        department=department or None,
+        billing_cycle=billing_cycle or None,
     )
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
