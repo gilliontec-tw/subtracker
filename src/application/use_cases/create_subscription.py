@@ -19,6 +19,10 @@ class CreateSubscriptionUseCase:
         cost: Decimal | None = None,
         currency: str = "TWD",
         notes: str | None = None,
+        owner_name: str | None = None,
+        category: str | None = None,
+        department: str | None = None,
+        billing_cycle: str | None = None,
     ) -> Subscription:
         entity = Subscription(
             service_name=service_name,
@@ -30,5 +34,9 @@ class CreateSubscriptionUseCase:
             cost=cost,
             currency=currency,
             notes=notes,
+            owner_name=owner_name,
+            category=category,
+            department=department,
+            billing_cycle=billing_cycle,
         )
         return self._repo.add(entity)

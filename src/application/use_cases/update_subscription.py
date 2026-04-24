@@ -20,6 +20,10 @@ class UpdateSubscriptionUseCase:
         cost: Decimal | None = None,
         currency: str = "TWD",
         notes: str | None = None,
+        owner_name: str | None = None,
+        category: str | None = None,
+        department: str | None = None,
+        billing_cycle: str | None = None,
     ):
         entity = self._repo.get_by_id(subscription_id)
         if entity is None:
@@ -33,4 +37,8 @@ class UpdateSubscriptionUseCase:
         entity.cost                = cost
         entity.currency            = currency
         entity.notes               = notes
+        entity.owner_name          = owner_name
+        entity.category            = category
+        entity.department          = department
+        entity.billing_cycle       = billing_cycle
         return self._repo.update(entity)

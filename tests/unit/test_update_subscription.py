@@ -39,3 +39,36 @@ def test_update_raises_if_not_found(mock_repo):
             notification_days=NotificationDays.SEVEN,
             status=SubscriptionStatus.ACTIVE,
         )
+
+
+def test_update_subscription_with_new_fields(mock_repo):
+    existing = Subscription(
+        id=5,
+        service_name="Notion",
+        login_account="team@co.com",
+        expiry_date=date(2026, 9, 1),
+        notification_emails="c@co.com",
+        notification_days=NotificationDays.THIRTY,
+        status=SubscriptionStatus.ACTIVE,
+    )
+    mock_repo.get_by_id.return_value = existing
+    mock_repo.update.return_value = existing
+    uc = UpdateSubscriptionUseCase(mock_repo)
+    uc.execute(
+        subscription_id=5,
+        service_name="Notion",
+        login_account="team@co.com",
+        expiry_date=date(2026, 9, 1),
+        notification_emails="c@co.com",
+        notification_days=NotificationDays.THIRTY,
+        status=SubscriptionStatus.ACTIVE,
+        owner_name="林行政",
+        category="生產力工具",
+        department="全公司",
+        billing_cycle="annual",
+    )
+    saved = mock_repo.update.call_args[0][0]
+    assert saved.owner_name == "林行政"
+    assert saved.category == "生產力工具"
+    assert saved.department == "全公司"
+    assert saved.billing_cycle == "annual"
