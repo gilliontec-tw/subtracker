@@ -74,7 +74,7 @@ def test_subscription_cost_defaults_to_none():
     assert sub.currency == "TWD"
 
 
-def test_subscription_has_new_phase1_fields():
+def test_owner_category_department_billing_cycle_are_stored():
     sub = Subscription(
         service_name="Slack",
         login_account="admin@co.com",
@@ -93,13 +93,7 @@ def test_subscription_has_new_phase1_fields():
 
 
 def test_subscription_new_fields_default_to_none():
-    sub = Subscription(
-        service_name="GitHub",
-        login_account="dev@co.com",
-        expiry_date=date(2026, 8, 1),
-        notification_emails="b@co.com",
-        notification_days=NotificationDays.FOURTEEN,
-    )
+    sub = make_sub(date(2026, 8, 1), NotificationDays.FOURTEEN)
     assert sub.owner_name is None
     assert sub.category is None
     assert sub.department is None
