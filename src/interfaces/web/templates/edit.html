@@ -58,6 +58,44 @@
     <textarea name="notes" class="form-control" rows="3"
               placeholder="合約編號、購買廠商、授權數量等（選填）">{{ sub.notes or '' }}</textarea>
   </div>
+  <div class="mb-3">
+    <label class="form-label">負責人（選填）</label>
+    <input type="text" name="owner_name" class="form-control"
+           value="{{ sub.owner_name or '' }}"
+           placeholder="例如：陳小明">
+  </div>
+  <div class="row g-2 mb-3">
+    <div class="col-sm-6">
+      <label class="form-label">分類（選填）</label>
+      <select name="category" class="form-select">
+        <option value="">— 請選擇 —</option>
+        {% for opt in category_options %}
+        <option value="{{ opt }}"
+                {% if sub.category == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-sm-6">
+      <label class="form-label">部門（選填）</label>
+      <select name="department" class="form-select">
+        <option value="">— 請選擇 —</option>
+        {% for opt in department_options %}
+        <option value="{{ opt }}"
+                {% if sub.department == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">計費週期（選填）</label>
+    <select name="billing_cycle" class="form-select">
+      <option value="">— 請選擇 —</option>
+      {% for value, label in billing_cycle_options %}
+      <option value="{{ value }}"
+              {% if sub.billing_cycle == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
   <button type="submit" class="btn btn-primary">更新</button>
   <a href="/" class="btn btn-secondary ms-2">取消</a>
 </form>
