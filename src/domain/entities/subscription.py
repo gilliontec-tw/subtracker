@@ -33,6 +33,10 @@ class Subscription:
     cost: Decimal | None = None
     currency: str = "TWD"
     notes: str | None = None
+    owner_name: str | None = None
+    category: str | None = None
+    department: str | None = None
+    billing_cycle: str | None = None  # "monthly" | "annual" | None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

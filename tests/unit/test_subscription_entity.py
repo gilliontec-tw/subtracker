@@ -72,3 +72,35 @@ def test_subscription_cost_defaults_to_none():
     sub = make_sub(date(2026, 12, 31), NotificationDays.SEVEN)
     assert sub.cost is None
     assert sub.currency == "TWD"
+
+
+def test_subscription_has_new_phase1_fields():
+    sub = Subscription(
+        service_name="Slack",
+        login_account="admin@co.com",
+        expiry_date=date(2026, 6, 1),
+        notification_emails="a@co.com",
+        notification_days=NotificationDays.THIRTY,
+        owner_name="陳小明",
+        category="生產力工具",
+        department="全公司",
+        billing_cycle="annual",
+    )
+    assert sub.owner_name == "陳小明"
+    assert sub.category == "生產力工具"
+    assert sub.department == "全公司"
+    assert sub.billing_cycle == "annual"
+
+
+def test_subscription_new_fields_default_to_none():
+    sub = Subscription(
+        service_name="GitHub",
+        login_account="dev@co.com",
+        expiry_date=date(2026, 8, 1),
+        notification_emails="b@co.com",
+        notification_days=NotificationDays.FOURTEEN,
+    )
+    assert sub.owner_name is None
+    assert sub.category is None
+    assert sub.department is None
+    assert sub.billing_cycle is None
