@@ -22,6 +22,10 @@ class SubscriptionModel(Base):
     cost                = Column(Numeric(10, 2), nullable=True)
     currency            = Column(String(10), nullable=False, default="TWD")
     notes               = Column(String(1000), nullable=True)
+    owner_name          = Column(String(100), nullable=True)
+    category            = Column(String(100), nullable=True)
+    department          = Column(String(100), nullable=True)
+    billing_cycle       = Column(String(20), nullable=True)
     created_at          = Column(DateTime, nullable=False, default=datetime.now)
     updated_at          = Column(DateTime, nullable=True, onupdate=datetime.now)
 
