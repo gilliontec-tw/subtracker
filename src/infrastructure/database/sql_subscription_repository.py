@@ -23,6 +23,10 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             cost=Decimal(str(model.cost)) if model.cost is not None else None,
             currency=model.currency or "TWD",
             notes=model.notes,
+            owner_name=model.owner_name,
+            category=model.category,
+            department=model.department,
+            billing_cycle=model.billing_cycle,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -38,6 +42,10 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             cost=subscription.cost,
             currency=subscription.currency,
             notes=subscription.notes,
+            owner_name=subscription.owner_name,
+            category=subscription.category,
+            department=subscription.department,
+            billing_cycle=subscription.billing_cycle,
         )
         self._session.add(model)
         self._session.commit()
@@ -70,6 +78,10 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         model.cost                = subscription.cost
         model.currency            = subscription.currency
         model.notes               = subscription.notes
+        model.owner_name          = subscription.owner_name
+        model.category            = subscription.category
+        model.department          = subscription.department
+        model.billing_cycle       = subscription.billing_cycle
         model.updated_at          = datetime.now()
         self._session.commit()
         self._session.refresh(model)
