@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from decimal import Decimal
 import json
 from fastapi import APIRouter, Depends, Form, Request
@@ -79,8 +79,8 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
     for s in active_subs:
         cat = s.category or "未分類"
         cat_costs[cat] += annual_cost(s)
-    cat_labels = json.dumps(list(cat_costs.keys()), ensure_ascii=False)
-    cat_values = json.dumps([round(v, 2) for v in cat_costs.values()])
+    chart_cat_labels = json.dumps(list(cat_costs.keys()), ensure_ascii=False)
+    chart_cat_values = json.dumps([round(v, 2) for v in cat_costs.values()])
 
     # ── Bar chart: annual-sub renewals by month (next 12 months) ─────────
     month_labels_raw = []
@@ -100,8 +100,8 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
         if key in month_data:
             month_data[key] += annual_cost(s)
 
-    month_labels = json.dumps([f"{k[:4]}/{int(k[5:7])}月" for k in month_labels_raw], ensure_ascii=False)
-    month_values = json.dumps([round(month_data[k], 2) for k in month_labels_raw])
+    chart_month_labels = json.dumps([f"{k[:4]}/{int(k[5:7])}月" for k in month_labels_raw], ensure_ascii=False)
+    chart_month_values = json.dumps([round(month_data[k], 2) for k in month_labels_raw])
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -114,10 +114,10 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
         "upcoming_30_count": len(upcoming_30),
         "no_owner_count": len(no_owner),
         "upcoming_90": upcoming_90,
-        "cat_labels": cat_labels,
-        "cat_values": cat_values,
-        "month_labels": month_labels,
-        "month_values": month_values,
+        "chart_cat_labels": chart_cat_labels,
+        "chart_cat_values": chart_cat_values,
+        "chart_month_labels": chart_month_labels,
+        "chart_month_values": chart_month_values,
     })
 
 
