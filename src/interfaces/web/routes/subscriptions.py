@@ -1,7 +1,9 @@
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 from decimal import Decimal
+import json
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from src.domain.entities.audit_entry import AuditEntry
 from src.domain.entities.subscription import NotificationDays, SubscriptionStatus
@@ -52,17 +54,54 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
     subscriptions = uc.execute()
     today = date.today()
 
+    def annual_cost(s):
+        if s.cost is None:
+            return 0
+        c = float(s.cost)
+        bc = (s.billing_cycle or "").lower()
+        if bc == "monthly":
+            return c * 12
+        return c  # annual / empty → treat as annual
+
     active_subs = [s for s in subscriptions if s.status.value in ("active", "renewed")]
-    total_annual_cost = sum(
-        (s.cost * 12 if s.billing_cycle == "monthly" else s.cost)
-        for s in active_subs if s.cost is not None
-    )
+    total_annual_cost = sum(annual_cost(s) for s in active_subs)
+    total_monthly_cost = total_annual_cost / 12
+
     upcoming_30 = [s for s in active_subs if 0 <= (s.expiry_date - today).days <= 30]
     upcoming_90 = sorted(
         [s for s in active_subs if 0 <= (s.expiry_date - today).days <= 90],
         key=lambda s: s.expiry_date,
     )
     no_owner = [s for s in active_subs if not s.owner_name]
+
+    # ── Donut chart: cost by category ────────────────────────────────────
+    cat_costs: dict[str, float] = defaultdict(float)
+    for s in active_subs:
+        cat = s.category or "未分類"
+        cat_costs[cat] += annual_cost(s)
+    cat_labels = json.dumps(list(cat_costs.keys()), ensure_ascii=False)
+    cat_values = json.dumps([round(v, 2) for v in cat_costs.values()])
+
+    # ── Bar chart: annual-sub renewals by month (next 12 months) ─────────
+    month_labels_raw = []
+    month_data: dict[str, float] = defaultdict(float)
+    for i in range(12):
+        m = (today.month - 1 + i) % 12 + 1
+        y = today.year + (today.month - 1 + i) // 12
+        key = f"{y}-{m:02d}"
+        month_labels_raw.append(key)
+        month_data[key] = 0.0
+
+    for s in active_subs:
+        if (s.billing_cycle or "").lower() == "monthly":
+            continue  # skip monthly; they renew every month
+        exp = s.expiry_date
+        key = f"{exp.year}-{exp.month:02d}"
+        if key in month_data:
+            month_data[key] += annual_cost(s)
+
+    month_labels = json.dumps([f"{k[:4]}/{int(k[5:7])}月" for k in month_labels_raw], ensure_ascii=False)
+    month_values = json.dumps([round(month_data[k], 2) for k in month_labels_raw])
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -71,10 +110,37 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
         "total_subscriptions": len(subscriptions),
         "active_count": len(active_subs),
         "total_annual_cost": total_annual_cost,
+        "total_monthly_cost": total_monthly_cost,
         "upcoming_30_count": len(upcoming_30),
         "no_owner_count": len(no_owner),
         "upcoming_90": upcoming_90,
+        "cat_labels": cat_labels,
+        "cat_values": cat_values,
+        "month_labels": month_labels,
+        "month_values": month_values,
     })
+
+
+@router.get("/subscriptions/export")
+def export_csv(uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
+    import csv, io
+    subscriptions = uc.execute()
+    buf = io.StringIO()
+    buf.write("﻿")  # UTF-8 BOM for Excel
+    writer = csv.writer(buf)
+    writer.writerow(["服務名稱", "登入帳號", "到期日", "狀態", "費用", "幣別",
+                     "計費週期", "負責人", "分類", "部門", "備註"])
+    for s in subscriptions:
+        writer.writerow([
+            s.service_name, s.login_account, s.expiry_date, s.status.value,
+            s.cost or "", s.currency, s.billing_cycle or "",
+            s.owner_name or "", s.category or "", s.department or "", s.notes or "",
+        ])
+    return StreamingResponse(
+        iter([buf.getvalue().encode("utf-8")]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename*=UTF-8''subscriptions.csv"},
+    )
 
 
 @router.get("/")
