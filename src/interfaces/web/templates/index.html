@@ -9,11 +9,22 @@
   'suspended': ('bg-warning text-dark', '暫停')
 } %}
 
+{# ── Category emoji fallback map ──────────────────────────────────── #}
+{% set CAT_EMOJI = {
+  '生產力工具': '📊', '開發工具': '💻', '資安合規': '🔒',
+  '設計工具': '🎨', '行銷廣告': '📢', '雲端基礎': '☁️',
+  '財務會計': '💰', 'HR人資': '👥', '其他': '📦'
+} %}
+
 {# ── Toolbar ──────────────────────────────────────────────────────── #}
 <div class="d-flex justify-content-between align-items-center mb-2">
   <h4 class="mb-0">訂閱清單</h4>
+  <div class="d-flex gap-2">
+    <button id="viewToggle" class="btn btn-sm btn-outline-secondary">⊞ 卡片</button>
+    <a href="/subscriptions/export" class="btn btn-sm btn-outline-secondary">⬇ 匯出 CSV</a>
+  </div>
 </div>
-<div class="row g-2 mb-3 align-items-end">
+<div class="row g-2 mb-2 align-items-end">
   <div class="col-sm-3">
     <input type="text" id="searchInput" class="form-control form-control-sm"
            placeholder="搜尋服務名稱…">
@@ -45,11 +56,14 @@
       {% endfor %}
     </select>
   </div>
-  <div class="col-sm-2">
+  <div class="col-auto">
+    <button id="expiringBtn" class="btn btn-sm btn-outline-danger">🔴 30天內到期</button>
+  </div>
+  <div class="col-sm-1">
     <select id="pageSizeSelect" class="form-select form-select-sm">
-      <option value="10">每頁 10 筆</option>
-      <option value="25" selected>每頁 25 筆</option>
-      <option value="50">每頁 50 筆</option>
+      <option value="10">10 筆</option>
+      <option value="25" selected>25 筆</option>
+      <option value="50">50 筆</option>
       <option value="999">全部</option>
     </select>
   </div>
@@ -59,6 +73,8 @@
   <p class="text-muted">目前沒有訂閱資料。</p>
 {% else %}
 
+{# ── Table View (default) ─────────────────────────────────────────── #}
+<div id="tableView">
 <div class="table-responsive">
 <table class="table table-bordered table-hover align-middle">
   <thead class="table-header">
@@ -105,11 +121,8 @@
       </td>
       <td><span class="badge {{ badge_cls }}">{{ badge_txt }}</span></td>
       <td>
-        {% if sub.cost %}
-          {{ "%.0f" % sub.cost }} {{ sub.currency }}
-        {% else %}
-          <span class="text-muted">—</span>
-        {% endif %}
+        {% if sub.cost %}{{ "%.0f" % sub.cost }} {{ sub.currency }}
+        {% else %}<span class="text-muted">—</span>{% endif %}
       </td>
       <td>
         {% if sub.billing_cycle == "monthly" %}月付
@@ -146,8 +159,6 @@
   </tbody>
 </table>
 </div>
-
-{# ── Pagination controls ───────────────────────────────────────────── #}
 <div class="d-flex justify-content-between align-items-center mt-2">
   <small id="pageInfo" class="text-muted"></small>
   <div>
@@ -155,6 +166,73 @@
     <button id="nextBtn" class="btn btn-sm btn-outline-secondary">下一頁 ›</button>
   </div>
 </div>
+</div>{# end #tableView #}
+
+{# ── Card View (hidden by default) ───────────────────────────────── #}
+<div id="cardView" style="display:none">
+  <div class="row g-3" id="cardGrid">
+    {% for sub in subscriptions %}
+    {% set days_left = (sub.expiry_date - today).days %}
+    {% set badge_cls, badge_txt = STATUS.get(sub.status.value, ('bg-secondary', sub.status.value)) %}
+    {% if days_left < 0 %}{% set days_color = "secondary" %}
+    {% elif days_left <= 14 %}{% set days_color = "danger" %}
+    {% elif days_left <= 30 %}{% set days_color = "warning" %}
+    {% else %}{% set days_color = "success" %}{% endif %}
+    <div class="col-sm-6 col-md-4 col-xl-3 sub-card"
+         data-service="{{ sub.service_name | lower }}"
+         data-expiry="{{ sub.expiry_date }}"
+         data-days="{{ days_left }}"
+         data-status="{{ sub.status.value }}"
+         data-cost="{{ sub.cost | float if sub.cost else 0 }}"
+         data-category="{{ sub.category or '' }}"
+         data-dept="{{ sub.department or '' }}">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body pb-2">
+          <div class="d-flex align-items-start gap-2 mb-2">
+            <span class="fs-4 lh-1">{{ CAT_EMOJI.get(sub.category, '📦') }}</span>
+            <div class="flex-grow-1 overflow-hidden">
+              <div class="fw-semibold text-truncate" title="{{ sub.service_name }}">
+                {{ sub.service_name }}
+              </div>
+              <small class="text-muted">{{ sub.category or '未分類' }}</small>
+            </div>
+            <span class="badge {{ badge_cls }} flex-shrink-0">{{ badge_txt }}</span>
+          </div>
+          <div class="mb-1">
+            <span class="badge bg-{{ days_color }}">
+              {% if days_left < 0 %}已過期{% else %}{{ days_left }} 天後到期{% endif %}
+            </span>
+          </div>
+          <div class="text-muted small">到期 {{ sub.expiry_date }}</div>
+          {% if sub.cost %}
+          <div class="text-muted small mt-1">
+            {{ "%.0f" % sub.cost }} {{ sub.currency }}
+            {% if sub.billing_cycle == "monthly" %}/月
+            {% elif sub.billing_cycle == "annual" %}/年{% endif %}
+          </div>
+          {% endif %}
+          <div class="text-muted small mt-1">
+            {% if sub.owner_name %}👤 {{ sub.owner_name }}
+            {% else %}<span class="text-danger">⚠ 未指定負責人</span>{% endif %}
+          </div>
+        </div>
+        <div class="card-footer bg-transparent border-top-0 d-flex gap-1 justify-content-end pt-0">
+          {% if current_user.role == 'admin' or current_user.can_update %}
+          <a href="/subscriptions/{{ sub.id }}/edit"
+             class="btn btn-sm btn-outline-primary">編輯</a>
+          {% endif %}
+          {% if current_user.role == 'admin' or current_user.can_delete %}
+          <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
+                  data-id="{{ sub.id }}"
+                  data-name="{{ sub.service_name }}">刪除</button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <small id="cardInfo" class="text-muted mt-2 d-block"></small>
+</div>{# end #cardView #}
 
 {% endif %}
 
@@ -192,48 +270,57 @@ document.querySelectorAll('.delete-btn').forEach(btn => {
   });
 });
 
-// ── Table filter / sort / pagination ─────────────────────────────────────
-const tbody = document.getElementById('subTable');
-if (tbody) {
-  const allRows = Array.from(tbody.querySelectorAll('tr'));
-  let sortCol = null;
-  let sortAsc = true;
-  let currentPage = 1;
+// ── State ─────────────────────────────────────────────────────────────────
+const tbody    = document.getElementById('subTable');
+const allRows  = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+const allCards = Array.from(document.querySelectorAll('.sub-card'));
 
-  function pageSize() {
-    return parseInt(document.getElementById('pageSizeSelect').value);
-  }
+let sortCol      = null;
+let sortAsc      = true;
+let currentPage  = 1;
+let isCardView   = false;
+let expiringOnly = false;
 
-  function filtered() {
-    const q    = document.getElementById('searchInput').value.toLowerCase();
-    const st   = document.getElementById('statusFilter').value;
-    const cat  = document.getElementById('categoryFilter').value;
-    const dept = document.getElementById('deptFilter').value;
-    return allRows.filter(r =>
-      r.dataset.service.includes(q) &&
-      (!st   || r.dataset.status   === st) &&
-      (!cat  || r.dataset.category === cat) &&
-      (!dept || r.dataset.dept     === dept)
-    );
-  }
+// ── Shared filter predicate ───────────────────────────────────────────────
+function matchesFilter(el) {
+  const q    = document.getElementById('searchInput').value.toLowerCase();
+  const st   = document.getElementById('statusFilter').value;
+  const cat  = document.getElementById('categoryFilter').value;
+  const dept = document.getElementById('deptFilter').value;
+  const days = parseInt(el.dataset.days);
+  if (expiringOnly && (isNaN(days) || days < 0 || days > 30)) return false;
+  return el.dataset.service.includes(q) &&
+    (!st   || el.dataset.status   === st) &&
+    (!cat  || el.dataset.category === cat) &&
+    (!dept || el.dataset.dept     === dept);
+}
 
-  function sorted(rows) {
-    if (!sortCol) return rows;
-    return [...rows].sort((a, b) => {
-      let av = a.dataset[sortCol] || '';
-      let bv = b.dataset[sortCol] || '';
-      if (sortCol === 'cost' || sortCol === 'days') {
-        return sortAsc ? parseFloat(av) - parseFloat(bv)
-                       : parseFloat(bv) - parseFloat(av);
-      }
-      return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
-    });
-  }
+// ── Sort (table rows only) ────────────────────────────────────────────────
+function sorted(rows) {
+  if (!sortCol) return rows;
+  return [...rows].sort((a, b) => {
+    let av = a.dataset[sortCol] || '';
+    let bv = b.dataset[sortCol] || '';
+    if (sortCol === 'cost' || sortCol === 'days') {
+      return sortAsc ? parseFloat(av) - parseFloat(bv)
+                     : parseFloat(bv) - parseFloat(av);
+    }
+    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+}
 
-  function render() {
-    const rows  = sorted(filtered());
+// ── Render ────────────────────────────────────────────────────────────────
+function render() {
+  if (isCardView) {
+    const visible = allCards.filter(matchesFilter);
+    allCards.forEach(c => c.style.display = 'none');
+    visible.forEach(c => c.style.display = '');
+    const info = document.getElementById('cardInfo');
+    if (info) info.textContent = visible.length === 0 ? '無符合資料' : `共 ${visible.length} 筆`;
+  } else {
+    const rows  = sorted(allRows.filter(matchesFilter));
     const total = rows.length;
-    const ps    = pageSize();
+    const ps    = parseInt(document.getElementById('pageSizeSelect').value);
     const pages = Math.max(1, Math.ceil(total / ps));
     if (currentPage > pages) currentPage = pages;
 
@@ -243,41 +330,61 @@ if (tbody) {
 
     const end = Math.min(start + ps, total);
     document.getElementById('pageInfo').textContent =
-      total === 0 ? '無符合資料' :
-      `顯示 ${start + 1}–${end} / 共 ${total} 筆`;
+      total === 0 ? '無符合資料' : `顯示 ${start + 1}–${end} / 共 ${total} 筆`;
     document.getElementById('prevBtn').disabled = currentPage <= 1;
     document.getElementById('nextBtn').disabled = currentPage >= pages;
   }
-
-  document.getElementById('searchInput')
-    .addEventListener('input',  () => { currentPage = 1; render(); });
-  document.getElementById('statusFilter')
-    .addEventListener('change', () => { currentPage = 1; render(); });
-  document.getElementById('categoryFilter')
-    .addEventListener('change', () => { currentPage = 1; render(); });
-  document.getElementById('deptFilter')
-    .addEventListener('change', () => { currentPage = 1; render(); });
-  document.getElementById('pageSizeSelect')
-    .addEventListener('change', () => { currentPage = 1; render(); });
-  document.getElementById('prevBtn')
-    .addEventListener('click',  () => { currentPage--; render(); });
-  document.getElementById('nextBtn')
-    .addEventListener('click',  () => { currentPage++; render(); });
-
-  document.querySelectorAll('th.sortable').forEach(th => {
-    th.style.cursor = 'pointer';
-    th.addEventListener('click', () => {
-      const col = th.dataset.col;
-      if (sortCol === col) { sortAsc = !sortAsc; }
-      else { sortCol = col; sortAsc = true; }
-      document.querySelectorAll('.sort-icon').forEach(s => s.textContent = '↕');
-      th.querySelector('.sort-icon').textContent = sortAsc ? '↑' : '↓';
-      currentPage = 1;
-      render();
-    });
-  });
-
-  render();
 }
+
+// ── View toggle ───────────────────────────────────────────────────────────
+document.getElementById('viewToggle').addEventListener('click', function () {
+  isCardView = !isCardView;
+  document.getElementById('tableView').style.display = isCardView ? 'none' : '';
+  document.getElementById('cardView').style.display  = isCardView ? '' : 'none';
+  this.textContent = isCardView ? '≡ 列表' : '⊞ 卡片';
+  render();
+});
+
+// ── 30-day quick filter ───────────────────────────────────────────────────
+document.getElementById('expiringBtn').addEventListener('click', function () {
+  expiringOnly = !expiringOnly;
+  this.className = expiringOnly
+    ? 'btn btn-sm btn-danger'
+    : 'btn btn-sm btn-outline-danger';
+  currentPage = 1;
+  render();
+});
+
+// ── Filter listeners ──────────────────────────────────────────────────────
+document.getElementById('searchInput')
+  .addEventListener('input',  () => { currentPage = 1; render(); });
+document.getElementById('statusFilter')
+  .addEventListener('change', () => { currentPage = 1; render(); });
+document.getElementById('categoryFilter')
+  .addEventListener('change', () => { currentPage = 1; render(); });
+document.getElementById('deptFilter')
+  .addEventListener('change', () => { currentPage = 1; render(); });
+document.getElementById('pageSizeSelect')
+  .addEventListener('change', () => { currentPage = 1; render(); });
+document.getElementById('prevBtn')
+  .addEventListener('click',  () => { currentPage--; render(); });
+document.getElementById('nextBtn')
+  .addEventListener('click',  () => { currentPage++; render(); });
+
+// ── Column sort ───────────────────────────────────────────────────────────
+document.querySelectorAll('th.sortable').forEach(th => {
+  th.style.cursor = 'pointer';
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+    document.querySelectorAll('.sort-icon').forEach(s => s.textContent = '↕');
+    th.querySelector('.sort-icon').textContent = sortAsc ? '↑' : '↓';
+    currentPage = 1;
+    render();
+  });
+});
+
+render();
 </script>
 {% endblock %}
