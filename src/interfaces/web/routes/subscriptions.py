@@ -1,6 +1,8 @@
 from collections import defaultdict
 from datetime import date, datetime
 from decimal import Decimal
+import csv
+import io
 import json
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
@@ -121,9 +123,17 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
     })
 
 
+def _csv_safe(v) -> str:
+    if v is None:
+        return ""
+    s = str(v)
+    if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + s
+    return s
+
+
 @router.get("/subscriptions/export")
 def export_csv(uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
-    import csv, io
     subscriptions = uc.execute()
     buf = io.StringIO()
     buf.write("﻿")  # UTF-8 BOM for Excel
@@ -132,9 +142,9 @@ def export_csv(uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
                      "計費週期", "負責人", "分類", "部門", "備註"])
     for s in subscriptions:
         writer.writerow([
-            s.service_name, s.login_account, s.expiry_date, s.status.value,
+            _csv_safe(s.service_name), _csv_safe(s.login_account), s.expiry_date, s.status.value,
             s.cost or "", s.currency, s.billing_cycle or "",
-            s.owner_name or "", s.category or "", s.department or "", s.notes or "",
+            _csv_safe(s.owner_name), _csv_safe(s.category), _csv_safe(s.department), _csv_safe(s.notes),
         ])
     return StreamingResponse(
         iter([buf.getvalue().encode("utf-8")]),
