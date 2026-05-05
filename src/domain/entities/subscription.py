@@ -37,6 +37,12 @@ class Subscription:
     category: str | None = None
     department: str | None = None
     billing_cycle: str | None = None  # "monthly" | "annual" | None
+    payment_account: str | None = None
+    auto_renew: bool = False
+    trial_end_date: date | None = None
+    next_billing_date: date | None = None
+    icon_emoji: str | None = None
+    login_password: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

@@ -1,4 +1,4 @@
-"""
+r"""
 Windows Task Scheduler entry point.
 Schedule: daily at 08:00
 Command: C:\Users\Gillion-ADM-015\AppData\Local\Programs\Python\Python311\python.exe C:\Users\Gillion-ADM-015\Desktop\Claude\saas-tracker\scripts\run_notifications.py

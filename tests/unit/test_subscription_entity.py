@@ -98,3 +98,38 @@ def test_subscription_new_fields_default_to_none():
     assert sub.category is None
     assert sub.department is None
     assert sub.billing_cycle is None
+
+
+def test_subscription_has_phase2b_fields():
+    sub = Subscription(
+        service_name="Linear",
+        login_account="team@co.com",
+        expiry_date=date(2027, 1, 1),
+        notification_emails="a@co.com",
+        notification_days=NotificationDays.THIRTY,
+        payment_account="公司美金卡末4碼1234",
+        auto_renew=True,
+        trial_end_date=date(2026, 6, 1),
+        next_billing_date=date(2026, 5, 15),
+        icon_emoji="💻",
+    )
+    assert sub.payment_account == "公司美金卡末4碼1234"
+    assert sub.auto_renew is True
+    assert sub.trial_end_date == date(2026, 6, 1)
+    assert sub.next_billing_date == date(2026, 5, 15)
+    assert sub.icon_emoji == "💻"
+
+
+def test_subscription_phase2b_fields_default_values():
+    sub = Subscription(
+        service_name="Slack",
+        login_account="it@co.com",
+        expiry_date=date(2027, 6, 1),
+        notification_emails="b@co.com",
+        notification_days=NotificationDays.SEVEN,
+    )
+    assert sub.payment_account is None
+    assert sub.auto_renew is False
+    assert sub.trial_end_date is None
+    assert sub.next_billing_date is None
+    assert sub.icon_emoji is None

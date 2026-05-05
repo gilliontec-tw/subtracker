@@ -23,6 +23,6 @@ def sample_subscription() -> Subscription:
         service_name="GitHub",
         login_account="it@company.com",
         expiry_date=date(2026, 12, 31),
-        responsible_person_email="alice@company.com",
+        notification_emails="alice@company.com",
         notification_days=NotificationDays.SEVEN,
     )

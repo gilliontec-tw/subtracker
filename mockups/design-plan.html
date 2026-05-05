@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SaaS Tracker — 設計規劃</title>
+<style>
+  :root {
+    --bg: #f5f5f0;
+    --surface: #ffffff;
+    --border: #e0ddd8;
+    --text: #1a1a1a;
+    --muted: #6b6b6b;
+    --accent: #2563eb;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --tag-bg: #f0f0eb;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+
+  /* Layout */
+  .shell { display: flex; height: 100vh; overflow: hidden; }
+  .sidebar { width: 200px; background: #1e1e1e; color: #ccc; display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-logo { padding: 18px 20px; font-weight: 700; font-size: 15px; color: #fff; border-bottom: 1px solid #333; }
+  .sidebar-logo span { color: #60a5fa; }
+  .nav-item { padding: 10px 20px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.15s; border-left: 3px solid transparent; }
+  .nav-item:hover { background: #2a2a2a; }
+  .nav-item.active { background: #2a2a2a; border-left-color: #60a5fa; color: #fff; }
+  .nav-section { padding: 14px 20px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: #555; }
+
+  .main { flex: 1; overflow-y: auto; }
+  .topbar { background: #fff; border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .topbar-title { font-weight: 600; font-size: 16px; }
+  .topbar-actions { display: flex; gap: 8px; }
+
+  .content { padding: 24px; }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; }
+  .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-value { font-size: 28px; font-weight: 700; line-height: 1; }
+  .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .stat-card.warn .stat-value { color: var(--amber); }
+  .stat-card.alert .stat-value { color: var(--red); }
+  .stat-card.good .stat-value { color: var(--green); }
+
+  /* Charts row */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
+  .chart-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+
+  /* Bar chart */
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 100px; }
+  .bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+  .bar { background: #93c5fd; border-radius: 3px 3px 0 0; width: 100%; transition: background 0.2s; }
+  .bar:hover { background: #3b82f6; }
+  .bar-label { font-size: 9px; color: var(--muted); }
+
+  /* Donut chart (CSS only) */
+  .donut { position: relative; width: 100px; height: 100px; margin: 0 auto; }
+  .donut-ring { width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(
+    #3b82f6 0% 35%,
+    #10b981 35% 60%,
+    #f59e0b 60% 78%,
+    #ef4444 78% 90%,
+    #8b5cf6 90% 100%
+  ); }
+  .donut-hole { position: absolute; inset: 22px; background: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--text); }
+  .legend { margin-top: 12px; display: flex; flex-direction: column; gap: 5px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+  /* Renewal timeline */
+  .timeline { display: flex; flex-direction: column; gap: 8px; }
+  .tl-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; background: var(--bg); }
+  .tl-days { width: 36px; text-align: center; font-size: 11px; font-weight: 700; padding: 3px 0; border-radius: 4px; flex-shrink: 0; }
+  .tl-days.green { background: #dcfce7; color: #16a34a; }
+  .tl-days.amber { background: #fef3c7; color: #d97706; }
+  .tl-days.red { background: #fee2e2; color: #dc2626; }
+  .tl-name { font-size: 12px; font-weight: 500; flex: 1; }
+  .tl-cost { font-size: 12px; color: var(--muted); }
+
+  /* Toolbar */
+  .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .search-box { border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; font-size: 13px; width: 200px; background: #fff; }
+  .filter-sel { border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; font-size: 13px; background: #fff; color: var(--text); }
+  .quick-btn { border: 1px solid var(--border); border-radius: 6px; padding: 7px 12px; font-size: 12px; background: #fff; cursor: pointer; }
+  .quick-btn.active { background: #eff6ff; border-color: #93c5fd; color: #2563eb; }
+  .btn { padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; border: none; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
+  .spacer { flex: 1; }
+
+  /* Table */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #fafaf8; padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; }
+  th:hover { color: var(--text); }
+  th .sort-icon { opacity: 0.4; margin-left: 4px; }
+  th.sorted .sort-icon { opacity: 1; color: var(--accent); }
+  td { padding: 11px 14px; border-bottom: 1px solid #f0f0ec; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafaf8; }
+
+  /* Badges */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .badge-active { background: #dcfce7; color: #15803d; }
+  .badge-cancelled { background: #f1f5f9; color: #64748b; }
+  .badge-suspended { background: #fef3c7; color: #92400e; }
+  .badge-renewed { background: #eff6ff; color: #1d4ed8; }
+  .days-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .days-green { background: #dcfce7; color: #16a34a; }
+  .days-amber { background: #fef3c7; color: #d97706; }
+  .days-red { background: #fee2e2; color: #dc2626; }
+  .cat-tag { background: var(--tag-bg); color: var(--muted); padding: 2px 7px; border-radius: 4px; font-size: 11px; }
+  .owner-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; }
+  .avatar { width: 20px; height: 20px; border-radius: 50%; background: #dbeafe; color: #2563eb; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; }
+
+  .actions { display: flex; gap: 4px; }
+  .action-btn { padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); background: #fff; font-size: 11px; cursor: pointer; }
+  .action-btn:hover { background: #f5f5f5; }
+  .action-btn.danger:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+
+  /* Annotation overlay */
+  .anno-wrap { position: relative; }
+  .annotation { position: absolute; background: #1e293b; color: #fff; font-size: 11px; padding: 5px 10px; border-radius: 5px; white-space: nowrap; z-index: 20; line-height: 1.4; }
+  .annotation::before { content: ''; position: absolute; border: 5px solid transparent; }
+  .anno-right { left: calc(100% + 10px); top: 50%; transform: translateY(-50%); }
+  .anno-right::before { right: 100%; top: 50%; transform: translateY(-50%); border-right-color: #1e293b; }
+  .anno-top { bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); }
+  .anno-top::before { top: 100%; left: 50%; transform: translateX(-50%); border-top-color: #1e293b; }
+
+  /* Section header */
+  .section-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid var(--border); }
+  .section-num { width: 28px; height: 28px; background: var(--accent); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; }
+  .section-title { font-size: 18px; font-weight: 700; }
+  .section-desc { font-size: 13px; color: var(--muted); margin-left: auto; }
+
+  .new-badge { display: inline-block; background: #fef3c7; color: #92400e; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; margin-left: 6px; vertical-align: middle; }
+
+  /* Page layout */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Nav click simulation */
+  .nav-item[data-page] { cursor: pointer; }
+
+  /* Highlight ring */
+  .highlight { outline: 2px solid #f59e0b; outline-offset: 2px; border-radius: 4px; }
+
+  /* Feature list */
+  .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .feature-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .feature-card .fc-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 3px; margin-bottom: 10px; display: inline-block; }
+  .fc-high { background: #fee2e2; color: #991b1b; }
+  .fc-mid { background: #fef3c7; color: #92400e; }
+  .feature-card h4 { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .feature-card p { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  .intro-banner { background: linear-gradient(135deg, #1e3a5f, #2563eb); color: #fff; border-radius: 10px; padding: 28px 32px; margin-bottom: 28px; }
+  .intro-banner h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .intro-banner p { font-size: 14px; opacity: 0.85; line-height: 1.6; }
+  .phase-row { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  .phase-chip { background: rgba(255,255,255,0.15); padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .phase-chip.now { background: rgba(255,255,255,0.9); color: #1e3a5f; }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">SaaS <span>Tracker</span></div>
+    <div class="nav-section">主選單</div>
+    <div class="nav-item" data-page="plan" id="nav-plan">📋 設計規劃</div>
+    <div class="nav-item active" data-page="dashboard" id="nav-dashboard">🏠 Dashboard <span class="new-badge">NEW</span></div>
+    <div class="nav-item" data-page="list" id="nav-list">📦 訂閱清單</div>
+    <div class="nav-section">帳戶</div>
+    <div class="nav-item">🔑 修改密碼</div>
+    <div class="nav-section">管理員</div>
+    <div class="nav-item">👥 使用者管理</div>
+    <div class="nav-item">🕵️ 操作紀錄</div>
+  </div>
+
+  <div class="main">
+    <!-- Dashboard Page -->
+    <div class="page active" id="page-dashboard">
+      <div class="topbar">
+        <div class="topbar-title">Dashboard</div>
+        <div class="topbar-actions">
+          <select class="filter-sel" style="font-size:12px;">
+            <option>顯示：月費</option>
+            <option>顯示：年費</option>
+          </select>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- Stat Cards -->
+        <div class="stat-grid">
+          <div class="stat-card good">
+            <div class="stat-label">年度總支出</div>
+            <div class="stat-value">$847K</div>
+            <div class="stat-sub">TWD／年</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">訂閱總數</div>
+            <div class="stat-value">23</div>
+            <div class="stat-sub">其中 20 個啟用中</div>
+          </div>
+          <div class="stat-card warn">
+            <div class="stat-label">30 天內到期</div>
+            <div class="stat-value">4</div>
+            <div class="stat-sub">需確認是否續約</div>
+          </div>
+          <div class="stat-card alert">
+            <div class="stat-label">尚未指定負責人</div>
+            <div class="stat-value">3</div>
+            <div class="stat-sub">請盡速指定 Owner</div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-row">
+          <!-- Monthly Bar Chart -->
+          <div class="chart-card">
+            <div class="chart-title">月度費用趨勢（TWD）</div>
+            <div class="bar-chart">
+              <div class="bar-wrap"><div class="bar" style="height:55%"></div><div class="bar-label">5月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:62%"></div><div class="bar-label">6月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:58%"></div><div class="bar-label">7月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:70%"></div><div class="bar-label">8月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:65%"></div><div class="bar-label">9月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:75%"></div><div class="bar-label">10月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:68%"></div><div class="bar-label">11月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:80%"></div><div class="bar-label">12月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:72%"></div><div class="bar-label">1月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:85%"></div><div class="bar-label">2月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:78%"></div><div class="bar-label">3月</div></div>
+              <div class="bar-wrap"><div class="bar" style="height:100%;background:#2563eb"></div><div class="bar-label" style="color:#2563eb;font-weight:700">4月</div></div>
+            </div>
+          </div>
+
+          <!-- Donut -->
+          <div class="chart-card">
+            <div class="chart-title">費用分類佔比</div>
+            <div class="donut"><div class="donut-ring"></div><div class="donut-hole">$847K</div></div>
+            <div class="legend">
+              <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>生產力工具 35%</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>開發工具 25%</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>資安合規 18%</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>行銷工具 12%</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>其他 10%</div>
+            </div>
+          </div>
+
+          <!-- Renewal Timeline -->
+          <div class="chart-card">
+            <div class="chart-title">即將到期（90 天內）</div>
+            <div class="timeline">
+              <div class="tl-item">
+                <div class="tl-days red">7天</div>
+                <div class="tl-name">Slack</div>
+                <div class="tl-cost">$12,000</div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-days red">14天</div>
+                <div class="tl-name">GitHub</div>
+                <div class="tl-cost">$8,400</div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-days amber">28天</div>
+                <div class="tl-name">Figma</div>
+                <div class="tl-cost">$6,000</div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-days amber">45天</div>
+                <div class="tl-name">Notion</div>
+                <div class="tl-cost">$3,600</div>
+              </div>
+              <div class="tl-item">
+                <div class="tl-days green">72天</div>
+                <div class="tl-name">AWS</div>
+                <div class="tl-cost">$24,000</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- List Page -->
+    <div class="page" id="page-list">
+      <div class="topbar">
+        <div class="topbar-title">訂閱清單</div>
+        <div class="topbar-actions">
+          <button class="btn btn-outline">⬇ 匯出 CSV</button>
+          <button class="btn btn-primary">＋ 新增訂閱</button>
+        </div>
+      </div>
+      <div class="content">
+        <div class="toolbar">
+          <input class="search-box" placeholder="🔍 搜尋服務名稱…" value="">
+          <select class="filter-sel">
+            <option>所有狀態</option>
+            <option>啟用中</option>
+            <option>已取消</option>
+          </select>
+          <select class="filter-sel">
+            <option>所有分類</option>
+            <option>生產力工具</option>
+            <option>開發工具</option>
+            <option>資安合規</option>
+          </select>
+          <select class="filter-sel">
+            <option>所有部門</option>
+            <option>IT</option>
+            <option>行銷</option>
+            <option>工程</option>
+          </select>
+          <button class="quick-btn active">🔴 30 天內到期</button>
+          <div class="spacer"></div>
+          <select class="filter-sel">每頁 25 筆</select>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>服務名稱 <span class="sort-icon">↕</span></th>
+                <th class="sorted">到期倒數 <span class="sort-icon">↑</span></th>
+                <th>費用 <span class="sort-icon">↕</span></th>
+                <th>計費週期 <span class="sort-icon">↕</span></th>
+                <th>負責人 <span class="sort-icon">↕</span></th>
+                <th>分類 <span class="sort-icon">↕</span></th>
+                <th>部門 <span class="sort-icon">↕</span></th>
+                <th>狀態 <span class="sort-icon">↕</span></th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Slack</strong><br><span style="font-size:11px;color:var(--muted)">到期 2026-05-03</span></td>
+                <td><span class="days-badge days-red">7 天</span></td>
+                <td>$12,000</td>
+                <td><span class="cat-tag">年付</span></td>
+                <td><span class="owner-chip"><span class="avatar">陳</span> 陳小明</span></td>
+                <td><span class="cat-tag">生產力</span></td>
+                <td><span class="cat-tag">全公司</span></td>
+                <td><span class="badge badge-active">啟用中</span></td>
+                <td><div class="actions"><button class="action-btn">編輯</button><button class="action-btn danger">刪除</button></div></td>
+              </tr>
+              <tr>
+                <td><strong>GitHub</strong><br><span style="font-size:11px;color:var(--muted)">到期 2026-05-10</span></td>
+                <td><span class="days-badge days-red">14 天</span></td>
+                <td>$8,400</td>
+                <td><span class="cat-tag">年付</span></td>
+                <td><span class="owner-chip"><span class="avatar">王</span> 王大衛</span></td>
+                <td><span class="cat-tag">開發工具</span></td>
+                <td><span class="cat-tag">工程</span></td>
+                <td><span class="badge badge-active">啟用中</span></td>
+                <td><div class="actions"><button class="action-btn">編輯</button><button class="action-btn danger">刪除</button></div></td>
+              </tr>
+              <tr>
+                <td><strong>Figma</strong><br><span style="font-size:11px;color:var(--muted)">到期 2026-05-27</span></td>
+                <td><span class="days-badge days-amber">28 天</span></td>
+                <td>$6,000</td>
+                <td><span class="cat-tag">年付</span></td>
+                <td><span class="owner-chip"><span class="avatar">李</span> 李設計</span></td>
+                <td><span class="cat-tag">設計工具</span></td>
+                <td><span class="cat-tag">設計</span></td>
+                <td><span class="badge badge-active">啟用中</span></td>
+                <td><div class="actions"><button class="action-btn">編輯</button><button class="action-btn danger">刪除</button></div></td>
+              </tr>
+              <tr>
+                <td><strong>Notion</strong><br><span style="font-size:11px;color:var(--muted)">到期 2026-06-13</span></td>
+                <td><span class="days-badge days-amber">45 天</span></td>
+                <td>$3,600</td>
+                <td><span class="cat-tag">年付</span></td>
+                <td style="color:var(--red);font-size:12px">⚠ 未指定</td>
+                <td><span class="cat-tag">生產力</span></td>
+                <td><span class="cat-tag">全公司</span></td>
+                <td><span class="badge badge-active">啟用中</span></td>
+                <td><div class="actions"><button class="action-btn">編輯</button><button class="action-btn danger">刪除</button></div></td>
+              </tr>
+              <tr>
+                <td><strong>AWS</strong><br><span style="font-size:11px;color:var(--muted)">到期 2026-07-04</span></td>
+                <td><span class="days-badge days-green">72 天</span></td>
+                <td>$24,000</td>
+                <td><span class="cat-tag">月付</span></td>
+                <td><span class="owner-chip"><span class="avatar">王</span> 王大衛</span></td>
+                <td><span class="cat-tag">雲端基礎</span></td>
+                <td><span class="cat-tag">工程</span></td>
+                <td><span class="badge badge-active">啟用中</span></td>
+                <td><div class="actions"><button class="action-btn">編輯</button><button class="action-btn danger">刪除</button></div></td>
+              </tr>
+              <tr style="opacity:0.55">
+                <td><strong>HubSpot</strong><br><span style="font-size:11px;color:var(--muted)">到期 2025-12-01</span></td>
+                <td>—</td>
+                <td>$18,000</td>
+                <td><span class="cat-tag">年付</span></td>
+                <td><span class="owner-chip"><span class="avatar">林</span> 林行銷</span></td>
+                <td><span class="cat-tag">行銷</span></td>
+                <td><span class="cat-tag">行銷</span></td>
+                <td><span class="badge badge-cancelled">已取消</span></td>
+                <td><div class="actions"><button class="action-btn">編輯</button><button class="action-btn danger">刪除</button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:12px;color:var(--muted);">
+          <span>共 23 筆，顯示第 1–6 筆</span>
+          <div style="display:flex;gap:4px;">
+            <button class="action-btn" disabled>‹ 上一頁</button>
+            <button class="action-btn" style="background:#eff6ff;border-color:#93c5fd;color:#2563eb;">1</button>
+            <button class="action-btn">2</button>
+            <button class="action-btn">3</button>
+            <button class="action-btn">下一頁 ›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plan Page -->
+    <div class="page" id="page-plan">
+      <div class="topbar">
+        <div class="topbar-title">📋 設計規劃總覽</div>
+      </div>
+      <div class="content">
+        <div class="intro-banner">
+          <h1>SaaS Tracker 升級計畫</h1>
+          <p>基於市場研究，依必要性排序，分三個階段完成。左側選單可預覽 Dashboard 與清單的設計樣貌。</p>
+          <div class="phase-row">
+            <div class="phase-chip now">Phase 1 ← 現在做</div>
+            <div class="phase-chip">Phase 2</div>
+            <div class="phase-chip">Phase 3</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-num">1</div>
+          <div class="section-title">Phase 1 — 核心體驗補齊（高價值）</div>
+          <div class="section-desc">每家工具都有，缺了影響日常使用</div>
+        </div>
+        <div class="feature-grid" style="margin-bottom:28px;">
+          <div class="feature-card">
+            <div class="fc-tag fc-high">必要</div>
+            <h4>B1 — Dashboard 首頁</h4>
+            <p>4 個指標卡（年度總支出、訂閱數、30 天到期、未指定負責人）＋ 費用趨勢長條圖＋分類圓餅圖＋即將到期時間軸</p>
+          </div>
+          <div class="feature-card">
+            <div class="fc-tag fc-high">必要</div>
+            <h4>B2 — 到期倒數標記</h4>
+            <p>清單新增「到期倒數」欄位，顏色區分：紅（&lt;14天）、橙（14–30天）、綠（&gt;60天）</p>
+          </div>
+          <div class="feature-card">
+            <div class="fc-tag fc-high">必要</div>
+            <h4>B3 — 負責人欄位（Owner）</h4>
+            <p>每筆訂閱可從下拉選系統使用者，可篩選、可在 Dashboard 統計「未指定」數量</p>
+          </div>
+          <div class="feature-card">
+            <div class="fc-tag fc-high">必要</div>
+            <h4>B4 — 分類標籤（Category）</h4>
+            <p>自訂分類（生產力、開發工具、資安、行銷等），供圓餅圖分組使用</p>
+          </div>
+          <div class="feature-card">
+            <div class="fc-tag fc-high">必要</div>
+            <h4>B5 — 部門標籤（Department）</h4>
+            <p>工程、行銷、全公司等部門標籤，供費用部門分析</p>
+          </div>
+          <div class="feature-card">
+            <div class="fc-tag fc-high">必要</div>
+            <h4>B6 — 計費週期欄位</h4>
+            <p>月付 / 年付，讓費用可正確年化計算，Dashboard 支援月費 ↔ 年費切換</p>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-num">2</div>
+          <div class="section-title">Phase 2 — 操作效率提升（中價值）</div>
+          <div class="section-desc">減少摩擦、加快日常維護速度</div>
+        </div>
+        <div class="feature-grid" style="margin-bottom:28px;">
+          <div class="feature-card">
+            <div class="fc-tag fc-mid">加值</div>
+            <h4>B7 — 費用圖表（Chart.js）</h4>
+            <p>Dashboard 整合 Chart.js，圓餅圖顯示分類佔比，長條圖顯示 12 個月趨勢</p>
+          </div>
+          <div class="feature-card">
+            <div class="fc-tag fc-mid">加值</div>
+            <h4>B8 — CSV 匯出</h4>
+            <p>一鍵匯出當前篩選結果為 CSV，供財務或主管報表使用</p>
+          </div>
+          <div class="feature-card">
+            <div class="fc-tag fc-mid">加值</div>
+            <h4>B6★ — 「即將到期」快捷篩選</h4>
+            <p>工具列加一個按鈕，一鍵顯示 30 天內到期，而不需手動設定篩選</p>
+          </div>
+          <div class="feature-card">
+            <div class="fc-tag fc-mid">加值</div>
+            <h4>C1 — 每筆訂閱通知設定</h4>
+            <p>各訂閱可獨立設定提醒天數（如 30、14 天前）與收件人（非全局統一）</p>
+          </div>
+          <div class="feature-card">
+            <div class="fc-tag fc-mid">加值</div>
+            <h4>C2 — 備註欄位</h4>
+            <p>自由文字欄位記錄合約條款、自動續約注意事項、談判要點</p>
+          </div>
+          <div class="feature-card">
+            <div class="fc-tag fc-mid">加值</div>
+            <h4>C5 — 批次操作</h4>
+            <p>勾選多筆後批次更新狀態、指定負責人，或批次匯出</p>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <div class="section-num">3</div>
+          <div class="section-title">Phase 3 — 進階視覺化（未來）</div>
+          <div class="section-desc">視需求規劃，可選擇性執行</div>
+        </div>
+        <div class="feature-grid">
+          <div class="feature-card" style="opacity:0.7">
+            <div class="fc-tag" style="background:#f1f5f9;color:#64748b;">未來</div>
+            <h4>C4 — 行內快速編輯</h4>
+            <p>直接在清單列修改負責人、狀態，不需開啟完整表單</p>
+          </div>
+          <div class="feature-card" style="opacity:0.7">
+            <div class="fc-tag" style="background:#f1f5f9;color:#64748b;">未來</div>
+            <h4>C6 — 到期日曆視圖</h4>
+            <p>月曆格式瀏覽訂閱到期分佈，直觀掌握每月續約密度</p>
+          </div>
+          <div class="feature-card" style="opacity:0.7">
+            <div class="fc-tag" style="background:#f1f5f9;color:#64748b;">未來</div>
+            <h4>C3 — 月付 / 年費切換</h4>
+            <p>Dashboard 一鍵切換費用顯示模式（月費 or 年費視角）</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Nav routing
+  document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    item.addEventListener('click', () => {
+      const page = item.dataset.page;
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      item.classList.add('active');
+      document.getElementById('page-' + page).classList.add('active');
+    });
+  });
+
+  // Default to plan page
+  document.getElementById('nav-plan').click();
+</script>
+
+</body>
+</html>
