@@ -1,3 +1,4 @@
+import calendar
 from collections import defaultdict
 from datetime import date, datetime
 from decimal import Decimal
@@ -12,7 +13,7 @@ from src.domain.entities.subscription import NotificationDays, SubscriptionStatu
 from src.interfaces.web.dependencies import (
     get_create_uc, get_delete_uc, get_list_uc, get_single_uc, get_update_uc,
     get_current_user, require_create, require_update, require_delete,
-    get_audit_log_repo,
+    get_audit_log_repo, get_config_repo,
 )
 
 router = APIRouter()
@@ -36,18 +37,13 @@ STATUS_OPTIONS = [
 
 CURRENCY_OPTIONS = ["TWD", "USD", "EUR", "JPY"]
 
-CATEGORY_OPTIONS = [
-    "生產力工具", "開發工具", "資安合規", "設計工具",
-    "行銷廣告", "雲端基礎", "財務會計", "HR人資", "其他",
-]
-
-DEPARTMENT_OPTIONS = [
-    "全公司", "工程", "設計", "行銷", "業務", "財務", "HR", "IT", "其他",
-]
 
 BILLING_CYCLE_OPTIONS = [
-    ("monthly", "月付"),
-    ("annual",  "年付"),
+    ("monthly",     "月付"),
+    ("quarterly",   "季付"),
+    ("semi_annual", "半年付"),
+    ("annual",      "年付"),
+    ("biennial",    "兩年付"),
 ]
 
 
@@ -58,14 +54,28 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
 
     def annual_cost(s):
         if s.cost is None:
-            return 0
-        c = float(s.cost)
-        bc = (s.billing_cycle or "").lower()
-        if bc == "monthly":
-            return c * 12
-        return c  # annual / empty → treat as annual
+            return 0.0
+        multipliers = {
+            "monthly":     12,
+            "quarterly":   4,
+            "semi_annual": 2,
+            "annual":      1,
+            "biennial":    0.5,
+        }
+        return float(s.cost) * multipliers.get(s.billing_cycle or "annual", 1)
 
     active_subs = [s for s in subscriptions if s.status.value in ("active", "renewed")]
+
+    # Per-currency annual cost breakdown
+    cost_by_currency: dict[str, float] = defaultdict(float)
+    for s in active_subs:
+        cur = s.currency or "TWD"
+        cost_by_currency[cur] += annual_cost(s)
+    cost_summary = sorted(
+        [{"currency": c, "annual": v, "monthly": v / 12} for c, v in cost_by_currency.items()],
+        key=lambda x: -x["annual"],
+    )
+
     total_annual_cost = sum(annual_cost(s) for s in active_subs)
     total_monthly_cost = total_annual_cost / 12
 
@@ -111,6 +121,7 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
         "today": today,
         "total_subscriptions": len(subscriptions),
         "active_count": len(active_subs),
+        "cost_summary": cost_summary,
         "total_annual_cost": total_annual_cost,
         "total_monthly_cost": total_monthly_cost,
         "upcoming_30_count": len(upcoming_30),
@@ -142,7 +153,7 @@ def export_csv(uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
                      "計費週期", "負責人", "分類", "部門", "備註"])
     for s in subscriptions:
         writer.writerow([
-            _csv_safe(s.service_name), _csv_safe(s.login_account), s.expiry_date, s.status.value,
+            _csv_safe(s.service_name), _csv_safe(s.login_account), s.expiry_date.strftime('%Y/%m/%d'), s.status.value,
             s.cost or "", s.currency, s.billing_cycle or "",
             _csv_safe(s.owner_name), _csv_safe(s.category), _csv_safe(s.department), _csv_safe(s.notes),
         ])
@@ -165,15 +176,38 @@ def index(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_cu
     })
 
 
+def _add_billing_period(d: date, billing_cycle: str | None) -> date:
+    bc = (billing_cycle or "annual").lower()
+    if bc == "monthly":
+        m, y = d.month + 1, d.year
+        if m > 12:
+            m, y = 1, y + 1
+        return date(y, m, min(d.day, calendar.monthrange(y, m)[1]))
+    try:
+        return d.replace(year=d.year + 1)
+    except ValueError:
+        return date(d.year + 1, 2, 28)
+
+
+def _dept_options(config_repo) -> list[tuple[str, str]]:
+    """Returns (value, label) pairs with visual indent for sub-departments."""
+    result = []
+    for parent in config_repo.get_tree("department"):
+        result.append((parent.value, parent.value))
+        for child in parent.children:
+            result.append((child.value, f"　{child.value}"))
+    return result
+
+
 @router.get("/subscriptions/create")
-def create_form(request: Request, current_user=Depends(require_create)):
+def create_form(request: Request, current_user=Depends(require_create), config_repo=Depends(get_config_repo)):
     return templates.TemplateResponse("create.html", {
         "request": request,
         "notification_options": NOTIFICATION_OPTIONS,
         "status_options": STATUS_OPTIONS,
         "currency_options": CURRENCY_OPTIONS,
-        "category_options": CATEGORY_OPTIONS,
-        "department_options": DEPARTMENT_OPTIONS,
+        "category_options": [o.value for o in config_repo.get_by_type("category")],
+        "department_options": _dept_options(config_repo),
         "billing_cycle_options": BILLING_CYCLE_OPTIONS,
         "current_user": current_user,
     })
@@ -195,6 +229,7 @@ def create_submit(
     category: str | None = Form(None),
     department: str | None = Form(None),
     billing_cycle: str | None = Form(None),
+    login_password: str | None = Form(None),
     uc=Depends(get_create_uc),
     current_user=Depends(require_create),
     audit_repo=Depends(get_audit_log_repo),
@@ -213,6 +248,7 @@ def create_submit(
         category=category or None,
         department=department or None,
         billing_cycle=billing_cycle or None,
+        login_password=login_password or None,
     )
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
@@ -231,6 +267,7 @@ def edit_form(
     subscription_id: int,
     uc=Depends(get_single_uc),
     current_user=Depends(require_update),
+    config_repo=Depends(get_config_repo),
 ):
     sub = uc.execute(subscription_id)
     return templates.TemplateResponse("edit.html", {
@@ -239,8 +276,8 @@ def edit_form(
         "notification_options": NOTIFICATION_OPTIONS,
         "status_options": STATUS_OPTIONS,
         "currency_options": CURRENCY_OPTIONS,
-        "category_options": CATEGORY_OPTIONS,
-        "department_options": DEPARTMENT_OPTIONS,
+        "category_options": [o.value for o in config_repo.get_by_type("category")],
+        "department_options": _dept_options(config_repo),
         "billing_cycle_options": BILLING_CYCLE_OPTIONS,
         "current_user": current_user,
     })
@@ -262,6 +299,7 @@ def edit_submit(
     category: str | None = Form(None),
     department: str | None = Form(None),
     billing_cycle: str | None = Form(None),
+    login_password: str | None = Form(None),
     uc=Depends(get_update_uc),
     current_user=Depends(require_update),
     audit_repo=Depends(get_audit_log_repo),
@@ -281,6 +319,7 @@ def edit_submit(
         category=category or None,
         department=department or None,
         billing_cycle=billing_cycle or None,
+        login_password=login_password or None,
     )
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
@@ -290,6 +329,124 @@ def edit_submit(
         target_id=sub.id,
         target_name=sub.service_name,
     ))
+    return RedirectResponse("/", status_code=303)
+
+
+CAT_COLORS = {
+    '生產力工具': '#6E5DE7',
+    '開發工具':   '#2B5BD7',
+    '設計工具':   '#D86A3D',
+    '雲端基礎':   '#0E8C56',
+    '資安合規':   '#C13066',
+    '行銷廣告':   '#B57600',
+    '財務會計':   '#7C3AED',
+    'HR人資':     '#0891B2',
+    '其他':       '#6B7280',
+    '未分類':     '#B0AEC4',
+}
+
+
+@router.get("/reports")
+def reports(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
+    subscriptions = uc.execute()
+
+    def annual_cost(s):
+        if s.cost is None:
+            return 0.0
+        multipliers = {
+            "monthly":     12,
+            "quarterly":   4,
+            "semi_annual": 2,
+            "annual":      1,
+            "biennial":    0.5,
+        }
+        return float(s.cost) * multipliers.get(s.billing_cycle or "annual", 1)
+
+    active = [s for s in subscriptions if s.status.value in ("active", "renewed")]
+
+    # Per-currency, per-category breakdown
+    cur_totals: dict[str, float] = defaultdict(float)
+    cur_cat_map: dict[str, dict] = {}
+    for s in active:
+        cur = s.currency or "TWD"
+        k = s.category or "未分類"
+        if cur not in cur_cat_map:
+            cur_cat_map[cur] = defaultdict(lambda: {"cost": 0.0, "count": 0})
+        cur_cat_map[cur][k]["cost"] += annual_cost(s)
+        cur_cat_map[cur][k]["count"] += 1
+        cur_totals[cur] += annual_cost(s)
+
+    sections = []
+    for cur in sorted(cur_totals, key=lambda c: -cur_totals[c]):
+        total = cur_totals[cur]
+        cats = sorted(
+            [{"name": k, "cost": v["cost"], "count": v["count"]}
+             for k, v in cur_cat_map[cur].items()],
+            key=lambda c: -c["cost"],
+        )
+        for c in cats:
+            c["monthly"] = c["cost"] / 12
+            c["avg"] = c["cost"] / c["count"] if c["count"] else 0
+            c["pct"] = round(c["cost"] / total * 100, 1) if total else 0
+        sections.append({
+            "currency": cur,
+            "categories": cats,
+            "total_annual": total,
+            "total_monthly": total / 12,
+            "count": sum(c["count"] for c in cats),
+        })
+
+    first_cats = sections[0]["categories"] if sections else []
+    return templates.TemplateResponse("reports.html", {
+        "request": request,
+        "current_user": current_user,
+        "sections": sections,
+        "cat_colors": CAT_COLORS,
+        "cat_colors_json": json.dumps(CAT_COLORS, ensure_ascii=False),
+        "cat_labels_json": json.dumps([c["name"] for c in first_cats], ensure_ascii=False),
+        "cat_values_json": json.dumps([round(c["cost"], 2) for c in first_cats]),
+    })
+
+
+@router.post("/subscriptions/bulk-renew")
+def bulk_renew(
+    ids: str = Form(...),
+    single_uc=Depends(get_single_uc),
+    uc=Depends(get_update_uc),
+    current_user=Depends(require_update),
+    audit_repo=Depends(get_audit_log_repo),
+):
+    id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]
+    for sub_id in id_list:
+        sub = single_uc.execute(sub_id)
+        if not sub:
+            continue
+        new_expiry = _add_billing_period(sub.expiry_date, sub.billing_cycle)
+        uc.execute(
+            subscription_id=sub_id,
+            service_name=sub.service_name,
+            login_account=sub.login_account,
+            expiry_date=new_expiry,
+            notification_emails=sub.notification_emails,
+            notification_days=sub.notification_days,
+            status=sub.status,
+            cost=sub.cost,
+            currency=sub.currency,
+            notes=sub.notes,
+            owner_name=sub.owner_name,
+            category=sub.category,
+            department=sub.department,
+            billing_cycle=sub.billing_cycle,
+            login_password=sub.login_password,
+        )
+        audit_repo.add(AuditEntry(
+            user_id=current_user.id,
+            user_email=current_user.email,
+            action="renew",
+            target_type="subscription",
+            target_id=sub_id,
+            target_name=sub.service_name,
+        ))
     return RedirectResponse("/", status_code=303)
 
 
