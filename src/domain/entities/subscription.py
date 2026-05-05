@@ -42,7 +42,6 @@ class Subscription:
     trial_end_date: date | None = None
     next_billing_date: date | None = None
     icon_emoji: str | None = None
-    login_password: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
