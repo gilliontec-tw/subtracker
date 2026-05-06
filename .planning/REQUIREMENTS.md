@@ -80,19 +80,19 @@
 
 | REQ-ID | Phase |
 |--------|-------|
-| SUBSCR-01 | — |
-| SUBSCR-02 | — |
-| NOTIF-01 | — |
-| NOTIF-02 | — |
-| REPORT-01 | — |
-| REPORT-02 | — |
-| REPORT-03 | — |
-| USER-01 | — |
-| SEC-01 | — |
-| SEC-02 | — |
-| DEBT-01 | — |
-| UI-01 | — |
-| DEPLOY-01 | — |
-| DEPLOY-02 | — |
-| DEPLOY-03 | — |
-| DEPLOY-04 | — |
+| SUBSCR-01 | Phase 2 |
+| SUBSCR-02 | Phase 3 |
+| NOTIF-01 | Phase 2 |
+| NOTIF-02 | Phase 2 |
+| REPORT-01 | Phase 3 |
+| REPORT-02 | Phase 3 |
+| REPORT-03 | Phase 3 |
+| USER-01 | Phase 2 |
+| SEC-01 | Phase 1 |
+| SEC-02 | Phase 1 |
+| DEBT-01 | Phase 1 |
+| UI-01 | Phase 4 |
+| DEPLOY-01 | Phase 5 |
+| DEPLOY-02 | Phase 5 |
+| DEPLOY-03 | Phase 5 |
+| DEPLOY-04 | Phase 5 |
