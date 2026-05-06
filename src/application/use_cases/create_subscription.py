@@ -23,6 +23,11 @@ class CreateSubscriptionUseCase:
         category: str | None = None,
         department: str | None = None,
         billing_cycle: str | None = None,
+        payment_account: str | None = None,
+        auto_renew: bool = False,
+        trial_end_date: date | None = None,
+        next_billing_date: date | None = None,
+        icon_emoji: str | None = None,
     ) -> Subscription:
         entity = Subscription(
             service_name=service_name,
@@ -38,5 +43,10 @@ class CreateSubscriptionUseCase:
             category=category,
             department=department,
             billing_cycle=billing_cycle,
+            payment_account=payment_account,
+            auto_renew=auto_renew,
+            trial_end_date=trial_end_date,
+            next_billing_date=next_billing_date,
+            icon_emoji=icon_emoji,
         )
         return self._repo.add(entity)

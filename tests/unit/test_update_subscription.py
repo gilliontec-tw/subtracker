@@ -72,3 +72,40 @@ def test_update_subscription_with_new_fields(mock_repo):
     assert saved.category == "生產力工具"
     assert saved.department == "全公司"
     assert saved.billing_cycle == "annual"
+
+
+def test_update_subscription_with_phase2b_fields(mock_repo):
+    existing = Subscription(
+        id=5,
+        service_name="Notion",
+        login_account="team@co.com",
+        expiry_date=date(2026, 9, 1),
+        notification_emails="c@co.com",
+        notification_days=NotificationDays.THIRTY,
+        status=SubscriptionStatus.ACTIVE,
+    )
+    mock_repo.get_by_id.return_value = existing
+    mock_repo.update.return_value = existing
+    uc = UpdateSubscriptionUseCase(mock_repo)
+    uc.execute(
+        subscription_id=5,
+        service_name="Notion",
+        login_account="team@co.com",
+        expiry_date=date(2026, 9, 1),
+        notification_emails="c@co.com",
+        notification_days=NotificationDays.THIRTY,
+        status=SubscriptionStatus.ACTIVE,
+        payment_account="台幣帳戶5678",
+        auto_renew=False,
+        trial_end_date=date(2026, 5, 31),
+        next_billing_date=date(2026, 5, 20),
+        icon_emoji="📝",
+        billing_cycle="semi_annual",
+    )
+    saved = mock_repo.update.call_args[0][0]
+    assert saved.payment_account == "台幣帳戶5678"
+    assert saved.auto_renew is False
+    assert saved.trial_end_date == date(2026, 5, 31)
+    assert saved.next_billing_date == date(2026, 5, 20)
+    assert saved.icon_emoji == "📝"
+    assert saved.billing_cycle == "semi_annual"

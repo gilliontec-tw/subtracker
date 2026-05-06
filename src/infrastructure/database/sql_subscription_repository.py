@@ -27,6 +27,12 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             category=model.category,
             department=model.department,
             billing_cycle=model.billing_cycle,
+            payment_account=model.payment_account,
+            auto_renew=bool(model.auto_renew),
+            trial_end_date=model.trial_end_date,
+            next_billing_date=model.next_billing_date,
+            icon_emoji=model.icon_emoji,
+            login_password=model.login_password,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -46,6 +52,12 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             category=subscription.category,
             department=subscription.department,
             billing_cycle=subscription.billing_cycle,
+            payment_account=subscription.payment_account,
+            auto_renew=subscription.auto_renew,
+            trial_end_date=subscription.trial_end_date,
+            next_billing_date=subscription.next_billing_date,
+            icon_emoji=subscription.icon_emoji,
+            login_password=subscription.login_password,
         )
         self._session.add(model)
         self._session.commit()
@@ -82,6 +94,12 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         model.category            = subscription.category
         model.department          = subscription.department
         model.billing_cycle       = subscription.billing_cycle
+        model.payment_account     = subscription.payment_account
+        model.auto_renew          = subscription.auto_renew
+        model.trial_end_date      = subscription.trial_end_date
+        model.next_billing_date   = subscription.next_billing_date
+        model.icon_emoji          = subscription.icon_emoji
+        model.login_password      = subscription.login_password
         model.updated_at          = datetime.now()
         self._session.commit()
         self._session.refresh(model)
