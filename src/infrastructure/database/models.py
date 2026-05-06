@@ -26,6 +26,12 @@ class SubscriptionModel(Base):
     category            = Column(String(100), nullable=True)
     department          = Column(String(100), nullable=True)
     billing_cycle       = Column(String(20), nullable=True)
+    payment_account     = Column(String(100), nullable=True)
+    auto_renew          = Column(Boolean,     nullable=False, default=False)
+    trial_end_date      = Column(Date,        nullable=True)
+    next_billing_date   = Column(Date,        nullable=True)
+    icon_emoji          = Column(String(10),  nullable=True)
+    login_password      = Column(String(500), nullable=True)
     created_at          = Column(DateTime, nullable=False, default=datetime.now)
     updated_at          = Column(DateTime, nullable=True, onupdate=datetime.now)
 
@@ -33,17 +39,29 @@ class SubscriptionModel(Base):
 class UserModel(Base):
     __tablename__ = "users"
 
-    id              = Column(Integer, primary_key=True, autoincrement=True)
-    email           = Column(String(200), nullable=False, unique=True)
-    display_name    = Column(String(100), nullable=False)
-    hashed_password = Column(String(255), nullable=False)
-    role            = Column(String(20), nullable=False, default="user")
-    can_create      = Column(Boolean, nullable=False, default=False)
-    can_update      = Column(Boolean, nullable=False, default=False)
-    can_delete      = Column(Boolean, nullable=False, default=False)
-    is_active       = Column(Boolean, nullable=False, default=True)
-    created_at      = Column(DateTime, nullable=False, default=datetime.now)
-    last_login_at   = Column(DateTime, nullable=True)
+    id                = Column(Integer, primary_key=True, autoincrement=True)
+    email             = Column(String(200), nullable=False, unique=True)
+    display_name      = Column(String(100), nullable=False)
+    hashed_password   = Column(String(255), nullable=False)
+    role              = Column(String(20), nullable=False, default="user")
+    can_create        = Column(Boolean, nullable=False, default=False)
+    can_update        = Column(Boolean, nullable=False, default=False)
+    can_delete        = Column(Boolean, nullable=False, default=False)
+    is_active         = Column(Boolean, nullable=False, default=True)
+    created_at        = Column(DateTime, nullable=False, default=datetime.now)
+    last_login_at     = Column(DateTime, nullable=True)
+    invite_token      = Column(String(100), nullable=True)
+    invite_expires_at = Column(DateTime, nullable=True)
+
+
+class ConfigOptionModel(Base):
+    __tablename__ = "config_options"
+
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    type       = Column(String(50), nullable=False)    # "category" | "department"
+    value      = Column(String(100), nullable=False)
+    parent_id  = Column(Integer, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.now)
 
 
 class AuditLogModel(Base):
