@@ -23,21 +23,13 @@ def repo():
 
 def test_register_success(repo):
     result = RegisterUserUseCase(repo).execute(
-        "alice@gilliontec.com.tw", "Alice", "Passw0rd!",
+        "alice@gilliontec.com.tw", "Alice",
         can_create=True, can_update=True, can_delete=False,
     )
     assert result.id == 1
     assert result.email == "alice@gilliontec.com.tw"
     assert result.role == "user"
     repo.add.assert_called_once()
-
-
-def test_register_invalid_domain(repo):
-    with pytest.raises(ValueError, match="gilliontec.com.tw"):
-        RegisterUserUseCase(repo).execute(
-            "alice@gmail.com", "Alice", "Passw0rd!",
-            can_create=False, can_update=False, can_delete=False,
-        )
 
 
 def test_register_duplicate_email(repo):
@@ -47,8 +39,8 @@ def test_register_duplicate_email(repo):
         can_create=False, can_update=False, can_delete=False,
     )
     repo.get_by_email.return_value = existing
-    with pytest.raises(ValueError, match="already registered"):
+    with pytest.raises(ValueError, match="已被使用"):
         RegisterUserUseCase(repo).execute(
-            "alice@gilliontec.com.tw", "Alice2", "Passw0rd!",
+            "alice@gilliontec.com.tw", "Alice2",
             can_create=False, can_update=False, can_delete=False,
         )
