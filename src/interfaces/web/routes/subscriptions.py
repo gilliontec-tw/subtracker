@@ -86,6 +86,11 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
     )
     no_owner = [s for s in active_subs if not s.owner_name]
 
+    trial_expiring = [
+        s for s in active_subs
+        if s.trial_end_date and 0 <= (s.trial_end_date - today).days <= 14
+    ]
+
     # ── Donut chart: cost by category ────────────────────────────────────
     cat_costs: dict[str, float] = defaultdict(float)
     for s in active_subs:
@@ -126,6 +131,7 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
         "total_monthly_cost": total_monthly_cost,
         "upcoming_30_count": len(upcoming_30),
         "no_owner_count": len(no_owner),
+        "trial_expiring_count": len(trial_expiring),
         "upcoming_90": upcoming_90,
         "chart_cat_labels": chart_cat_labels,
         "chart_cat_values": chart_cat_values,

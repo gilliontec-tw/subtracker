@@ -1,390 +1,330 @@
 {% extends "base.html" %}
+{% block title %}訂閱清單 — SubTrack{% endblock %}
+{% block nav_list %}active{% endblock %}
+
 {% block content %}
-
-{# ── Status badge lookup ───────────────────────────────────────────── #}
-{% set STATUS = {
-  'active':    ('bg-success',           '使用中'),
-  'renewed':   ('bg-primary',           '已續約'),
-  'cancelled': ('bg-secondary',         '已取消'),
-  'suspended': ('bg-warning text-dark', '暫停')
+{% set STATUS_MAP = {
+  'active':    ('badge-success', '使用中'),
+  'renewed':   ('badge-info',    '已續約'),
+  'cancelled': ('badge-neutral', '已取消'),
+  'suspended': ('badge-warning', '暫停'),
 } %}
+{% set can_update = current_user.role == 'admin' or current_user.can_update %}
 
-{# ── Category emoji fallback map ──────────────────────────────────── #}
-{% set CAT_EMOJI = {
-  '生產力工具': '📊', '開發工具': '💻', '資安合規': '🔒',
-  '設計工具': '🎨', '行銷廣告': '📢', '雲端基礎': '☁️',
-  '財務會計': '💰', 'HR人資': '👥', '其他': '📦'
-} %}
-
-{# ── Toolbar ──────────────────────────────────────────────────────── #}
-<div class="d-flex justify-content-between align-items-center mb-2">
-  <h4 class="mb-0">訂閱清單</h4>
-  <div class="d-flex gap-2">
-    <button id="viewToggle" class="btn btn-sm btn-outline-secondary">⊞ 卡片</button>
-    <a href="/subscriptions/export" class="btn btn-sm btn-outline-secondary">⬇ 匯出 CSV</a>
+<div class="page-header">
+  <div>
+    <h1>訂閱清單</h1>
+    <div class="page-sub">管理所有 SaaS 訂閱</div>
+  </div>
+  <div class="page-header-actions">
+    <a href="/subscriptions/export" class="btn btn-outline btn-sm">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+      匯出 CSV
+    </a>
+    {% if current_user.role == 'admin' or current_user.can_create %}
+    <a href="/subscriptions/create" class="btn btn-primary btn-sm">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      新增訂閱
+    </a>
+    {% endif %}
   </div>
 </div>
-<div class="row g-2 mb-2 align-items-end">
-  <div class="col-sm-3">
-    <input type="text" id="searchInput" class="form-control form-control-sm"
-           placeholder="搜尋服務名稱…">
-  </div>
-  <div class="col-sm-2">
-    <select id="statusFilter" class="form-select form-select-sm">
-      <option value="">全部狀態</option>
+
+<div class="page-content">
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search-input">
+      <span class="search-icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+      </span>
+      <input class="input input-sm" type="text" id="searchBox" placeholder="搜尋服務名稱…" oninput="applyFilters()">
+    </div>
+    <select class="input input-sm" id="statusFilter" style="width:auto" onchange="applyFilters()">
+      <option value="">所有狀態</option>
       <option value="active">使用中</option>
       <option value="renewed">已續約</option>
       <option value="cancelled">已取消</option>
       <option value="suspended">暫停</option>
     </select>
-  </div>
-  <div class="col-sm-2">
-    <select id="categoryFilter" class="form-select form-select-sm">
-      <option value="">全部分類</option>
-      {% set cats = subscriptions | map(attribute='category') | select | unique | sort %}
-      {% for cat in cats %}
+    <select class="input input-sm" id="catFilter" style="width:auto" onchange="applyFilters()">
+      <option value="">所有分類</option>
+      {% set cats = subscriptions | map(attribute='category') | select | unique | list %}
+      {% for cat in cats | sort %}
       <option value="{{ cat }}">{{ cat }}</option>
       {% endfor %}
     </select>
-  </div>
-  <div class="col-sm-2">
-    <select id="deptFilter" class="form-select form-select-sm">
-      <option value="">全部部門</option>
-      {% set depts = subscriptions | map(attribute='department') | select | unique | sort %}
-      {% for dept in depts %}
+    <select class="input input-sm" id="deptFilter" style="width:auto" onchange="applyFilters()">
+      <option value="">所有部門</option>
+      {% set depts = subscriptions | map(attribute='department') | select | unique | list %}
+      {% for dept in depts | sort %}
       <option value="{{ dept }}">{{ dept }}</option>
       {% endfor %}
     </select>
+    <button class="btn btn-outline btn-sm" id="dueBtn" onclick="toggleDue(this)">🔴 30 天內到期</button>
+    {% if can_update %}
+    <button class="btn btn-primary btn-sm" id="bulkRenewBtn" style="display:none;" onclick="openRenewModal()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      續約 <span id="selectedCount">0</span> 筆
+    </button>
+    {% endif %}
+    <div class="spacer"></div>
+    <span class="muted" style="font-size:12px;" id="rowCount"></span>
   </div>
-  <div class="col-auto">
-    <button id="expiringBtn" class="btn btn-sm btn-outline-danger">🔴 30天內到期</button>
-  </div>
-  <div class="col-sm-1">
-    <select id="pageSizeSelect" class="form-select form-select-sm">
-      <option value="10">10 筆</option>
-      <option value="25" selected>25 筆</option>
-      <option value="50">50 筆</option>
-      <option value="999">全部</option>
-    </select>
-  </div>
-</div>
 
-{% if not subscriptions %}
-  <p class="text-muted">目前沒有訂閱資料。</p>
-{% else %}
-
-{# ── Table View (default) ─────────────────────────────────────────── #}
-<div id="tableView">
-<div class="table-responsive">
-<table class="table table-bordered table-hover align-middle">
-  <thead class="table-header">
-    <tr>
-      <th class="sortable" data-col="service">服務名稱 <span class="sort-icon">↕</span></th>
-      <th>登入帳號</th>
-      <th class="sortable" data-col="expiry">到期日 <span class="sort-icon">↕</span></th>
-      <th class="sortable" data-col="days">倒數天數 <span class="sort-icon">↕</span></th>
-      <th class="sortable" data-col="status">狀態 <span class="sort-icon">↕</span></th>
-      <th class="sortable" data-col="cost">費用 <span class="sort-icon">↕</span></th>
-      <th>計費週期</th>
-      <th class="sortable" data-col="owner">負責人 <span class="sort-icon">↕</span></th>
-      <th class="sortable" data-col="category">分類 <span class="sort-icon">↕</span></th>
-      <th class="sortable" data-col="dept">部門 <span class="sort-icon">↕</span></th>
-      <th>備註</th>
-      <th>操作</th>
-    </tr>
-  </thead>
-  <tbody id="subTable">
-    {% for sub in subscriptions %}
-    {% set days_left = (sub.expiry_date - today).days %}
-    {% set badge_cls, badge_txt = STATUS.get(sub.status.value, ('bg-secondary', sub.status.value)) %}
-    <tr data-service="{{ sub.service_name | lower }}"
-        data-expiry="{{ sub.expiry_date }}"
-        data-days="{{ days_left }}"
-        data-status="{{ sub.status.value }}"
-        data-cost="{{ sub.cost | float if sub.cost else 0 }}"
-        data-owner="{{ (sub.owner_name or '') | lower }}"
-        data-category="{{ sub.category or '' }}"
-        data-dept="{{ sub.department or '' }}">
-      <td>{{ sub.service_name }}</td>
-      <td>{{ sub.login_account }}</td>
-      <td>{{ sub.expiry_date }}</td>
-      <td>
-        {% if days_left < 0 %}
-          <span class="badge bg-secondary">已過期</span>
-        {% elif days_left <= 14 %}
-          <span class="badge bg-danger">{{ days_left }} 天</span>
-        {% elif days_left <= 30 %}
-          <span class="badge bg-warning text-dark">{{ days_left }} 天</span>
-        {% else %}
-          <span class="badge bg-success">{{ days_left }} 天</span>
+  <div class="table-wrap">
+    <table id="subTable">
+      <thead>
+        <tr>
+          {% if can_update %}
+          <th style="width:32px;padding-right:0;">
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="全選">
+          </th>
+          {% endif %}
+          <th>服務名稱</th>
+          <th class="col-hide-sm">帳號</th>
+          <th class="col-hide-md">密碼</th>
+          <th>部門</th>
+          <th>倒數</th>
+          <th class="right">費用</th>
+          <th class="col-hide-md">週期</th>
+          <th class="col-hide-sm">分類</th>
+          <th>狀態</th>
+          <th class="col-hide-md">付款帳戶</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in subscriptions %}
+        {% set days = (s.expiry_date - today).days %}
+        {% if days <= 14 %}{% set tone = 'red' %}
+        {% elif days <= 30 %}{% set tone = 'amber' %}
+        {% else %}{% set tone = 'green' %}
         {% endif %}
-      </td>
-      <td><span class="badge {{ badge_cls }}">{{ badge_txt }}</span></td>
-      <td>
-        {% if sub.cost %}{{ "%.0f" % sub.cost }} {{ sub.currency }}
-        {% else %}<span class="text-muted">—</span>{% endif %}
-      </td>
-      <td>
-        {% if sub.billing_cycle == "monthly" %}月付
-        {% elif sub.billing_cycle == "annual" %}年付
-        {% else %}<span class="text-muted">—</span>{% endif %}
-      </td>
-      <td>
-        {% if sub.owner_name %}{{ sub.owner_name }}
-        {% else %}<span class="text-muted">未指定</span>{% endif %}
-      </td>
-      <td>
-        {% if sub.category %}
-          <span class="badge badge-blue">{{ sub.category }}</span>
-        {% else %}<span class="text-muted">—</span>{% endif %}
-      </td>
-      <td>
-        {% if sub.department %}<small>{{ sub.department }}</small>
-        {% else %}<span class="text-muted">—</span>{% endif %}
-      </td>
-      <td><small class="text-muted">{{ sub.notes or '' }}</small></td>
-      <td class="text-nowrap">
-        {% if current_user.role == 'admin' or current_user.can_update %}
-        <a href="/subscriptions/{{ sub.id }}/edit"
-           class="btn btn-sm btn-outline-primary">編輯</a>
-        {% endif %}
-        {% if current_user.role == 'admin' or current_user.can_delete %}
-        <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
-                data-id="{{ sub.id }}"
-                data-name="{{ sub.service_name }}">刪除</button>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-</div>
-<div class="d-flex justify-content-between align-items-center mt-2">
-  <small id="pageInfo" class="text-muted"></small>
-  <div>
-    <button id="prevBtn" class="btn btn-sm btn-outline-secondary me-1">‹ 上一頁</button>
-    <button id="nextBtn" class="btn btn-sm btn-outline-secondary">下一頁 ›</button>
-  </div>
-</div>
-</div>{# end #tableView #}
-
-{# ── Card View (hidden by default) ───────────────────────────────── #}
-<div id="cardView" style="display:none">
-  <div class="row g-3" id="cardGrid">
-    {% for sub in subscriptions %}
-    {% set days_left = (sub.expiry_date - today).days %}
-    {% set badge_cls, badge_txt = STATUS.get(sub.status.value, ('bg-secondary', sub.status.value)) %}
-    {% if days_left < 0 %}{% set days_color = "secondary" %}
-    {% elif days_left <= 14 %}{% set days_color = "danger" %}
-    {% elif days_left <= 30 %}{% set days_color = "warning" %}
-    {% else %}{% set days_color = "success" %}{% endif %}
-    <div class="col-sm-6 col-md-4 col-xl-3 sub-card"
-         data-service="{{ sub.service_name | lower }}"
-         data-expiry="{{ sub.expiry_date }}"
-         data-days="{{ days_left }}"
-         data-status="{{ sub.status.value }}"
-         data-cost="{{ sub.cost | float if sub.cost else 0 }}"
-         data-category="{{ sub.category or '' }}"
-         data-dept="{{ sub.department or '' }}">
-      <div class="card h-100 shadow-sm border-0">
-        <div class="card-body pb-2">
-          <div class="d-flex align-items-start gap-2 mb-2">
-            <span class="fs-4 lh-1">{{ CAT_EMOJI.get(sub.category, '📦') }}</span>
-            <div class="flex-grow-1 overflow-hidden">
-              <div class="fw-semibold text-truncate" title="{{ sub.service_name }}">
-                {{ sub.service_name }}
-              </div>
-              <small class="text-muted">{{ sub.category or '未分類' }}</small>
+        {% set status_cls, status_label = STATUS_MAP.get(s.status.value, ('badge-neutral','未知')) %}
+        <tr
+          data-name="{{ s.service_name | lower }}"
+          data-status="{{ s.status.value }}"
+          data-cat="{{ s.category or '' }}"
+          data-dept="{{ s.department or '' }}"
+          data-days="{{ days }}"
+        >
+          {% if can_update %}
+          <td style="padding-right:0;">
+            <input type="checkbox" class="row-check" value="{{ s.id }}"
+                   data-name="{{ s.service_name }}" onchange="updateBulkBtn()">
+          </td>
+          {% endif %}
+          <td>
+            <div class="row-strong">
+              {% if s.icon_emoji %}
+                <span class="me-1">{{ s.icon_emoji }}</span>
+              {% endif %}
+              {{ s.service_name }}
+              {% if s.auto_renew %}
+                <span class="badge bg-info text-dark ms-1" title="自動續約">↻</span>
+              {% endif %}
             </div>
-            <span class="badge {{ badge_cls }} flex-shrink-0">{{ badge_txt }}</span>
-          </div>
-          <div class="mb-1">
-            <span class="badge bg-{{ days_color }}">
-              {% if days_left < 0 %}已過期{% else %}{{ days_left }} 天後到期{% endif %}
+            <div class="row-sub">
+              到期 {{ s.expiry_date.strftime('%Y/%m/%d') }}
+              {% if s.trial_end_date %}
+              {% set trial_days = (s.trial_end_date - today).days %}
+              · {% if trial_days >= 0 %}<span style="color:var(--warning,#B57600);">🧪 試用剩 {{ trial_days }} 天</span>{% else %}<span class="muted">🧪 試用已結束</span>{% endif %}
+              {% endif %}
+            </div>
+          </td>
+          <td class="col-hide-sm">
+            <span class="muted" style="font-size:12px;">{{ s.login_account or '—' }}</span>
+          </td>
+          <td class="col-hide-md">
+            {% if s.login_password %}
+            <div class="pwd-cell">
+              <span class="pwd-mask" id="pm{{ s.id }}" data-val="{{ s.login_password }}">••••••</span>
+              <button type="button" class="btn-icon" title="顯示／隱藏" onclick="togglePwd({{ s.id }})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              <button type="button" class="btn-icon" title="複製" onclick="copyPwd({{ s.id }})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s.department %}
+            <span class="muted" style="font-size:12px;">{{ s.department }}</span>
+            {% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td>
+            <span class="tl-days {{ tone }}" style="display:inline-block;padding:3px 10px;font-size:11px;">{{ days }} 天</span>
+          </td>
+          <td class="right tabnum">
+            {% if s.cost %}{{ s.currency }}${{ "{:,.6g}".format(s.cost|float) }}{% else %}—{% endif %}
+          </td>
+          <td class="col-hide-md">
+            {% if s.billing_cycle == "monthly" %}月付
+            {% elif s.billing_cycle == "quarterly" %}季付
+            {% elif s.billing_cycle == "semi_annual" %}半年付
+            {% elif s.billing_cycle == "annual" %}年付
+            {% elif s.billing_cycle == "biennial" %}兩年付
+            {% else %}<span class="muted">—</span>{% endif %}
+            {% if s.next_billing_date %}
+              <br><small class="muted">下次 {{ s.next_billing_date }}</small>
+            {% endif %}
+          </td>
+          <td class="col-hide-sm">
+            {% if s.category %}
+            <span class="badge badge-neutral">{{ s.category }}</span>
+            {% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td>
+            <span class="badge {{ status_cls }}">
+              <span class="dot" style="background:currentColor;"></span>
+              {{ status_label }}
             </span>
-          </div>
-          <div class="text-muted small">到期 {{ sub.expiry_date }}</div>
-          {% if sub.cost %}
-          <div class="text-muted small mt-1">
-            {{ "%.0f" % sub.cost }} {{ sub.currency }}
-            {% if sub.billing_cycle == "monthly" %}/月
-            {% elif sub.billing_cycle == "annual" %}/年{% endif %}
-          </div>
-          {% endif %}
-          <div class="text-muted small mt-1">
-            {% if sub.owner_name %}👤 {{ sub.owner_name }}
-            {% else %}<span class="text-danger">⚠ 未指定負責人</span>{% endif %}
-          </div>
-        </div>
-        <div class="card-footer bg-transparent border-top-0 d-flex gap-1 justify-content-end pt-0">
-          {% if current_user.role == 'admin' or current_user.can_update %}
-          <a href="/subscriptions/{{ sub.id }}/edit"
-             class="btn btn-sm btn-outline-primary">編輯</a>
-          {% endif %}
-          {% if current_user.role == 'admin' or current_user.can_delete %}
-          <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
-                  data-id="{{ sub.id }}"
-                  data-name="{{ sub.service_name }}">刪除</button>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    {% endfor %}
+          </td>
+          <td class="col-hide-md"><small class="muted">{{ s.payment_account or '—' }}</small></td>
+          <td class="right">
+            {% if current_user.role == 'admin' or current_user.can_update %}
+            <a href="/subscriptions/{{ s.id }}/edit" class="btn btn-ghost btn-sm">編輯</a>
+            {% endif %}
+            {% if current_user.role == 'admin' or current_user.can_delete %}
+            <button class="btn btn-ghost btn-sm" style="color:var(--danger-text);" onclick="confirmDelete({{ s.id }}, '{{ s.service_name }}')">刪除</button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  <small id="cardInfo" class="text-muted mt-2 d-block"></small>
-</div>{# end #cardView #}
 
-{% endif %}
+  {% if not subscriptions %}
+  <div class="empty" style="margin-top:16px;">
+    <div class="empty-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg>
+    </div>
+    <p>尚無訂閱資料，<a href="/subscriptions/create" class="row-link">立即新增</a></p>
+  </div>
+  {% endif %}
+</div>
 
-{# ── Delete confirm modal ─────────────────────────────────────────── #}
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-sm">
-    <div class="modal-content">
-      <div class="modal-header py-2">
-        <h6 class="modal-title">確認刪除</h6>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body py-2">
-        確認刪除「<strong id="deleteTargetName"></strong>」？<br>
-        <small class="text-muted">此操作無法復原。</small>
-      </div>
-      <div class="modal-footer py-2">
-        <button type="button" class="btn btn-sm btn-secondary"
-                data-bs-dismiss="modal">取消</button>
-        <form id="deleteForm" method="POST" class="d-inline">
-          <button type="submit" class="btn btn-sm btn-danger">確認刪除</button>
-        </form>
-      </div>
+<!-- Delete confirm modal -->
+<div class="modal-backdrop" id="deleteModal">
+  <div class="modal">
+    <h3>確認刪除</h3>
+    <p id="deleteMsg"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('deleteModal')">取消</button>
+      <form id="deleteForm" method="POST">
+        <button type="submit" class="btn btn-danger-soft">確認刪除</button>
+      </form>
     </div>
   </div>
 </div>
 
+<!-- Bulk renew modal -->
+{% if can_update %}
+<div class="modal-backdrop" id="renewModal">
+  <div class="modal">
+    <h3>批量續約</h3>
+    <p id="renewMsg"></p>
+    <div style="font-size:12px;color:var(--muted);margin-top:-8px;margin-bottom:4px;">
+      月付 +1 個月　年付 +1 年　未設定週期視為年付
+    </div>
+    <form id="renewForm" method="POST" action="/subscriptions/bulk-renew">
+      <input type="hidden" name="ids" id="renewIds">
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" onclick="closeModal('renewModal')">取消</button>
+        <button type="submit" class="btn btn-primary">確認續約</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
 <script>
-// ── Delete modal ──────────────────────────────────────────────────────────
-document.querySelectorAll('.delete-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.getElementById('deleteTargetName').textContent = btn.dataset.name;
-    document.getElementById('deleteForm').action =
-      '/subscriptions/' + btn.dataset.id + '/delete';
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
-  });
-});
+let showDue = false;
 
-// ── State ─────────────────────────────────────────────────────────────────
-const tbody    = document.getElementById('subTable');
-const allRows  = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
-const allCards = Array.from(document.querySelectorAll('.sub-card'));
+function togglePwd(id) {
+  const el = document.getElementById('pm' + id);
+  el.textContent = el.textContent === '••••••' ? el.dataset.val : '••••••';
+}
+function copyPwd(id) {
+  navigator.clipboard.writeText(document.getElementById('pm' + id).dataset.val);
+}
 
-let sortCol      = null;
-let sortAsc      = true;
-let currentPage  = 1;
-let isCardView   = false;
-let expiringOnly = false;
-
-// ── Shared filter predicate ───────────────────────────────────────────────
-function matchesFilter(el) {
-  const q    = document.getElementById('searchInput').value.toLowerCase();
-  const st   = document.getElementById('statusFilter').value;
-  const cat  = document.getElementById('categoryFilter').value;
+function applyFilters() {
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  const st = document.getElementById('statusFilter').value;
+  const cat = document.getElementById('catFilter').value;
   const dept = document.getElementById('deptFilter').value;
-  const days = parseInt(el.dataset.days);
-  if (expiringOnly && (isNaN(days) || days < 0 || days > 30)) return false;
-  return el.dataset.service.includes(q) &&
-    (!st   || el.dataset.status   === st) &&
-    (!cat  || el.dataset.category === cat) &&
-    (!dept || el.dataset.dept     === dept);
-}
-
-// ── Sort (table rows only) ────────────────────────────────────────────────
-function sorted(rows) {
-  if (!sortCol) return rows;
-  return [...rows].sort((a, b) => {
-    let av = a.dataset[sortCol] || '';
-    let bv = b.dataset[sortCol] || '';
-    if (sortCol === 'cost' || sortCol === 'days') {
-      return sortAsc ? parseFloat(av) - parseFloat(bv)
-                     : parseFloat(bv) - parseFloat(av);
-    }
-    return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+  let visible = 0;
+  document.querySelectorAll('#subTable tbody tr').forEach(tr => {
+    const match =
+      (!q   || tr.dataset.name.includes(q)) &&
+      (!st  || tr.dataset.status === st) &&
+      (!cat || tr.dataset.cat === cat) &&
+      (!dept|| tr.dataset.dept === dept) &&
+      (!showDue || parseInt(tr.dataset.days) <= 30);
+    tr.style.display = match ? '' : 'none';
+    if (match) visible++;
   });
+  document.getElementById('rowCount').textContent = '共 ' + visible + ' 筆';
+  updateBulkBtn();
 }
 
-// ── Render ────────────────────────────────────────────────────────────────
-function render() {
-  if (isCardView) {
-    const visible = allCards.filter(matchesFilter);
-    allCards.forEach(c => c.style.display = 'none');
-    visible.forEach(c => c.style.display = '');
-    const info = document.getElementById('cardInfo');
-    if (info) info.textContent = visible.length === 0 ? '無符合資料' : `共 ${visible.length} 筆`;
-  } else {
-    const rows  = sorted(allRows.filter(matchesFilter));
-    const total = rows.length;
-    const ps    = parseInt(document.getElementById('pageSizeSelect').value);
-    const pages = Math.max(1, Math.ceil(total / ps));
-    if (currentPage > pages) currentPage = pages;
-
-    allRows.forEach(r => r.style.display = 'none');
-    const start = (currentPage - 1) * ps;
-    rows.slice(start, start + ps).forEach(r => r.style.display = '');
-
-    const end = Math.min(start + ps, total);
-    document.getElementById('pageInfo').textContent =
-      total === 0 ? '無符合資料' : `顯示 ${start + 1}–${end} / 共 ${total} 筆`;
-    document.getElementById('prevBtn').disabled = currentPage <= 1;
-    document.getElementById('nextBtn').disabled = currentPage >= pages;
-  }
+function toggleDue(btn) {
+  showDue = !showDue;
+  btn.classList.toggle('btn-primary', showDue);
+  btn.classList.toggle('btn-outline', !showDue);
+  applyFilters();
 }
 
-// ── View toggle ───────────────────────────────────────────────────────────
-document.getElementById('viewToggle').addEventListener('click', function () {
-  isCardView = !isCardView;
-  document.getElementById('tableView').style.display = isCardView ? 'none' : '';
-  document.getElementById('cardView').style.display  = isCardView ? '' : 'none';
-  this.textContent = isCardView ? '≡ 列表' : '⊞ 卡片';
-  render();
-});
+// ── Bulk renew ──────────────────────────────────────────────────────────────
+function visibleChecked() {
+  return Array.from(document.querySelectorAll('#subTable tbody tr .row-check:checked'))
+    .filter(cb => cb.closest('tr').style.display !== 'none');
+}
 
-// ── 30-day quick filter ───────────────────────────────────────────────────
-document.getElementById('expiringBtn').addEventListener('click', function () {
-  expiringOnly = !expiringOnly;
-  this.className = expiringOnly
-    ? 'btn btn-sm btn-danger'
-    : 'btn btn-sm btn-outline-danger';
-  currentPage = 1;
-  render();
-});
+function updateBulkBtn() {
+  const checked = visibleChecked();
+  const btn = document.getElementById('bulkRenewBtn');
+  if (!btn) return;
+  btn.style.display = checked.length > 0 ? '' : 'none';
+  document.getElementById('selectedCount').textContent = checked.length;
 
-// ── Filter listeners ──────────────────────────────────────────────────────
-document.getElementById('searchInput')
-  .addEventListener('input',  () => { currentPage = 1; render(); });
-document.getElementById('statusFilter')
-  .addEventListener('change', () => { currentPage = 1; render(); });
-document.getElementById('categoryFilter')
-  .addEventListener('change', () => { currentPage = 1; render(); });
-document.getElementById('deptFilter')
-  .addEventListener('change', () => { currentPage = 1; render(); });
-document.getElementById('pageSizeSelect')
-  .addEventListener('change', () => { currentPage = 1; render(); });
-document.getElementById('prevBtn')
-  .addEventListener('click',  () => { currentPage--; render(); });
-document.getElementById('nextBtn')
-  .addEventListener('click',  () => { currentPage++; render(); });
+  const allVisible = document.querySelectorAll('#subTable tbody tr:not([style*="display: none"]) .row-check');
+  const sa = document.getElementById('selectAll');
+  if (!sa) return;
+  sa.indeterminate = checked.length > 0 && checked.length < allVisible.length;
+  sa.checked = allVisible.length > 0 && checked.length === allVisible.length;
+}
 
-// ── Column sort ───────────────────────────────────────────────────────────
-document.querySelectorAll('th.sortable').forEach(th => {
-  th.style.cursor = 'pointer';
-  th.addEventListener('click', () => {
-    const col = th.dataset.col;
-    if (sortCol === col) sortAsc = !sortAsc;
-    else { sortCol = col; sortAsc = true; }
-    document.querySelectorAll('.sort-icon').forEach(s => s.textContent = '↕');
-    th.querySelector('.sort-icon').textContent = sortAsc ? '↑' : '↓';
-    currentPage = 1;
-    render();
-  });
-});
+function toggleSelectAll(cb) {
+  document.querySelectorAll('#subTable tbody tr:not([style*="display: none"]) .row-check')
+    .forEach(c => c.checked = cb.checked);
+  updateBulkBtn();
+}
 
-render();
+function openRenewModal() {
+  const checked = visibleChecked();
+  document.getElementById('renewMsg').textContent =
+    '即將把 ' + checked.length + ' 筆訂閱的到期日往後延一個計費週期。';
+  document.getElementById('renewIds').value = checked.map(cb => cb.value).join(',');
+  document.getElementById('renewModal').classList.add('show');
+}
+
+// ── Delete ──────────────────────────────────────────────────────────────────
+function confirmDelete(id, name) {
+  document.getElementById('deleteMsg').textContent = '確定要刪除「' + name + '」？此操作無法復原。';
+  document.getElementById('deleteForm').action = '/subscriptions/' + id + '/delete';
+  document.getElementById('deleteModal').classList.add('show');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+applyFilters();
 </script>
 {% endblock %}
