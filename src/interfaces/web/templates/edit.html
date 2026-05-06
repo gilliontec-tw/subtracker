@@ -1,102 +1,178 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
+{% block title %}編輯訂閱 — SubTrack{% endblock %}
+{% block nav_list %}active{% endblock %}
+
 {% block content %}
-<h4 class="mb-3">編輯訂閱</h4>
-<form method="POST" action="/subscriptions/{{ sub.id }}/edit" style="max-width:560px">
-  <div class="mb-3">
-    <label class="form-label">服務名稱</label>
-    <input type="text" name="service_name" class="form-control"
-           value="{{ sub.service_name }}" required>
+<div class="page-header">
+  <div>
+    <h1>編輯訂閱</h1>
+    <div class="page-sub">{{ sub.service_name }}</div>
   </div>
-  <div class="mb-3">
-    <label class="form-label">登入帳號</label>
-    <input type="text" name="login_account" class="form-control"
-           value="{{ sub.login_account }}" required>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">到期日</label>
-    <input type="date" name="expiry_date" class="form-control"
-           value="{{ sub.expiry_date }}" required>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">狀態</label>
-    <select name="status" class="form-select" required>
-      {% for value, label in status_options %}
-      <option value="{{ value }}" {% if value == sub.status.value %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">費用（選填）</label>
-    <div class="input-group">
-      <input type="number" name="cost" step="0.01" min="0" class="form-control"
-             value="{{ sub.cost if sub.cost else '' }}" placeholder="例如 1200">
-      <select name="currency" class="form-select" style="max-width:100px">
-        {% for c in currency_options %}
-        <option value="{{ c }}" {% if c == sub.currency %}selected{% endif %}>{{ c }}</option>
-        {% endfor %}
-      </select>
+</div>
+
+<div class="page-content">
+  <div class="card" style="max-width:600px;">
+    <div class="card-body">
+      <form method="POST" action="/subscriptions/{{ sub.id }}/edit">
+        <div class="form-group">
+          <label class="form-label">服務名稱 <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="service_name" class="input" required value="{{ sub.service_name }}">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">登入帳號 <span style="color:var(--danger)">*</span></label>
+            <input type="text" name="login_account" class="input" required value="{{ sub.login_account }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">登入密碼（選填）</label>
+            <div class="pwd-wrap">
+              <input type="password" name="login_password" class="input"
+                     value="{{ sub.login_password or '' }}" placeholder="留空表示不儲存">
+              <button type="button" class="pwd-toggle" onclick="togglePwdField(this)" tabindex="-1">
+                <svg class="eye-off" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                <svg class="eye-on" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">到期日 <span style="color:var(--danger)">*</span></label>
+            <input type="date" name="expiry_date" class="input" required value="{{ sub.expiry_date }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">狀態 <span style="color:var(--danger)">*</span></label>
+            <select name="status" class="input" required>
+              {% for value, label in status_options %}
+              <option value="{{ value }}" {% if value == sub.status.value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">費用（選填）</label>
+          <div style="display:flex;gap:8px;">
+            <input type="number" name="cost" step="0.01" min="0" class="input"
+                   value="{{ sub.cost if sub.cost else '' }}" placeholder="例如 12000">
+            <select name="currency" class="input" style="width:100px;flex-shrink:0;">
+              {% for c in currency_options %}
+              <option value="{{ c }}" {% if c == sub.currency %}selected{% endif %}>{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">通知收件人 Email <span style="color:var(--danger)">*</span></label>
+            <input type="text" name="notification_emails" class="input" required
+                   value="{{ sub.notification_emails }}">
+            <div class="form-hint">多個收件人請用逗號分隔</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">提前通知天數 <span style="color:var(--danger)">*</span></label>
+            <select name="notification_days" class="input" required>
+              {% for value, label in notification_options %}
+              <option value="{{ value }}" {% if value == sub.notification_days.value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">分類（選填）</label>
+            <select name="category" class="input">
+              <option value="">— 請選擇 —</option>
+              {% for opt in category_options %}
+              <option value="{{ opt }}" {% if sub.category == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">部門（選填）</label>
+            <select name="department" class="input">
+              <option value="">— 請選擇 —</option>
+              {% for value, label in department_options %}
+              <option value="{{ value }}" {% if sub.department == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">負責人（選填）</label>
+            <input type="text" name="owner_name" class="input"
+                   value="{{ sub.owner_name or '' }}" placeholder="例如：陳小明">
+          </div>
+          <div class="form-group">
+            <label class="form-label">計費週期（選填）</label>
+            <select name="billing_cycle" class="input">
+              <option value="">— 請選擇 —</option>
+              {% for value, label in billing_cycle_options %}
+              <option value="{{ value }}" {% if sub.billing_cycle == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">備註（選填）</label>
+          <textarea name="notes" class="input" rows="3"
+                    placeholder="合約編號、購買廠商、授權數量等">{{ sub.notes or '' }}</textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">服務圖示（選填）</label>
+          <input type="text" name="icon_emoji" class="form-control" maxlength="4"
+                 value="{{ sub.icon_emoji or '' }}"
+                 placeholder="貼上 Emoji，例如 💻 🔒 📊">
+          <div class="form-text">輸入任一 Emoji 作為訂閱的視覺識別</div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">付款帳戶（選填）</label>
+          <input type="text" name="payment_account" class="form-control"
+                 value="{{ sub.payment_account or '' }}"
+                 placeholder="例如：公司美金卡末4碼1234">
+        </div>
+        <div class="mb-3">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="auto_renew"
+                   id="autoRenewEdit" value="true"
+                   {% if sub.auto_renew %}checked{% endif %}>
+            <label class="form-check-label" for="autoRenewEdit">
+              自動續約（到期前會自動扣款）
+            </label>
+          </div>
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-sm-6">
+            <label class="form-label">試用到期日（選填）</label>
+            <input type="date" name="trial_end_date" class="form-control"
+                   value="{{ sub.trial_end_date or '' }}">
+            <div class="form-text">免費試用結束日，到期前會顯示警示</div>
+          </div>
+          <div class="col-sm-6">
+            <label class="form-label">下次計費日（選填）</label>
+            <input type="date" name="next_billing_date" class="form-control"
+                   value="{{ sub.next_billing_date or '' }}">
+            <div class="form-text">月付訂閱的下次扣款日</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+          <a href="/" class="btn btn-outline">取消</a>
+          <button type="submit" class="btn btn-primary">更新</button>
+        </div>
+      </form>
     </div>
   </div>
-  <div class="mb-3">
-    <label class="form-label">通知收件人 Email</label>
-    <input type="text" name="notification_emails" class="form-control"
-           value="{{ sub.notification_emails }}" required>
-    <div class="form-text">多個收件人請用逗號分隔</div>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">提前通知天數</label>
-    <select name="notification_days" class="form-select" required>
-      {% for value, label in notification_options %}
-      <option value="{{ value }}" {% if value == sub.notification_days.value %}selected{% endif %}>
-        {{ label }}
-      </option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">備註</label>
-    <textarea name="notes" class="form-control" rows="3"
-              placeholder="合約編號、購買廠商、授權數量等（選填）">{{ sub.notes or '' }}</textarea>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">負責人（選填）</label>
-    <input type="text" name="owner_name" class="form-control"
-           value="{{ sub.owner_name or '' }}"
-           placeholder="例如：陳小明">
-  </div>
-  <div class="row g-2 mb-3">
-    <div class="col-sm-6">
-      <label class="form-label">分類（選填）</label>
-      <select name="category" class="form-select">
-        <option value="">— 請選擇 —</option>
-        {% for opt in category_options %}
-        <option value="{{ opt }}"
-                {% if sub.category == opt %}selected{% endif %}>{{ opt }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="col-sm-6">
-      <label class="form-label">部門（選填）</label>
-      <select name="department" class="form-select">
-        <option value="">— 請選擇 —</option>
-        {% for opt in department_options %}
-        <option value="{{ opt }}"
-                {% if sub.department == opt %}selected{% endif %}>{{ opt }}</option>
-        {% endfor %}
-      </select>
-    </div>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">計費週期（選填）</label>
-    <select name="billing_cycle" class="form-select">
-      <option value="">— 請選擇 —</option>
-      {% for value, label in billing_cycle_options %}
-      <option value="{{ value }}"
-              {% if sub.billing_cycle == value %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <button type="submit" class="btn btn-primary">更新</button>
-  <a href="/" class="btn btn-secondary ms-2">取消</a>
-</form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePwdField(btn) {
+  const input = btn.closest('.pwd-wrap').querySelector('input');
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  btn.querySelector('.eye-off').style.display = isHidden ? 'none' : '';
+  btn.querySelector('.eye-on').style.display  = isHidden ? '' : 'none';
+}
+</script>
 {% endblock %}
