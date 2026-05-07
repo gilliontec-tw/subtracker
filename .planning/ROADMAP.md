@@ -18,8 +18,8 @@
 6. `pytest` 全數通過，無 regression
 
 Plans:
-- [ ] 01-01-PLAN.md — SEC-01 + SEC-02: SECRET_KEY validation, JSON logging middleware, fix silent except blocks in admin.py
-- [ ] 01-02-PLAN.md — DEBT-01: remove passlib, delete stale session.py comment, extract annual_cost() to domain entity, create constants.py, consolidate Jinja2Templates, fix datetime timezone
+- [x] 01-01-PLAN.md — SEC-01 + SEC-02: SECRET_KEY validation, JSON logging middleware, fix silent except blocks in admin.py
+- [x] 01-02-PLAN.md — DEBT-01: remove passlib, delete stale session.py comment, extract annual_cost() to domain entity, create constants.py, consolidate Jinja2Templates, fix datetime timezone
 
 ---
 

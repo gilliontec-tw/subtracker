@@ -1,7 +1,7 @@
 ﻿# SubTrack — Project State
 
 ## Current Status
-Phase: 1 — executing (plan 01 complete)
+Phase: 1 — complete (both plans done)
 Last updated: 2026-05-07
 
 ## Project Reference
@@ -27,8 +27,13 @@ Run `/gsd-execute-phase 1` to execute Phase 1.
 - Used os.getenv("SECRET_KEY", "") in lifespan so RuntimeError message is clear rather than raw KeyError
 - Used os.environ["SECRET_KEY"] in session.py as secondary safety net (KeyError if module imported before lifespan)
 - Middleware placed after include_router calls per FastAPI middleware ordering semantics
+- Removed passlib[bcrypt]==1.7.4; pinned bcrypt==5.0.0 directly to eliminate compatibility issues with bcrypt>=4.0
+- Shared Jinja2Templates placed in dependencies.py (same file as engine/SessionLocal singletons) for consistency
+- annual_cost() placed on Subscription entity as domain method — pure logic from entity fields, not route handler
+- ORM defaults use lambda: datetime.now(timezone.utc) not bare datetime.now (bare callable produces naive datetimes)
 
 ## Session Log
 - 2026-05-07: Phase 1 context gathered → `.planning/phases/01-foundation-security/01-CONTEXT.md`
 - 2026-05-07: Phase 1 planned → 2 plans (01-01 SEC, 01-02 DEBT), verification passed
 - 2026-05-07: Plan 01-01 complete — SEC-01 + SEC-02 implemented (commits 845c98f, 1c4d3ec)
+- 2026-05-07: Plan 01-02 complete — DEBT-01 all 6 items resolved (commits fa359cd, 46f04ac, 6490601)
