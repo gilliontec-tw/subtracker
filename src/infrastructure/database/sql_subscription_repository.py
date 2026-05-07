@@ -103,5 +103,5 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         model = self._session.get(SubscriptionModel, subscription_id)
         if model:
             model.is_active  = False
-            model.updated_at = datetime.now()
+            model.updated_at = datetime.now(timezone.utc)
             self._session.commit()
