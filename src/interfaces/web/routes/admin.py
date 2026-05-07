@@ -2,18 +2,16 @@ import logging
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from fastapi.templating import Jinja2Templates
 from src.domain.entities.config_option import ConfigOption
 from src.infrastructure.email.smtp_email_sender import SmtpEmailSender
 from src.interfaces.web.dependencies import (
     get_user_repo, get_register_uc, get_update_permissions_uc,
-    get_list_users_uc, require_admin, get_audit_log_repo, get_config_repo,
+    get_list_users_uc, require_admin, get_audit_log_repo, get_config_repo, templates,
 )
 
 log = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/admin")
-templates = Jinja2Templates(directory="src/interfaces/web/templates")
 
 
 @router.get("/users")

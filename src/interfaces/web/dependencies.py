@@ -1,9 +1,11 @@
 from fastapi import Depends, Request
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from src.infrastructure.database.session import SessionLocal
 from src.infrastructure.database.sql_subscription_repository import SqlSubscriptionRepository
 from src.infrastructure.database.sql_user_repository import SqlUserRepository
 from src.infrastructure.database.sql_audit_log_repository import SqlAuditLogRepository
+from src.infrastructure.database.sql_config_option_repository import SqlConfigOptionRepository
 from src.application.use_cases.create_subscription import CreateSubscriptionUseCase
 from src.application.use_cases.update_subscription import UpdateSubscriptionUseCase
 from src.application.use_cases.delete_subscription import DeleteSubscriptionUseCase
@@ -16,6 +18,8 @@ from src.application.use_cases.auth.list_users import ListUsersUseCase
 from src.application.use_cases.auth.change_password import ChangePasswordUseCase
 from src.domain.entities.user import User
 from src.interfaces.web.session import get_session_user_id
+
+templates = Jinja2Templates(directory="src/interfaces/web/templates")
 
 
 class NotAuthenticatedException(Exception):
@@ -44,6 +48,10 @@ def get_user_repo(session: Session = Depends(get_db_session)) -> SqlUserReposito
 
 def get_audit_log_repo(session: Session = Depends(get_db_session)) -> SqlAuditLogRepository:
     return SqlAuditLogRepository(session)
+
+
+def get_config_repo(session: Session = Depends(get_db_session)) -> SqlConfigOptionRepository:
+    return SqlConfigOptionRepository(session)
 
 
 # ── Subscription use cases ──────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy import Boolean, Column, Date, DateTime, Integer, Numeric, String
 from sqlalchemy.orm import DeclarativeBase
@@ -32,8 +32,8 @@ class SubscriptionModel(Base):
     next_billing_date   = Column(Date,        nullable=True)
     icon_emoji          = Column(String(10),  nullable=True)
     login_password      = Column(String(500), nullable=True)
-    created_at          = Column(DateTime, nullable=False, default=datetime.now)
-    updated_at          = Column(DateTime, nullable=True, onupdate=datetime.now)
+    created_at          = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at          = Column(DateTime, nullable=True, onupdate=lambda: datetime.now(timezone.utc))
 
 
 class UserModel(Base):
@@ -48,7 +48,7 @@ class UserModel(Base):
     can_update        = Column(Boolean, nullable=False, default=False)
     can_delete        = Column(Boolean, nullable=False, default=False)
     is_active         = Column(Boolean, nullable=False, default=True)
-    created_at        = Column(DateTime, nullable=False, default=datetime.now)
+    created_at        = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     last_login_at     = Column(DateTime, nullable=True)
     invite_token      = Column(String(100), nullable=True)
     invite_expires_at = Column(DateTime, nullable=True)
@@ -61,7 +61,7 @@ class ConfigOptionModel(Base):
     type       = Column(String(50), nullable=False)    # "category" | "department"
     value      = Column(String(100), nullable=False)
     parent_id  = Column(Integer, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.now)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
 
 class AuditLogModel(Base):
@@ -74,4 +74,4 @@ class AuditLogModel(Base):
     target_type = Column(String(50), nullable=False)   # subscription
     target_id   = Column(Integer, nullable=False)
     target_name = Column(String(200), nullable=False)
-    created_at  = Column(DateTime, nullable=False, default=datetime.now)
+    created_at  = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))

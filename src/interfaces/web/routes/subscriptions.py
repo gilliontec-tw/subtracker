@@ -7,26 +7,16 @@ import io
 import json
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from src.domain.entities.audit_entry import AuditEntry
 from src.domain.entities.subscription import NotificationDays, SubscriptionStatus
+from src.interfaces.web.constants import NOTIFICATION_OPTIONS
 from src.interfaces.web.dependencies import (
     get_create_uc, get_delete_uc, get_list_uc, get_single_uc, get_update_uc,
     get_current_user, require_create, require_update, require_delete,
-    get_audit_log_repo, get_config_repo,
+    get_audit_log_repo, get_config_repo, templates,
 )
 
 router = APIRouter()
-templates = Jinja2Templates(directory="src/interfaces/web/templates")
-
-NOTIFICATION_OPTIONS = [
-    (3,   "3 天前"),
-    (7,   "7 天前"),
-    (14,  "14 天前"),
-    (30,  "1 個月前"),
-    (90,  "3 個月前"),
-    (120, "4 個月前"),
-]
 
 STATUS_OPTIONS = [
     ("active",    "使用中"),
@@ -52,31 +42,19 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
     subscriptions = uc.execute()
     today = date.today()
 
-    def annual_cost(s):
-        if s.cost is None:
-            return 0.0
-        multipliers = {
-            "monthly":     12,
-            "quarterly":   4,
-            "semi_annual": 2,
-            "annual":      1,
-            "biennial":    0.5,
-        }
-        return float(s.cost) * multipliers.get(s.billing_cycle or "annual", 1)
-
     active_subs = [s for s in subscriptions if s.status.value in ("active", "renewed")]
 
     # Per-currency annual cost breakdown
     cost_by_currency: dict[str, float] = defaultdict(float)
     for s in active_subs:
         cur = s.currency or "TWD"
-        cost_by_currency[cur] += annual_cost(s)
+        cost_by_currency[cur] += s.annual_cost()
     cost_summary = sorted(
         [{"currency": c, "annual": v, "monthly": v / 12} for c, v in cost_by_currency.items()],
         key=lambda x: -x["annual"],
     )
 
-    total_annual_cost = sum(annual_cost(s) for s in active_subs)
+    total_annual_cost = sum(s.annual_cost() for s in active_subs)
     total_monthly_cost = total_annual_cost / 12
 
     upcoming_30 = [s for s in active_subs if 0 <= (s.expiry_date - today).days <= 30]
@@ -95,7 +73,7 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
     cat_costs: dict[str, float] = defaultdict(float)
     for s in active_subs:
         cat = s.category or "未分類"
-        cat_costs[cat] += annual_cost(s)
+        cat_costs[cat] += s.annual_cost()
     chart_cat_labels = json.dumps(list(cat_costs.keys()), ensure_ascii=False)
     chart_cat_values = json.dumps([round(v, 2) for v in cat_costs.values()])
 
@@ -115,7 +93,7 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
         exp = s.expiry_date
         key = f"{exp.year}-{exp.month:02d}"
         if key in month_data:
-            month_data[key] += annual_cost(s)
+            month_data[key] += s.annual_cost()
 
     chart_month_labels = json.dumps([f"{k[:4]}/{int(k[5:7])}月" for k in month_labels_raw], ensure_ascii=False)
     chart_month_values = json.dumps([round(month_data[k], 2) for k in month_labels_raw])
@@ -235,12 +213,10 @@ def create_submit(
     category: str | None = Form(None),
     department: str | None = Form(None),
     billing_cycle: str | None = Form(None),
-    login_password: str | None = Form(None),
     payment_account: str | None = Form(None),
     auto_renew: bool = Form(False),
     trial_end_date: str | None = Form(None),
     next_billing_date: str | None = Form(None),
-    icon_emoji: str | None = Form(None),
     uc=Depends(get_create_uc),
     current_user=Depends(require_create),
     audit_repo=Depends(get_audit_log_repo),
@@ -259,12 +235,10 @@ def create_submit(
         category=category or None,
         department=department or None,
         billing_cycle=billing_cycle or None,
-        login_password=login_password or None,
         payment_account=payment_account or None,
         auto_renew=bool(auto_renew),
         trial_end_date=datetime.strptime(trial_end_date, "%Y-%m-%d").date() if trial_end_date else None,
         next_billing_date=datetime.strptime(next_billing_date, "%Y-%m-%d").date() if next_billing_date else None,
-        icon_emoji=icon_emoji or None,
     )
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
@@ -315,12 +289,10 @@ def edit_submit(
     category: str | None = Form(None),
     department: str | None = Form(None),
     billing_cycle: str | None = Form(None),
-    login_password: str | None = Form(None),
     payment_account: str | None = Form(None),
     auto_renew: bool = Form(False),
     trial_end_date: str | None = Form(None),
     next_billing_date: str | None = Form(None),
-    icon_emoji: str | None = Form(None),
     uc=Depends(get_update_uc),
     current_user=Depends(require_update),
     audit_repo=Depends(get_audit_log_repo),
@@ -340,12 +312,10 @@ def edit_submit(
         category=category or None,
         department=department or None,
         billing_cycle=billing_cycle or None,
-        login_password=login_password or None,
         payment_account=payment_account or None,
         auto_renew=bool(auto_renew),
         trial_end_date=datetime.strptime(trial_end_date, "%Y-%m-%d").date() if trial_end_date else None,
         next_billing_date=datetime.strptime(next_billing_date, "%Y-%m-%d").date() if next_billing_date else None,
-        icon_emoji=icon_emoji or None,
     )
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
@@ -376,18 +346,6 @@ CAT_COLORS = {
 def reports(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
     subscriptions = uc.execute()
 
-    def annual_cost(s):
-        if s.cost is None:
-            return 0.0
-        multipliers = {
-            "monthly":     12,
-            "quarterly":   4,
-            "semi_annual": 2,
-            "annual":      1,
-            "biennial":    0.5,
-        }
-        return float(s.cost) * multipliers.get(s.billing_cycle or "annual", 1)
-
     active = [s for s in subscriptions if s.status.value in ("active", "renewed")]
 
     # Per-currency, per-category breakdown
@@ -398,9 +356,9 @@ def reports(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_
         k = s.category or "未分類"
         if cur not in cur_cat_map:
             cur_cat_map[cur] = defaultdict(lambda: {"cost": 0.0, "count": 0})
-        cur_cat_map[cur][k]["cost"] += annual_cost(s)
+        cur_cat_map[cur][k]["cost"] += s.annual_cost()
         cur_cat_map[cur][k]["count"] += 1
-        cur_totals[cur] += annual_cost(s)
+        cur_totals[cur] += s.annual_cost()
 
     sections = []
     for cur in sorted(cur_totals, key=lambda c: -cur_totals[c]):
@@ -463,7 +421,6 @@ def bulk_renew(
             category=sub.category,
             department=sub.department,
             billing_cycle=sub.billing_cycle,
-            login_password=sub.login_password,
         )
         audit_repo.add(AuditEntry(
             user_id=current_user.id,

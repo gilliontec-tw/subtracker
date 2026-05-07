@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from src.domain.entities.subscription import Subscription, NotificationDays, SubscriptionStatus
@@ -31,8 +31,6 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             auto_renew=bool(model.auto_renew),
             trial_end_date=model.trial_end_date,
             next_billing_date=model.next_billing_date,
-            icon_emoji=model.icon_emoji,
-            login_password=model.login_password,
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -56,8 +54,6 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             auto_renew=subscription.auto_renew,
             trial_end_date=subscription.trial_end_date,
             next_billing_date=subscription.next_billing_date,
-            icon_emoji=subscription.icon_emoji,
-            login_password=subscription.login_password,
         )
         self._session.add(model)
         self._session.commit()
@@ -98,9 +94,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         model.auto_renew          = subscription.auto_renew
         model.trial_end_date      = subscription.trial_end_date
         model.next_billing_date   = subscription.next_billing_date
-        model.icon_emoji          = subscription.icon_emoji
-        model.login_password      = subscription.login_password
-        model.updated_at          = datetime.now()
+        model.updated_at          = datetime.now(timezone.utc)
         self._session.commit()
         self._session.refresh(model)
         return self._to_entity(model)
