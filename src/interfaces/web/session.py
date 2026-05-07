@@ -2,7 +2,7 @@ import os
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from fastapi import Request, Response
 
-_SECRET_KEY = os.environ["SECRET_KEY"]
+_SECRET_KEY = os.getenv("SECRET_KEY", "")
 _serializer = URLSafeTimedSerializer(_SECRET_KEY)
 SESSION_COOKIE = "session"
 SESSION_MAX_AGE = 86400 * 7  # 7 days

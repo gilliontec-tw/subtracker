@@ -92,11 +92,11 @@ def resend_invite(
     repo=Depends(get_user_repo),
 ):
     import secrets
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
     user = repo.get_by_id(user_id)
     if user and user.invite_token:
         user.invite_token = secrets.token_urlsafe(32)
-        user.invite_expires_at = datetime.now() + timedelta(hours=72)
+        user.invite_expires_at = datetime.now(timezone.utc) + timedelta(hours=72)
         repo.update(user)
         try:
             base = str(request.base_url).rstrip("/")

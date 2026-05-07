@@ -34,6 +34,11 @@ class JsonFormatter(logging.Formatter):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # SEC-02: configure JSON structured logging to stdout first so startup errors are JSON too
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(JsonFormatter())
+    logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
+
     # SEC-01: reject insecure or missing SECRET_KEY (per D-08)
     _secret = os.getenv("SECRET_KEY", "")
     _dev_default = "dev-secret-key-change-in-production"
@@ -42,11 +47,6 @@ async def lifespan(app: FastAPI):
             "SECRET_KEY is not set or still equals the dev default. "
             "Set a strong SECRET_KEY in your .env file before starting the app."
         )
-
-    # SEC-02: configure JSON structured logging to stdout (per D-01, D-02, D-06)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(JsonFormatter())
-    logging.basicConfig(level=logging.INFO, handlers=[handler], force=True)
 
     yield
 
