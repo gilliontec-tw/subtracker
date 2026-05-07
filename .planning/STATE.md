@@ -1,7 +1,7 @@
 ﻿# SubTrack — Project State
 
 ## Current Status
-Phase: 1 — ready to execute
+Phase: 1 — executing (plan 01 complete)
 Last updated: 2026-05-07
 
 ## Project Reference
@@ -23,6 +23,12 @@ See: `.planning/PROJECT.md`
 ## Resume From
 Run `/gsd-execute-phase 1` to execute Phase 1.
 
+## Decisions
+- Used os.getenv("SECRET_KEY", "") in lifespan so RuntimeError message is clear rather than raw KeyError
+- Used os.environ["SECRET_KEY"] in session.py as secondary safety net (KeyError if module imported before lifespan)
+- Middleware placed after include_router calls per FastAPI middleware ordering semantics
+
 ## Session Log
 - 2026-05-07: Phase 1 context gathered → `.planning/phases/01-foundation-security/01-CONTEXT.md`
 - 2026-05-07: Phase 1 planned → 2 plans (01-01 SEC, 01-02 DEBT), verification passed
+- 2026-05-07: Plan 01-01 complete — SEC-01 + SEC-02 implemented (commits 845c98f, 1c4d3ec)
