@@ -41,10 +41,21 @@ class Subscription:
     auto_renew: bool = False
     trial_end_date: date | None = None
     next_billing_date: date | None = None
-    icon_emoji: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
 
     def should_notify_today(self, today: date) -> bool:
         trigger = self.expiry_date - timedelta(days=self.notification_days.value)
         return today == trigger
+
+    def annual_cost(self) -> float:
+        if self.cost is None:
+            return 0.0
+        multipliers = {
+            "monthly":     12,
+            "quarterly":   4,
+            "semi_annual": 2,
+            "annual":      1,
+            "biennial":    0.5,
+        }
+        return float(self.cost) * multipliers.get(self.billing_cycle or "annual", 1)
