@@ -8,6 +8,7 @@
 **Goal**: 消除啟動風險、修復技術債，讓後續所有 phase 都在穩固的 codebase 上進行。
 **Requirements**: SEC-01, SEC-02, DEBT-01
 **Suggested model**: sonnet（SEC 項目需要理解安全語義；DEBT 重構需要跨檔案一致性）
+**Plans:** 2 plans
 **Success criteria**:
 1. 啟動時若 `SECRET_KEY` 未設定或等於預設值，程式拒絕啟動並顯示明確錯誤訊息
 2. 每個 HTTP request 都有 log 紀錄；unhandled exception 不再靜默消失，會寫入 error log
@@ -15,6 +16,10 @@
 4. `annual_cost()`、`NOTIFICATION_OPTIONS`、`Jinja2Templates` 各自只定義一處，其他地方 import
 5. 所有時間戳記改用 `datetime.now(timezone.utc)`，timezone-naive 問題消除
 6. `pytest` 全數通過，無 regression
+
+Plans:
+- [ ] 01-01-PLAN.md — SEC-01 + SEC-02: SECRET_KEY validation, JSON logging middleware, fix silent except blocks in admin.py
+- [ ] 01-02-PLAN.md — DEBT-01: remove passlib, delete stale session.py comment, extract annual_cost() to domain entity, create constants.py, consolidate Jinja2Templates, fix datetime timezone
 
 ---
 
