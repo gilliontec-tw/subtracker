@@ -1,27 +1,27 @@
 ﻿# SubTrack — Project State
 
 ## Current Status
-Phase: 1 — complete (both plans done)
+Phase: 2 — context gathered, ready to plan
 Last updated: 2026-05-07
 
 ## Project Reference
 See: `.planning/PROJECT.md`
 
 **Core value**: 到期日前就知道，不在服務中斷後才發現
-**Current focus**: Phase 1 — Foundation & Security
+**Current focus**: Phase 2 — Feature Fixes
 
 ## Phase Progress
 
 | Phase | Name | Status | Requirements |
 |-------|------|--------|--------------|
 | 1 | Foundation & Security | Complete | SEC-01, SEC-02, DEBT-01 |
-| 2 | Feature Fixes | Not Started | SUBSCR-01, NOTIF-01, NOTIF-02, USER-01 |
+| 2 | Feature Fixes | Context Gathered | SUBSCR-01, NOTIF-01, NOTIF-02, USER-01 |
 | 3 | Reports & Subscription Filtering | Not Started | REPORT-01, REPORT-02, REPORT-03, SUBSCR-02 |
 | 4 | UI Redesign | Not Started | UI-01 |
 | 5 | Deployment & Documentation | Not Started | DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04 |
 
 ## Resume From
-Run `/gsd-discuss-phase 2` to begin Phase 2 (Feature Fixes).
+Run `/gsd-plan-phase 2` to plan Phase 2 (Feature Fixes).
 
 ## Decisions
 - Used os.getenv("SECRET_KEY", "") in lifespan so RuntimeError message is clear rather than raw KeyError
@@ -38,3 +38,4 @@ Run `/gsd-discuss-phase 2` to begin Phase 2 (Feature Fixes).
 - 2026-05-07: Plan 01-01 complete — SEC-01 + SEC-02 implemented (commits 845c98f, 1c4d3ec)
 - 2026-05-07: Plan 01-02 complete — DEBT-01 all 6 items resolved (commits fa359cd, 46f04ac, 6490601)
 - 2026-05-07: Phase 1 code review + verification passed — 3 post-review fixes applied (commit c77cdfb); Phase 1 complete
+- 2026-05-07: Phase 2 context gathered → `.planning/phases/02-feature-fixes/02-CONTEXT.md`
