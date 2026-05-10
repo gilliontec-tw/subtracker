@@ -459,7 +459,7 @@ def bulk_renew(
     current_user=Depends(require_update),
     audit_repo=Depends(get_audit_log_repo),
 ):
-    id_list = [int(x.strip()) for x in ids.split(",") if x.strip()]
+    id_list = [int(x.strip()) for x in ids.split(",") if x.strip().isdigit()]
     for sub_id in id_list:
         sub = single_uc.execute(sub_id)
         if not sub:

@@ -46,7 +46,7 @@ async def notif_settings_save(
 ):
     form = await request.form()
     sub_ids_raw = form.get("sub_ids", "")
-    ids = [int(i) for i in sub_ids_raw.split(",") if i.strip()]
+    ids = [int(i) for i in sub_ids_raw.split(",") if i.strip().isdigit()]
 
     # Validate: reject if any enabled subscription has empty email (per D-03)
     for sid in ids:
