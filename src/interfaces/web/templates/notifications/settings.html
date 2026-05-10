@@ -1,0 +1,152 @@
+﻿{% extends "base.html" %}
+{% block title %}通知設定 — SubTrack{% endblock %}
+{% block nav_notifications %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>通知設定</h1>
+    <div class="page-sub">系統每天 08:00 自動發送到期提醒郵件，可逐一設定每筆訂閱的通知行為</div>
+  </div>
+  <div class="page-header-actions">
+    <span class="muted" style="font-size:12px;" id="enabledCount"></span>
+    <button class="btn btn-outline btn-sm" type="button" onclick="resetForm()">重設</button>
+    <button class="btn btn-primary btn-sm" id="saveBtn" form="notifForm" type="submit">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+      儲存全部設定
+    </button>
+  </div>
+</div>
+
+<div class="page-content">
+
+  {% if saved %}
+  <div class="alert alert-success" id="savedAlert">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    <span>設定已儲存</span>
+    <button class="alert-close" onclick="this.parentElement.style.display='none'">×</button>
+  </div>
+  {% endif %}
+
+  {% if error %}
+  <div class="alert alert-danger">
+    <span>{{ error }}</span>
+    <button class="alert-close" onclick="this.parentElement.style.display='none'">×</button>
+  </div>
+  {% endif %}
+
+  <div class="info-box">
+    <div class="info-box-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h0"/></svg>
+    </div>
+    <div>
+      <strong style="color:var(--primary);">運作方式：</strong>
+      系統會在每筆訂閱的「到期日 − 提前天數」當天 08:00 寄送提醒郵件給指定收件人。
+      收件人欄位可填多個 email，以半形逗號（<code style="background:#fff;padding:0 4px;border-radius:3px;">,</code>）分隔。
+      清空收件人欄位即關閉該訂閱的通知。
+    </div>
+  </div>
+
+  <form id="notifForm" method="POST" action="/notifications/settings">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>服務名稱</th>
+            <th>到期日</th>
+            <th>倒數</th>
+            <th style="width:80px;">啟用</th>
+            <th style="width:130px;">提前天數</th>
+            <th>收件人 Email</th>
+            <th style="width:80px;">寄送日</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in subscriptions %}
+          {% set days_left = (s.expiry_date - today).days %}
+          {% if days_left <= 14 %}{% set tone = 'red' %}
+          {% elif days_left <= 30 %}{% set tone = 'amber' %}
+          {% else %}{% set tone = 'green' %}
+          {% endif %}
+          {% set enabled = s.notifications_enabled %}
+          {% set fire_date = s.expiry_date - timedelta(days=s.notification_days.value) %}
+          <tr style="opacity:{% if enabled %}1{% else %}.55{% endif %};" data-enabled="{{ 'true' if enabled else 'false' }}" id="row-{{ s.id }}">
+            <td>
+              <div class="row-strong">{{ s.service_name }}</div>
+              <div class="row-sub">{{ s.category or '未分類' }} · {{ s.department or '—' }}</div>
+            </td>
+            <td class="tabnum no-wrap">{{ s.expiry_date.strftime('%Y/%m/%d') }}</td>
+            <td>
+              <span class="tl-days {{ tone }}" style="display:inline-block;padding:3px 10px;font-size:11px;">{{ days_left }} 天</span>
+            </td>
+            <td>
+              <label class="switch">
+                <input type="checkbox" name="notify_{{ s.id }}" id="toggle_{{ s.id }}"
+                  {% if enabled %}checked{% endif %}
+                  onchange="toggleRow({{ s.id }}, this.checked)">
+                <span class="slider"></span>
+              </label>
+            </td>
+            <td>
+              <select class="input input-sm" name="days_{{ s.id }}" id="days_{{ s.id }}" {% if not enabled %}disabled{% endif %}>
+                {% for val, label in notification_options %}
+                <option value="{{ val }}" {% if s.notification_days.value == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td>
+              <input class="input input-sm" type="text" name="emails_{{ s.id }}" id="emails_{{ s.id }}"
+                value="{{ s.notification_emails or '' }}"
+                {% if not enabled %}disabled{% endif %}
+                placeholder="user@example.com, …">
+            </td>
+            <td>
+              {% if enabled %}
+              <span class="muted tabnum" style="font-size:11px;" title="寄送日：{{ fire_date.strftime('%Y/%m/%d') }}">{{ fire_date.strftime('%m/%d') }}</span>
+              {% else %}
+              <span class="muted" style="font-size:11px;">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <input type="hidden" name="sub_ids" value="{{ subscriptions|map(attribute='id')|join(',') }}">
+
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+      <button type="button" class="btn btn-outline" onclick="resetForm()">取消變更</button>
+      <button type="submit" class="btn btn-primary">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        儲存全部設定
+      </button>
+    </div>
+  </form>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleRow(id, enabled) {
+  const row = document.getElementById('row-' + id);
+  const daysEl = document.getElementById('days_' + id);
+  const emailsEl = document.getElementById('emails_' + id);
+  row.style.opacity = enabled ? '1' : '0.55';
+  daysEl.disabled = !enabled;
+  emailsEl.disabled = !enabled;
+  updateCount();
+}
+
+function updateCount() {
+  const total = document.querySelectorAll('[id^="toggle_"]').length;
+  const enabled = document.querySelectorAll('[id^="toggle_"]:checked').length;
+  document.getElementById('enabledCount').textContent = enabled + ' / ' + total + ' 啟用中';
+}
+
+function resetForm() { location.reload(); }
+
+updateCount();
+document.querySelectorAll('[id^="toggle_"]').forEach(cb => cb.addEventListener('change', updateCount));
+</script>
+{% endblock %}

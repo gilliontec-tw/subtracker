@@ -421,6 +421,11 @@ def bulk_renew(
             category=sub.category,
             department=sub.department,
             billing_cycle=sub.billing_cycle,
+            payment_account=sub.payment_account,
+            auto_renew=sub.auto_renew,
+            trial_end_date=sub.trial_end_date,
+            next_billing_date=sub.next_billing_date,
+            notifications_enabled=sub.notifications_enabled,
         )
         audit_repo.add(AuditEntry(
             user_id=current_user.id,

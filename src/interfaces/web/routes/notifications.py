@@ -41,11 +41,36 @@ async def notif_settings_save(
     request: Request,
     uc=Depends(get_update_uc),
     single_uc=Depends(get_single_uc),
+    list_uc=Depends(get_list_uc),
     current_user=Depends(require_update),
 ):
     form = await request.form()
     sub_ids_raw = form.get("sub_ids", "")
     ids = [int(i) for i in sub_ids_raw.split(",") if i.strip()]
+
+    # Validate: reject if any enabled subscription has empty email (per D-03)
+    for sid in ids:
+        if f"notify_{sid}" in form:
+            emails_check = form.get(f"emails_{sid}", "").strip()
+            if not emails_check:
+                sub_check = single_uc.execute(sid)
+                name = sub_check.service_name if sub_check else str(sid)
+                subscriptions = list_uc.execute()
+                today = date.today()
+                active = sorted(
+                    [s for s in subscriptions if s.status.value in ("active", "renewed")],
+                    key=lambda s: s.expiry_date,
+                )
+                return templates.TemplateResponse("notifications/settings.html", {
+                    "request": request,
+                    "current_user": current_user,
+                    "subscriptions": active,
+                    "today": today,
+                    "timedelta": timedelta,
+                    "notification_options": NOTIFICATION_OPTIONS,
+                    "saved": False,
+                    "error": f"「{name}」已啟用通知但收件人 Email 為空，請填寫後再儲存",
+                })
 
     for sid in ids:
         sub = single_uc.execute(sid)
@@ -53,7 +78,8 @@ async def notif_settings_save(
             continue
 
         enabled = f"notify_{sid}" in form
-        emails = form.get(f"emails_{sid}", "").strip() if enabled else ""
+        emails_from_form = form.get(f"emails_{sid}", "").strip()
+        emails = emails_from_form if enabled else sub.notification_emails  # preserve on disable (per D-04)
         days_val = int(form.get(f"days_{sid}", str(sub.notification_days.value)))
 
         try:
@@ -76,6 +102,11 @@ async def notif_settings_save(
             category=sub.category,
             department=sub.department,
             billing_cycle=sub.billing_cycle,
+            payment_account=sub.payment_account,
+            auto_renew=sub.auto_renew,
+            trial_end_date=sub.trial_end_date,
+            next_billing_date=sub.next_billing_date,
+            notifications_enabled=enabled,
         )
 
     return RedirectResponse("/notifications/settings?saved=true", status_code=303)
