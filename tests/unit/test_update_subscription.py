@@ -74,6 +74,41 @@ def test_update_subscription_with_new_fields(mock_repo):
     assert saved.billing_cycle == "annual"
 
 
+def test_update_notifications_enabled_defaults_to_true(mock_repo, sample_subscription):
+    mock_repo.get_by_id.return_value = sample_subscription
+    mock_repo.update.return_value = sample_subscription
+    uc = UpdateSubscriptionUseCase(mock_repo)
+    uc.execute(
+        subscription_id=1,
+        service_name="GitHub",
+        login_account="it@company.com",
+        expiry_date=date(2026, 12, 31),
+        notification_emails="alice@company.com",
+        notification_days=NotificationDays.SEVEN,
+        status=SubscriptionStatus.ACTIVE,
+    )
+    saved = mock_repo.update.call_args[0][0]
+    assert saved.notifications_enabled is True
+
+
+def test_update_notifications_enabled_false_is_saved(mock_repo, sample_subscription):
+    mock_repo.get_by_id.return_value = sample_subscription
+    mock_repo.update.return_value = sample_subscription
+    uc = UpdateSubscriptionUseCase(mock_repo)
+    uc.execute(
+        subscription_id=1,
+        service_name="GitHub",
+        login_account="it@company.com",
+        expiry_date=date(2026, 12, 31),
+        notification_emails="alice@company.com",
+        notification_days=NotificationDays.SEVEN,
+        status=SubscriptionStatus.ACTIVE,
+        notifications_enabled=False,
+    )
+    saved = mock_repo.update.call_args[0][0]
+    assert saved.notifications_enabled is False
+
+
 def test_update_subscription_with_phase2b_fields(mock_repo):
     existing = Subscription(
         id=5,
