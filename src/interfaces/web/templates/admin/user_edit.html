@@ -1,41 +1,57 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
+{% block title %}編輯使用者 — SubTrack{% endblock %}
+{% block nav_users %}active{% endblock %}
+
 {% block content %}
-<h4 class="mb-3">編輯使用者權限：{{ user.display_name }}</h4>
-{% if error %}
-<div class="alert alert-danger">{{ error }}</div>
-{% endif %}
-<form method="POST" action="/admin/users/{{ user.id }}/edit" style="max-width:480px">
-  <div class="mb-3">
-    <label class="form-label text-muted">Email</label>
-    <p class="form-control-plaintext fw-semibold">{{ user.email }}</p>
+<div class="page-header">
+  <div>
+    <h1>編輯使用者</h1>
+    <div class="page-sub">{{ user.display_name }}</div>
   </div>
-  <div class="mb-3">
-    <label class="form-label d-block">權限</label>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="can_create" id="can_create" value="true"
-             {% if user.can_create %}checked{% endif %}>
-      <label class="form-check-label" for="can_create">可新增訂閱</label>
-    </div>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="can_update" id="can_update" value="true"
-             {% if user.can_update %}checked{% endif %}>
-      <label class="form-check-label" for="can_update">可修改訂閱</label>
-    </div>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="can_delete" id="can_delete" value="true"
-             {% if user.can_delete %}checked{% endif %}>
-      <label class="form-check-label" for="can_delete">可刪除訂閱</label>
+</div>
+<div class="page-content">
+  <div class="card" style="max-width:480px;">
+    <div class="card-body">
+      {% if error %}
+      <div class="alert alert-danger mb-4">{{ error }}</div>
+      {% endif %}
+      <form method="POST" action="/admin/users/{{ user.id }}/edit">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <div style="font-size:14px;font-weight:600;color:var(--text);padding:4px 0;">{{ user.email }}</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">權限</label>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" name="can_create" value="true" {% if user.can_create %}checked{% endif %}> 可新增訂閱
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" name="can_update" value="true" {% if user.can_update %}checked{% endif %}> 可修改訂閱
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" name="can_delete" value="true" {% if user.can_delete %}checked{% endif %}> 可刪除訂閱
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">帳號狀態</label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-top:4px;">
+            <input type="checkbox" name="is_active" value="true" {% if user.is_active %}checked{% endif %}> 啟用中
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;flex-wrap:wrap;align-items:center;">
+          <a href="/admin/users" class="btn btn-outline">取消</a>
+          {% if request.query_params.get('email_failed') %}
+          <span style="font-size:12px;color:var(--danger-text,#c0392b);align-self:center;">邀請信寄送失敗，請確認 SMTP 設定</span>
+          {% endif %}
+          <form method="POST" action="/admin/users/{{ user.id }}/reset-password" style="margin:0;">
+            <button type="submit" class="btn btn-outline">重置密碼</button>
+          </form>
+          <button type="submit" class="btn btn-primary">儲存</button>
+        </div>
+      </form>
     </div>
   </div>
-  <div class="mb-4">
-    <label class="form-label d-block">帳號狀態</label>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="is_active" id="is_active" value="true"
-             {% if user.is_active %}checked{% endif %}>
-      <label class="form-check-label" for="is_active">啟用中</label>
-    </div>
-  </div>
-  <button type="submit" class="btn btn-primary">儲存</button>
-  <a href="/admin/users" class="btn btn-secondary ms-2">取消</a>
-</form>
+</div>
 {% endblock %}

@@ -81,6 +81,7 @@ def create_user_submit(
         )
     except Exception:
         log.exception("Failed to send invite email to %s", email)
+        return RedirectResponse("/admin/users?email_failed=1", status_code=303)
     return RedirectResponse("/admin/users?invited=1", status_code=303)
 
 
@@ -115,7 +116,44 @@ def resend_invite(
             )
         except Exception:
             log.exception("Failed to resend invite email to user_id=%s", user_id)
+            return RedirectResponse(f"/admin/users/{user_id}/edit?email_failed=1", status_code=303)
     return RedirectResponse("/admin/users?invited=1", status_code=303)
+
+
+@router.post("/users/{user_id}/reset-password")
+def reset_password(
+    request: Request,
+    user_id: int,
+    current_user=Depends(require_admin),
+    repo=Depends(get_user_repo),
+):
+    import secrets
+    from datetime import datetime, timedelta, timezone
+    user = repo.get_by_id(user_id)
+    if user and user.role != "admin":
+        user.invite_token = secrets.token_urlsafe(32)
+        user.invite_expires_at = datetime.now(timezone.utc) + timedelta(hours=72)
+        repo.update(user)
+        try:
+            base = str(request.base_url).rstrip("/")
+            invite_url = f"{base}/auth/invite/{user.invite_token}"
+            from src.infrastructure.email.smtp_email_sender import SmtpEmailSender
+            SmtpEmailSender().send(
+                to=user.email,
+                subject="[SubTrack] 系統管理員已重設您的密碼，請重新設定",
+                body=(
+                    f"您好，{user.display_name}，\n\n"
+                    f"系統管理員已為您重設密碼。\n\n"
+                    f"請點擊以下連結設定新的登入密碼（連結 72 小時內有效）：\n\n"
+                    f"{invite_url}\n\n"
+                    f"若您未預期收到此信，請聯絡系統管理員。\n\n"
+                    f"此信為系統自動發送，請勿回覆。"
+                ),
+            )
+        except Exception:
+            log.exception("Failed to send password reset email to user_id=%s", user_id)
+            return RedirectResponse(f"/admin/users/{user_id}/edit?email_failed=1", status_code=303)
+    return RedirectResponse("/admin/users?password_reset=1", status_code=303)
 
 
 @router.get("/users/{user_id}/edit")
