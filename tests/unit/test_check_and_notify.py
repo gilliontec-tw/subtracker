@@ -3,7 +3,8 @@ from src.domain.entities.subscription import Subscription, NotificationDays
 from src.application.use_cases.check_and_notify import CheckAndNotifyUseCase
 
 
-def make_sub(expiry_date: date, notification_days: NotificationDays, sub_id: int = 1) -> Subscription:
+def make_sub(expiry_date: date, notification_days: NotificationDays, sub_id: int = 1,
+             notifications_enabled: bool = True) -> Subscription:
     return Subscription(
         id=sub_id,
         service_name="TestSaaS",
@@ -11,6 +12,7 @@ def make_sub(expiry_date: date, notification_days: NotificationDays, sub_id: int
         expiry_date=expiry_date,
         notification_emails="admin@co.com",
         notification_days=notification_days,
+        notifications_enabled=notifications_enabled,
     )
 
 
@@ -90,3 +92,25 @@ def test_email_failure_returns_empty_notified(mock_repo, mock_email_sender):
     uc = CheckAndNotifyUseCase(mock_repo, mock_email_sender)
     notified = uc.execute(today=today)
     assert notified == []
+
+
+def test_disabled_subscription_is_skipped(mock_repo, mock_email_sender):
+    # notifications_enabled=False → no email even when due today
+    today = date(2026, 5, 1)
+    sub = make_sub(date(2026, 5, 8), NotificationDays.SEVEN, notifications_enabled=False)
+    mock_repo.get_all_active.return_value = [sub]
+    uc = CheckAndNotifyUseCase(mock_repo, mock_email_sender)
+    notified = uc.execute(today=today)
+    mock_email_sender.send.assert_not_called()
+    assert notified == []
+
+
+def test_enabled_subscription_is_notified(mock_repo, mock_email_sender):
+    # notifications_enabled=True (default) → sends email when due
+    today = date(2026, 5, 1)
+    sub = make_sub(date(2026, 5, 8), NotificationDays.SEVEN, notifications_enabled=True)
+    mock_repo.get_all_active.return_value = [sub]
+    uc = CheckAndNotifyUseCase(mock_repo, mock_email_sender)
+    notified = uc.execute(today=today)
+    assert mock_email_sender.send.call_count == 1
+    assert notified == [1]
