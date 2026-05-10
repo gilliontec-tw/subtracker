@@ -78,7 +78,9 @@
             {% endif %}
             <a href="/admin/users/{{ user.id }}/edit" class="btn btn-ghost btn-sm">編輯</a>
             <button class="btn btn-ghost btn-sm" style="color:var(--danger-text);"
-                    onclick="confirmDeleteUser({{ user.id }}, '{{ user.display_name }}')">移除</button>
+                    data-user-id="{{ user.id }}"
+                    data-user-name="{{ user.display_name | e }}"
+                    onclick="confirmDeleteUser(this)">移除</button>
             {% endif %}
           </td>
         </tr>
@@ -105,7 +107,9 @@
 
 {% block scripts %}
 <script>
-function confirmDeleteUser(id, name) {
+function confirmDeleteUser(btn) {
+  const id   = btn.dataset.userId;
+  const name = btn.dataset.userName;
   document.getElementById('deleteUserMsg').textContent = '確定要移除「' + name + '」？此操作無法復原。';
   document.getElementById('deleteUserForm').action = '/admin/users/' + id + '/delete';
   document.getElementById('deleteUserModal').classList.add('show');
