@@ -97,8 +97,9 @@ def resend_invite(
     user = repo.get_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404)
-    if not user.invite_token:
-        # User already accepted invite; redirect with an informative param instead.
+    if not user.invite_token or user.is_active:
+        # User already accepted invite (token cleared or account activated);
+        # redirect with an informative param instead of silently re-inviting.
         return RedirectResponse("/admin/users?already_active=1", status_code=303)
     user.invite_token = secrets.token_urlsafe(32)
     user.invite_expires_at = datetime.now(timezone.utc) + timedelta(hours=72)
