@@ -40,7 +40,6 @@ def notif_settings(
 async def notif_settings_save(
     request: Request,
     uc=Depends(get_update_uc),
-    single_uc=Depends(get_single_uc),
     list_uc=Depends(get_list_uc),
     current_user=Depends(require_update),
 ):
@@ -48,32 +47,40 @@ async def notif_settings_save(
     sub_ids_raw = form.get("sub_ids", "")
     ids = [int(i) for i in sub_ids_raw.split(",") if i.strip().isdigit()]
 
-    # Validate: reject if any enabled subscription has empty email (per D-03)
+    # Pre-load all subscriptions once to avoid N+1 DB calls in the loops below.
+    all_subscriptions = list_uc.execute()
+    sub_map = {s.id: s for s in all_subscriptions}
+    today = date.today()
+    active = sorted(
+        [s for s in all_subscriptions if s.status.value in ("active", "renewed")],
+        key=lambda s: s.expiry_date,
+    )
+
+    # Validate: reject if any enabled subscription has empty email (per D-03).
+    # Collect all errors in one pass so the user sees all issues at once.
+    errors = []
     for sid in ids:
         if f"notify_{sid}" in form:
             emails_check = form.get(f"emails_{sid}", "").strip()
             if not emails_check:
-                sub_check = single_uc.execute(sid)
+                sub_check = sub_map.get(sid)
                 name = sub_check.service_name if sub_check else str(sid)
-                subscriptions = list_uc.execute()
-                today = date.today()
-                active = sorted(
-                    [s for s in subscriptions if s.status.value in ("active", "renewed")],
-                    key=lambda s: s.expiry_date,
-                )
-                return templates.TemplateResponse("notifications/settings.html", {
-                    "request": request,
-                    "current_user": current_user,
-                    "subscriptions": active,
-                    "today": today,
-                    "timedelta": timedelta,
-                    "notification_options": NOTIFICATION_OPTIONS,
-                    "saved": False,
-                    "error": f"「{name}」已啟用通知但收件人 Email 為空，請填寫後再儲存",
-                })
+                errors.append(f"「{name}」已啟用通知但收件人 Email 為空，請填寫後再儲存")
+
+    if errors:
+        return templates.TemplateResponse("notifications/settings.html", {
+            "request": request,
+            "current_user": current_user,
+            "subscriptions": active,
+            "today": today,
+            "timedelta": timedelta,
+            "notification_options": NOTIFICATION_OPTIONS,
+            "saved": False,
+            "error": errors[0],
+        })
 
     for sid in ids:
-        sub = single_uc.execute(sid)
+        sub = sub_map.get(sid)
         if sub is None:
             continue
 
