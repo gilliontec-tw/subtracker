@@ -111,13 +111,11 @@ def test_subscription_has_phase2b_fields():
         auto_renew=True,
         trial_end_date=date(2026, 6, 1),
         next_billing_date=date(2026, 5, 15),
-        icon_emoji="💻",
     )
     assert sub.payment_account == "公司美金卡末4碼1234"
     assert sub.auto_renew is True
     assert sub.trial_end_date == date(2026, 6, 1)
     assert sub.next_billing_date == date(2026, 5, 15)
-    assert sub.icon_emoji == "💻"
 
 
 def test_subscription_phase2b_fields_default_values():
@@ -132,4 +130,4 @@ def test_subscription_phase2b_fields_default_values():
     assert sub.auto_renew is False
     assert sub.trial_end_date is None
     assert sub.next_billing_date is None
-    assert sub.icon_emoji is None
+    assert sub.notifications_enabled is True

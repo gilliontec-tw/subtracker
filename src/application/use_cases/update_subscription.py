@@ -28,7 +28,7 @@ class UpdateSubscriptionUseCase:
         auto_renew: bool = False,
         trial_end_date: date | None = None,
         next_billing_date: date | None = None,
-        icon_emoji: str | None = None,
+        notifications_enabled: bool = True,
     ):
         entity = self._repo.get_by_id(subscription_id)
         if entity is None:
@@ -48,7 +48,7 @@ class UpdateSubscriptionUseCase:
         entity.billing_cycle       = billing_cycle
         entity.payment_account     = payment_account
         entity.auto_renew          = auto_renew
-        entity.trial_end_date      = trial_end_date
-        entity.next_billing_date   = next_billing_date
-        entity.icon_emoji          = icon_emoji
+        entity.trial_end_date          = trial_end_date
+        entity.next_billing_date       = next_billing_date
+        entity.notifications_enabled   = notifications_enabled
         return self._repo.update(entity)

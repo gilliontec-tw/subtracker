@@ -13,7 +13,10 @@ class CheckAndNotifyUseCase:
             today = date.today()
 
         subscriptions = self._repo.get_all_active()
-        due_subs = [s for s in subscriptions if s.should_notify_today(today)]
+        due_subs = [
+            s for s in subscriptions
+            if s.notifications_enabled and s.should_notify_today(today)
+        ]
 
         if not due_subs:
             return []
@@ -36,7 +39,7 @@ class CheckAndNotifyUseCase:
             lines.append(
                 f"  {i}. {sub.service_name}\n"
                 f"     登入帳號：{sub.login_account}\n"
-                f"     到期日期：{sub.expiry_date}\n"
+                f"     到期日期：{sub.expiry_date.strftime('%Y/%m/%d')}\n"
                 f"     提前通知：{sub.notification_days.value} 天前"
             )
         items_text = "\n\n".join(lines)
