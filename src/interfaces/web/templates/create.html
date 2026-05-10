@@ -11,6 +11,11 @@
 </div>
 
 <div class="page-content">
+  {% if error is defined and error %}
+  <div class="alert alert-danger mb-4" style="border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;">
+    {{ error }}
+  </div>
+  {% endif %}
   <div class="card" style="max-width:600px;">
     <div class="card-body">
       <form method="POST" action="/subscriptions/create">
@@ -24,15 +29,6 @@
             <input type="text" name="login_account" class="input" required placeholder="admin@company.com">
           </div>
           <div class="form-group">
-            <label class="form-label">登入密碼（選填）</label>
-            <div class="pwd-wrap">
-              <input type="password" name="login_password" class="input" placeholder="留空表示不儲存">
-              <button type="button" class="pwd-toggle" onclick="togglePwdField(this)" tabindex="-1">
-                <svg class="eye-off" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                <svg class="eye-on" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              </button>
-            </div>
-          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -114,12 +110,6 @@
           <label class="form-label">備註（選填）</label>
           <textarea name="notes" class="input" rows="3"
                     placeholder="合約編號、購買廠商、授權數量等"></textarea>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">服務圖示（選填）</label>
-          <input type="text" name="icon_emoji" class="form-control" maxlength="4"
-                 placeholder="貼上 Emoji，例如 💻 🔒 📊">
-          <div class="form-text">輸入任一 Emoji 作為訂閱的視覺識別</div>
         </div>
         <div class="mb-3">
           <label class="form-label">付款帳戶（選填）</label>

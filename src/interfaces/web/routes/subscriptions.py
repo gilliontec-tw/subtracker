@@ -236,11 +236,32 @@ def create_submit(
     uc=Depends(get_create_uc),
     current_user=Depends(require_create),
     audit_repo=Depends(get_audit_log_repo),
+    config_repo=Depends(get_config_repo),
 ):
+    def _create_error(msg: str):
+        return templates.TemplateResponse("create.html", {
+            "request": request,
+            "error": msg,
+            "notification_options": NOTIFICATION_OPTIONS,
+            "status_options": STATUS_OPTIONS,
+            "currency_options": CURRENCY_OPTIONS,
+            "category_options": [o.value for o in config_repo.get_by_type("category")],
+            "department_options": _dept_options(config_repo),
+            "billing_cycle_options": BILLING_CYCLE_OPTIONS,
+            "current_user": current_user,
+        }, status_code=422)
+
+    try:
+        parsed_expiry = datetime.strptime(expiry_date, "%Y-%m-%d").date()
+        parsed_trial = datetime.strptime(trial_end_date, "%Y-%m-%d").date() if trial_end_date else None
+        parsed_next_billing = datetime.strptime(next_billing_date, "%Y-%m-%d").date() if next_billing_date else None
+    except ValueError:
+        return _create_error("日期格式不正確，請使用 YYYY-MM-DD 格式")
+
     sub = uc.execute(
         service_name=service_name,
         login_account=login_account,
-        expiry_date=datetime.strptime(expiry_date, "%Y-%m-%d").date(),
+        expiry_date=parsed_expiry,
         notification_emails=notification_emails,
         notification_days=NotificationDays(notification_days),
         status=SubscriptionStatus(status),
@@ -253,8 +274,8 @@ def create_submit(
         billing_cycle=billing_cycle or None,
         payment_account=payment_account or None,
         auto_renew=bool(auto_renew),
-        trial_end_date=datetime.strptime(trial_end_date, "%Y-%m-%d").date() if trial_end_date else None,
-        next_billing_date=datetime.strptime(next_billing_date, "%Y-%m-%d").date() if next_billing_date else None,
+        trial_end_date=parsed_trial,
+        next_billing_date=parsed_next_billing,
     )
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
@@ -291,6 +312,7 @@ def edit_form(
 
 @router.post("/subscriptions/{subscription_id}/edit")
 def edit_submit(
+    request: Request,
     subscription_id: int,
     service_name: str = Form(...),
     login_account: str = Form(...),
@@ -310,14 +332,35 @@ def edit_submit(
     trial_end_date: str | None = Form(None),
     next_billing_date: str | None = Form(None),
     uc=Depends(get_update_uc),
+    single_uc=Depends(get_single_uc),
     current_user=Depends(require_update),
     audit_repo=Depends(get_audit_log_repo),
+    config_repo=Depends(get_config_repo),
 ):
+    try:
+        parsed_expiry = datetime.strptime(expiry_date, "%Y-%m-%d").date()
+        parsed_trial = datetime.strptime(trial_end_date, "%Y-%m-%d").date() if trial_end_date else None
+        parsed_next_billing = datetime.strptime(next_billing_date, "%Y-%m-%d").date() if next_billing_date else None
+    except ValueError:
+        current_sub = single_uc.execute(subscription_id)
+        return templates.TemplateResponse("edit.html", {
+            "request": request,
+            "sub": current_sub,
+            "error": "日期格式不正確，請使用 YYYY-MM-DD 格式",
+            "notification_options": NOTIFICATION_OPTIONS,
+            "status_options": STATUS_OPTIONS,
+            "currency_options": CURRENCY_OPTIONS,
+            "category_options": [o.value for o in config_repo.get_by_type("category")],
+            "department_options": _dept_options(config_repo),
+            "billing_cycle_options": BILLING_CYCLE_OPTIONS,
+            "current_user": current_user,
+        }, status_code=422)
+
     sub = uc.execute(
         subscription_id=subscription_id,
         service_name=service_name,
         login_account=login_account,
-        expiry_date=datetime.strptime(expiry_date, "%Y-%m-%d").date(),
+        expiry_date=parsed_expiry,
         notification_emails=notification_emails,
         notification_days=NotificationDays(notification_days),
         status=SubscriptionStatus(status),
@@ -330,8 +373,8 @@ def edit_submit(
         billing_cycle=billing_cycle or None,
         payment_account=payment_account or None,
         auto_renew=bool(auto_renew),
-        trial_end_date=datetime.strptime(trial_end_date, "%Y-%m-%d").date() if trial_end_date else None,
-        next_billing_date=datetime.strptime(next_billing_date, "%Y-%m-%d").date() if next_billing_date else None,
+        trial_end_date=parsed_trial,
+        next_billing_date=parsed_next_billing,
     )
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
