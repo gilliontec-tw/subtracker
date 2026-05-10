@@ -99,7 +99,6 @@ def test_update_subscription_with_phase2b_fields(mock_repo):
         auto_renew=False,
         trial_end_date=date(2026, 5, 31),
         next_billing_date=date(2026, 5, 20),
-        icon_emoji="📝",
         billing_cycle="semi_annual",
     )
     saved = mock_repo.update.call_args[0][0]
@@ -107,5 +106,4 @@ def test_update_subscription_with_phase2b_fields(mock_repo):
     assert saved.auto_renew is False
     assert saved.trial_end_date == date(2026, 5, 31)
     assert saved.next_billing_date == date(2026, 5, 20)
-    assert saved.icon_emoji == "📝"
     assert saved.billing_cycle == "semi_annual"

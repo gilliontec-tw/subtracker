@@ -41,6 +41,7 @@ class Subscription:
     auto_renew: bool = False
     trial_end_date: date | None = None
     next_billing_date: date | None = None
+    notifications_enabled: bool = True
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

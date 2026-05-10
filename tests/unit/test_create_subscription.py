@@ -66,7 +66,6 @@ def test_create_subscription_with_phase2b_fields(mock_repo):
         auto_renew=True,
         trial_end_date=date(2026, 6, 1),
         next_billing_date=date(2026, 5, 15),
-        icon_emoji="💻",
         billing_cycle="quarterly",
     )
     uc = CreateSubscriptionUseCase(mock_repo)
@@ -80,7 +79,6 @@ def test_create_subscription_with_phase2b_fields(mock_repo):
         auto_renew=True,
         trial_end_date=date(2026, 6, 1),
         next_billing_date=date(2026, 5, 15),
-        icon_emoji="💻",
         billing_cycle="quarterly",
     )
     saved = mock_repo.add.call_args[0][0]
@@ -88,5 +86,4 @@ def test_create_subscription_with_phase2b_fields(mock_repo):
     assert saved.auto_renew is True
     assert saved.trial_end_date == date(2026, 6, 1)
     assert saved.next_billing_date == date(2026, 5, 15)
-    assert saved.icon_emoji == "💻"
     assert saved.billing_cycle == "quarterly"

@@ -31,6 +31,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             auto_renew=bool(model.auto_renew),
             trial_end_date=model.trial_end_date,
             next_billing_date=model.next_billing_date,
+            notifications_enabled=bool(model.notifications_enabled),
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -54,6 +55,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             auto_renew=subscription.auto_renew,
             trial_end_date=subscription.trial_end_date,
             next_billing_date=subscription.next_billing_date,
+            notifications_enabled=subscription.notifications_enabled,
         )
         self._session.add(model)
         self._session.commit()
@@ -91,10 +93,11 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         model.department          = subscription.department
         model.billing_cycle       = subscription.billing_cycle
         model.payment_account     = subscription.payment_account
-        model.auto_renew          = subscription.auto_renew
-        model.trial_end_date      = subscription.trial_end_date
-        model.next_billing_date   = subscription.next_billing_date
-        model.updated_at          = datetime.now(timezone.utc)
+        model.auto_renew              = subscription.auto_renew
+        model.trial_end_date          = subscription.trial_end_date
+        model.next_billing_date       = subscription.next_billing_date
+        model.notifications_enabled   = subscription.notifications_enabled
+        model.updated_at              = datetime.now(timezone.utc)
         self._session.commit()
         self._session.refresh(model)
         return self._to_entity(model)
