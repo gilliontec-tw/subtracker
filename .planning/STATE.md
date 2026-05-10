@@ -21,7 +21,7 @@ See: `.planning/PROJECT.md`
 | 5 | Deployment & Documentation | Not Started | DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04 |
 
 ## Resume From
-Run `/gsd-execute-phase 2` to execute Phase 2 (Feature Fixes) — 2 plans ready.
+Run `/gsd-execute-phase 2` to execute Phase 2 Plan 02 (routes/templates for notifications_enabled).
 
 ## Decisions
 - Used os.getenv("SECRET_KEY", "") in lifespan so RuntimeError message is clear rather than raw KeyError
@@ -31,6 +31,8 @@ Run `/gsd-execute-phase 2` to execute Phase 2 (Feature Fixes) — 2 plans ready.
 - Shared Jinja2Templates placed in dependencies.py (same file as engine/SessionLocal singletons) for consistency
 - annual_cost() placed on Subscription entity as domain method — pure logic from entity fields, not route handler
 - ORM defaults use lambda: datetime.now(timezone.utc) not bare datetime.now (bare callable produces naive datetimes)
+- notifications_enabled defaults to True in both entity field and UpdateSubscriptionUseCase parameter — preserves all existing callers with no change
+- bool() wraps SQL Server BIT→int coercion in _to_entity() for notifications_enabled (same pattern as auto_renew)
 
 ## Session Log
 - 2026-05-07: Phase 1 context gathered → `.planning/phases/01-foundation-security/01-CONTEXT.md`
@@ -40,3 +42,4 @@ Run `/gsd-execute-phase 2` to execute Phase 2 (Feature Fixes) — 2 plans ready.
 - 2026-05-07: Phase 1 code review + verification passed — 3 post-review fixes applied (commit c77cdfb); Phase 1 complete
 - 2026-05-07: Phase 2 context gathered → `.planning/phases/02-feature-fixes/02-CONTEXT.md`
 - 2026-05-10: Phase 2 planned → 2 plans (02-01 domain stack, 02-02 routes/templates), coverage verified
+- 2026-05-10: Plan 02-01 complete — notifications_enabled wired through domain stack (commits eb8a5eb, 677d979, 75641b0, 5e65d27); 47 tests pass
