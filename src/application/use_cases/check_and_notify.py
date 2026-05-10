@@ -52,12 +52,11 @@ class CheckAndNotifyUseCase:
             f"此信為系統自動發送，請勿回覆。"
         )
 
-        success = True
         for recipient in recipients:
             try:
                 self._email_sender.send(to=recipient, subject=subject, body=body)
             except Exception as exc:
                 print(f"[ERROR] Failed to send email to {recipient}: {exc}")
-                success = False
 
-        return [sub.id for sub in due_subs] if success else []
+        # Return IDs regardless of partial send failures; callers decide on retry policy.
+        return [sub.id for sub in due_subs]
