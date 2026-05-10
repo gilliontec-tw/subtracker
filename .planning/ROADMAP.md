@@ -24,6 +24,8 @@ Plans:
 ---
 
 ## Phase 2: Feature Fixes
+**Status**: Complete
+**Plans completed**: 2/2
 **Goal**: 修復現有功能中已知的 bug 和不完整之處，讓每個功能都可靠地工作。
 **Requirements**: SUBSCR-01, NOTIF-01, NOTIF-02, USER-01
 **Suggested model**: sonnet（跨 use case / route / template 的完整修復）
@@ -33,6 +35,10 @@ Plans:
 3. Email 發送失敗時，admin 頁面顯示明確的錯誤提示，不再靜默失敗
 4. Admin 可從使用者管理頁直接重置任意使用者的密碼，無需刪除帳號
 5. `pytest` 全數通過，新功能有對應的 unit test
+
+Plans:
+- [x] 02-01-PLAN.md — notifications_enabled domain stack: entity field, ORM column, repository mapping, use case parameter, CheckAndNotify filter
+- [x] 02-02-PLAN.md — routes/templates bug fixes: bulk_renew field preservation, notif_settings validation, email failure banners, admin password reset
 
 ---
 

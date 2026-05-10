@@ -15,13 +15,13 @@ See: `.planning/PROJECT.md`
 | Phase | Name | Status | Requirements |
 |-------|------|--------|--------------|
 | 1 | Foundation & Security | Complete | SEC-01, SEC-02, DEBT-01 |
-| 2 | Feature Fixes | Ready to execute | SUBSCR-01, NOTIF-01, NOTIF-02, USER-01 |
+| 2 | Feature Fixes | Complete | SUBSCR-01, NOTIF-01, NOTIF-02, USER-01 |
 | 3 | Reports & Subscription Filtering | Not Started | REPORT-01, REPORT-02, REPORT-03, SUBSCR-02 |
 | 4 | UI Redesign | Not Started | UI-01 |
 | 5 | Deployment & Documentation | Not Started | DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04 |
 
 ## Resume From
-Run `/gsd-execute-phase 2` to execute Phase 2 Plan 02 (routes/templates for notifications_enabled).
+Phase 2 complete. Run `/gsd-transition` to move to Phase 3 (Reports & Subscription Filtering).
 
 ## Decisions
 - Used os.getenv("SECRET_KEY", "") in lifespan so RuntimeError message is clear rather than raw KeyError
@@ -33,6 +33,10 @@ Run `/gsd-execute-phase 2` to execute Phase 2 Plan 02 (routes/templates for noti
 - ORM defaults use lambda: datetime.now(timezone.utc) not bare datetime.now (bare callable produces naive datetimes)
 - notifications_enabled defaults to True in both entity field and UpdateSubscriptionUseCase parameter — preserves all existing callers with no change
 - bool() wraps SQL Server BIT→int coercion in _to_entity() for notifications_enabled (same pattern as auto_renew)
+- bulk_renew passes notifications_enabled through to use case to prevent silent reset of the flag on renew
+- notif_settings_save email validation runs before the main save loop to give fast feedback without partial saves
+- reset-password guards user.role != admin matching the delete_user guard pattern for consistency
+- resend_invite email failure redirects to edit page (keeps context); create_user_submit failure redirects to users list
 
 ## Session Log
 - 2026-05-07: Phase 1 context gathered → `.planning/phases/01-foundation-security/01-CONTEXT.md`
@@ -43,3 +47,4 @@ Run `/gsd-execute-phase 2` to execute Phase 2 Plan 02 (routes/templates for noti
 - 2026-05-07: Phase 2 context gathered → `.planning/phases/02-feature-fixes/02-CONTEXT.md`
 - 2026-05-10: Phase 2 planned → 2 plans (02-01 domain stack, 02-02 routes/templates), coverage verified
 - 2026-05-10: Plan 02-01 complete — notifications_enabled wired through domain stack (commits eb8a5eb, 677d979, 75641b0, 5e65d27); 47 tests pass
+- 2026-05-11: Plan 02-02 complete — routes/templates bug fixes (commits 4fa93cc, 9451ff5); 47 tests pass; Phase 2 complete
