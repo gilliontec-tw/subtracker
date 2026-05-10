@@ -31,6 +31,11 @@
     密碼重設邀請已寄出，請通知使用者查收信件。
   </div>
   {% endif %}
+  {% if request.query_params.get('already_active') %}
+  <div class="alert alert-warning mb-4" style="background:var(--warning-bg,#fffbeb);color:var(--warning-text,#92400e);border-radius:10px;padding:12px 16px;font-size:13px;margin-bottom:16px;">
+    此使用者已完成帳號設定（邀請連結已失效），無法重新發送邀請。如需重設密碼，請使用「重設密碼」功能。
+  </div>
+  {% endif %}
   <div class="table-wrap">
     <table>
       <thead>

@@ -95,28 +95,32 @@ def resend_invite(
     import secrets
     from datetime import datetime, timedelta, timezone
     user = repo.get_by_id(user_id)
-    if user and user.invite_token:
-        user.invite_token = secrets.token_urlsafe(32)
-        user.invite_expires_at = datetime.now(timezone.utc) + timedelta(hours=72)
-        repo.update(user)
-        try:
-            base = str(request.base_url).rstrip("/")
-            invite_url = f"{base}/auth/invite/{user.invite_token}"
-            from src.infrastructure.email.smtp_email_sender import SmtpEmailSender
-            SmtpEmailSender().send(
-                to=user.email,
-                subject="[SubTrack] 邀請連結已重新發送，請設定密碼",
-                body=(
-                    f"您好，{user.display_name}，\n\n"
-                    f"這是一封重新發送的邀請信。\n\n"
-                    f"請點擊以下連結設定您的登入密碼（連結 72 小時內有效）：\n\n"
-                    f"{invite_url}\n\n"
-                    f"此信為系統自動發送，請勿回覆。"
-                ),
-            )
-        except Exception:
-            log.exception("Failed to resend invite email to user_id=%s", user_id)
-            return RedirectResponse(f"/admin/users/{user_id}/edit?email_failed=1", status_code=303)
+    if not user:
+        raise HTTPException(status_code=404)
+    if not user.invite_token:
+        # User already accepted invite; redirect with an informative param instead.
+        return RedirectResponse("/admin/users?already_active=1", status_code=303)
+    user.invite_token = secrets.token_urlsafe(32)
+    user.invite_expires_at = datetime.now(timezone.utc) + timedelta(hours=72)
+    repo.update(user)
+    try:
+        base = str(request.base_url).rstrip("/")
+        invite_url = f"{base}/auth/invite/{user.invite_token}"
+        from src.infrastructure.email.smtp_email_sender import SmtpEmailSender
+        SmtpEmailSender().send(
+            to=user.email,
+            subject="[SubTrack] 邀請連結已重新發送，請設定密碼",
+            body=(
+                f"您好，{user.display_name}，\n\n"
+                f"這是一封重新發送的邀請信。\n\n"
+                f"請點擊以下連結設定您的登入密碼（連結 72 小時內有效）：\n\n"
+                f"{invite_url}\n\n"
+                f"此信為系統自動發送，請勿回覆。"
+            ),
+        )
+    except Exception:
+        log.exception("Failed to resend invite email to user_id=%s", user_id)
+        return RedirectResponse(f"/admin/users/{user_id}/edit?email_failed=1", status_code=303)
     return RedirectResponse("/admin/users?invited=1", status_code=303)
 
 
