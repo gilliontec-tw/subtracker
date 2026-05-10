@@ -167,6 +167,22 @@ def _add_billing_period(d: date, billing_cycle: str | None) -> date:
         if m > 12:
             m, y = 1, y + 1
         return date(y, m, min(d.day, calendar.monthrange(y, m)[1]))
+    if bc == "quarterly":
+        months = d.month - 1 + 3
+        y = d.year + months // 12
+        m = months % 12 + 1
+        return date(y, m, min(d.day, calendar.monthrange(y, m)[1]))
+    if bc == "semi_annual":
+        months = d.month - 1 + 6
+        y = d.year + months // 12
+        m = months % 12 + 1
+        return date(y, m, min(d.day, calendar.monthrange(y, m)[1]))
+    if bc == "biennial":
+        try:
+            return d.replace(year=d.year + 2)
+        except ValueError:
+            return date(d.year + 2, 2, 28)
+    # annual (default)
     try:
         return d.replace(year=d.year + 1)
     except ValueError:
