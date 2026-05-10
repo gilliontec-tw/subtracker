@@ -1,9 +1,21 @@
+import logging
 from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from src.domain.entities.subscription import Subscription, NotificationDays, SubscriptionStatus
 from src.domain.repositories.subscription_repository import SubscriptionRepository
 from src.infrastructure.database.models import SubscriptionModel
+
+log = logging.getLogger(__name__)
+
+
+def _safe_notification_days(value: int) -> NotificationDays:
+    """Convert a DB integer to NotificationDays; fall back to 30 for legacy/unknown values."""
+    try:
+        return NotificationDays(value)
+    except ValueError:
+        log.warning("Unknown notification_days value %r in DB; defaulting to 30", value)
+        return NotificationDays.THIRTY
 
 
 class SqlSubscriptionRepository(SubscriptionRepository):
@@ -17,7 +29,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             login_account=model.login_account,
             expiry_date=model.expiry_date,
             notification_emails=model.notification_emails,
-            notification_days=NotificationDays(model.notification_days),
+            notification_days=_safe_notification_days(model.notification_days),
             is_active=model.is_active,
             status=SubscriptionStatus(model.status) if model.status else SubscriptionStatus.ACTIVE,
             cost=Decimal(str(model.cost)) if model.cost is not None else None,
