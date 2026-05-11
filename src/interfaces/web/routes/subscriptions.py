@@ -401,27 +401,39 @@ CAT_COLORS = {
 }
 
 
-@router.get("/reports")
-def reports(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
-    subscriptions = uc.execute()
+def _build_report_sections(active: list) -> list[dict]:
+    """Build per-currency report sections with chart JSON and department data embedded.
 
-    active = [s for s in subscriptions if s.status.value in ("active", "renewed")]
-
-    # Per-currency, per-category breakdown
+    Extracted for testability — called by the reports handler and unit tests alike.
+    """
     cur_totals: dict[str, float] = defaultdict(float)
     cur_cat_map: dict[str, dict] = {}
+    cur_dept_map: dict[str, dict] = {}
+
     for s in active:
         cur = s.currency or "TWD"
+
+        # Category accumulator
         k = s.category or "未分類"
         if cur not in cur_cat_map:
             cur_cat_map[cur] = defaultdict(lambda: {"cost": 0.0, "count": 0})
         cur_cat_map[cur][k]["cost"] += s.annual_cost()
         cur_cat_map[cur][k]["count"] += 1
+
+        # Department accumulator
+        dept = s.department or "未分類"
+        if cur not in cur_dept_map:
+            cur_dept_map[cur] = defaultdict(lambda: {"cost": 0.0, "count": 0})
+        cur_dept_map[cur][dept]["cost"] += s.annual_cost()
+        cur_dept_map[cur][dept]["count"] += 1
+
         cur_totals[cur] += s.annual_cost()
 
     sections = []
     for cur in sorted(cur_totals, key=lambda c: -cur_totals[c]):
         total = cur_totals[cur]
+
+        # Categories
         cats = sorted(
             [{"name": k, "cost": v["cost"], "count": v["count"]}
              for k, v in cur_cat_map[cur].items()],
@@ -431,23 +443,44 @@ def reports(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_
             c["monthly"] = c["cost"] / 12
             c["avg"] = c["cost"] / c["count"] if c["count"] else 0
             c["pct"] = round(c["cost"] / total * 100, 1) if total else 0
+
+        # Departments
+        depts = sorted(
+            [{"name": k, "cost": v["cost"], "count": v["count"]}
+             for k, v in cur_dept_map.get(cur, {}).items()],
+            key=lambda d: -d["cost"],
+        )
+        for d in depts:
+            d["monthly"] = d["cost"] / 12
+            d["pct"] = round(d["cost"] / total * 100, 1) if total else 0
+
         sections.append({
             "currency": cur,
             "categories": cats,
             "total_annual": total,
             "total_monthly": total / 12,
             "count": sum(c["count"] for c in cats),
+            "cat_labels_json": json.dumps([c["name"] for c in cats], ensure_ascii=False),
+            "cat_values_json": json.dumps([round(c["cost"], 2) for c in cats]),
+            "cat_colors_json": json.dumps(CAT_COLORS, ensure_ascii=False),
+            "departments": depts,
         })
 
-    first_cats = sections[0]["categories"] if sections else []
+    return sections
+
+
+@router.get("/reports")
+def reports(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
+    subscriptions = uc.execute()
+
+    active = [s for s in subscriptions if s.status.value in ("active", "renewed")]
+    sections = _build_report_sections(active)
+
     return templates.TemplateResponse("reports.html", {
         "request": request,
         "current_user": current_user,
         "sections": sections,
         "cat_colors": CAT_COLORS,
-        "cat_colors_json": json.dumps(CAT_COLORS, ensure_ascii=False),
-        "cat_labels_json": json.dumps([c["name"] for c in first_cats], ensure_ascii=False),
-        "cat_values_json": json.dumps([round(c["cost"], 2) for c in first_cats]),
     })
 
 
