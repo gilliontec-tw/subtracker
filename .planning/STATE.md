@@ -1,14 +1,14 @@
 ﻿# SubTrack — Project State
 
 ## Current Status
-Phase: 2 — plans ready, ready to execute
-Last updated: 2026-05-10
+Phase: 3 — plans ready, ready to execute
+Last updated: 2026-05-11
 
 ## Project Reference
 See: `.planning/PROJECT.md`
 
 **Core value**: 到期日前就知道，不在服務中斷後才發現
-**Current focus**: Phase 2 — Feature Fixes
+**Current focus**: Phase 3 — Reports & Subscription Filtering
 
 ## Phase Progress
 
@@ -16,12 +16,12 @@ See: `.planning/PROJECT.md`
 |-------|------|--------|--------------|
 | 1 | Foundation & Security | Complete | SEC-01, SEC-02, DEBT-01 |
 | 2 | Feature Fixes | Complete | SUBSCR-01, NOTIF-01, NOTIF-02, USER-01 |
-| 3 | Reports & Subscription Filtering | Not Started | REPORT-01, REPORT-02, REPORT-03, SUBSCR-02 |
+| 3 | Reports & Subscription Filtering | Ready to execute | REPORT-01, REPORT-02, REPORT-03, SUBSCR-02 |
 | 4 | UI Redesign | Not Started | UI-01 |
 | 5 | Deployment & Documentation | Not Started | DEPLOY-01, DEPLOY-02, DEPLOY-03, DEPLOY-04 |
 
 ## Resume From
-Phase 2 complete. Run `/gsd-transition` to move to Phase 3 (Reports & Subscription Filtering).
+Phase 3 planned (2 plans, 2 waves). Run `/gsd-execute-phase 3` to begin execution.
 
 ## Decisions
 - Used os.getenv("SECRET_KEY", "") in lifespan so RuntimeError message is clear rather than raw KeyError
