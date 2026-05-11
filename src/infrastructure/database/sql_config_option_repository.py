@@ -39,7 +39,8 @@ class SqlConfigOptionRepository(ConfigOptionRepository):
         return [self._to_entity(r) for r in rows]
 
     def get_tree(self, type: str) -> list[ConfigOption]:
-        all_opts = self.get_by_type(type)
+        import copy
+        all_opts = [copy.copy(o) for o in self.get_by_type(type)]
         by_id = {o.id: o for o in all_opts}
         roots = []
         for o in all_opts:
@@ -73,13 +74,14 @@ class SqlConfigOptionRepository(ConfigOptionRepository):
             self._session.commit()
 
     def delete(self, option_id: int) -> None:
-        # also delete children
+        # Delete children first; synchronize_session="fetch" keeps session cache coherent
         self._session.query(ConfigOptionModel).filter(
             ConfigOptionModel.parent_id == option_id
-        ).delete()
+        ).delete(synchronize_session="fetch")
         model = self._session.get(ConfigOptionModel, option_id)
-        if model:
-            self._session.delete(model)
+        if model is None:
+            return
+        self._session.delete(model)
         self._session.commit()
 
     def exists(self, type: str, value: str, parent_id: int | None = None) -> bool:
