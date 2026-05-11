@@ -57,7 +57,7 @@
       <h3>分類佔比 <span style="font-size:11px;font-weight:400;color:var(--muted);">{{ sec.currency }}</span></h3>
       <div class="chart-sub">{{ sec.currency }} 訂閱年度費用分布</div>
       <div style="position:relative;height:200px;">
-        <canvas id="donutChart-{{ sec.currency }}"></canvas>
+        <canvas id="donutChart-{{ sec.currency | replace(' ', '_') | replace('/', '_') }}"></canvas>
       </div>
     </div>
     <div class="chart-card">
@@ -130,7 +130,7 @@
     {% for sec in sections %}
     {% if sec.departments %}
     <div style="margin-bottom:16px;">
-      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;">{{ sec.currency }}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;">{{ sec.currency }} · {{ sec.dept_count }} 個訂閱</div>
       <table>
         <thead>
           <tr>
@@ -186,7 +186,7 @@ const CAT_COLORS = {{ sections[0].cat_colors_json|safe }};
 (function() {
   const labels = {{ sec.cat_labels_json|safe }};
   const values = {{ sec.cat_values_json|safe }};
-  new Chart(document.getElementById('donutChart-{{ sec.currency }}'), {
+  new Chart(document.getElementById('donutChart-{{ sec.currency | replace(" ", "_") | replace("/", "_") }}'), {
     type: 'doughnut',
     data: {
       labels: labels,
