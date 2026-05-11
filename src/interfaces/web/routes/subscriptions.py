@@ -5,6 +5,7 @@ from decimal import Decimal
 import csv
 import io
 import json
+import re as _re
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
 from src.domain.entities.audit_entry import AuditEntry
@@ -17,6 +18,12 @@ from src.interfaces.web.dependencies import (
 )
 
 router = APIRouter()
+
+
+def _safe_json(data) -> str:
+    """JSON-encode and escape </ to prevent script-injection via |safe in templates."""
+    return _re.sub(r'</', r'<\\/', json.dumps(data, ensure_ascii=True))
+
 
 STATUS_OPTIONS = [
     ("active",    "使用中"),
@@ -74,8 +81,8 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
     for s in active_subs:
         cat = s.category or "未分類"
         cat_costs[cat] += s.annual_cost()
-    chart_cat_labels = json.dumps(list(cat_costs.keys()), ensure_ascii=False)
-    chart_cat_values = json.dumps([round(v, 2) for v in cat_costs.values()])
+    chart_cat_labels = _safe_json(list(cat_costs.keys()))
+    chart_cat_values = _safe_json([round(v, 2) for v in cat_costs.values()])
 
     # ── Bar chart: annual-sub renewals by month (next 12 months) ─────────
     month_labels_raw = []
@@ -95,8 +102,8 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
         if key in month_data:
             month_data[key] += s.annual_cost()
 
-    chart_month_labels = json.dumps([f"{k[:4]}/{int(k[5:7])}月" for k in month_labels_raw], ensure_ascii=False)
-    chart_month_values = json.dumps([round(month_data[k], 2) for k in month_labels_raw])
+    chart_month_labels = _safe_json([f"{k[:4]}/{int(k[5:7])}月" for k in month_labels_raw])
+    chart_month_values = _safe_json([round(month_data[k], 2) for k in month_labels_raw])
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -460,9 +467,9 @@ def _build_report_sections(active: list) -> list[dict]:
             "total_annual": total,
             "total_monthly": total / 12,
             "count": sum(c["count"] for c in cats),
-            "cat_labels_json": json.dumps([c["name"] for c in cats], ensure_ascii=False),
-            "cat_values_json": json.dumps([round(c["cost"], 2) for c in cats]),
-            "cat_colors_json": json.dumps(CAT_COLORS, ensure_ascii=False),
+            "cat_labels_json": _safe_json([c["name"] for c in cats]),
+            "cat_values_json": _safe_json([round(c["cost"], 2) for c in cats]),
+            "cat_colors_json": _safe_json(CAT_COLORS),
             "departments": depts,
         })
 
