@@ -467,6 +467,7 @@ def _build_report_sections(active: list) -> list[dict]:
             "total_annual": total,
             "total_monthly": total / 12,
             "count": sum(c["count"] for c in cats),
+            "dept_count": sum(d["count"] for d in depts),
             "cat_labels_json": _safe_json([c["name"] for c in cats]),
             "cat_values_json": _safe_json([round(c["cost"], 2) for c in cats]),
             "cat_colors_json": _safe_json(CAT_COLORS),
