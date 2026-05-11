@@ -60,7 +60,7 @@ Plans:
 - [x] 03-01-PLAN.md — REPORT-01 + REPORT-03: embed per-section chart JSON in route, fix chart loop in template, add dept cost analysis card
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 03-02-PLAN.md — REPORT-02 + SUBSCR-02: verify annual_cost deduplication and subscription filters, run full pytest suite
+- [x] 03-02-PLAN.md — REPORT-02 + SUBSCR-02: verify annual_cost deduplication and subscription filters, run full pytest suite
 
 ---
 
