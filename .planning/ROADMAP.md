@@ -46,12 +46,17 @@ Plans:
 **Goal**: 強化報表的完整性並新增部門費用分析，同時讓訂閱清單支援有效篩選。
 **Requirements**: REPORT-01, REPORT-02, REPORT-03, SUBSCR-02
 **Suggested model**: sonnet（新功能開發 + Chart.js 整合）
+**Plans:** 2 plans
 **Success criteria**:
 1. 報表頁：有多幣別訂閱時，每個幣別各自顯示一個圓餅圖（不只第一個）
 2. 報表頁：顯示部門費用分析區塊，列出每個部門的年費總額，標示費用最高的部門
 3. `annual_cost()` 只在一處定義，dashboard 和報表頁都 import 同一個函式
 4. 訂閱清單可依「部門」、「分類」、「狀態」篩選，UI 狀態反映目前條件
 5. `pytest` 全數通過
+
+Plans:
+- [ ] 03-01-PLAN.md — REPORT-01 + REPORT-03: embed per-section chart JSON in route, fix chart loop in template, add dept cost analysis card
+- [ ] 03-02-PLAN.md — REPORT-02 + SUBSCR-02: verify annual_cost deduplication and subscription filters, run full pytest suite
 
 ---
 
