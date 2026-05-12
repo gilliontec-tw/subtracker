@@ -1,3 +1,5 @@
+import json
+from datetime import datetime, timedelta
 from fastapi import Depends, Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -20,6 +22,22 @@ from src.domain.entities.user import User
 from src.interfaces.web.session import get_session_user_id
 
 templates = Jinja2Templates(directory="src/interfaces/web/templates")
+
+def _load_json_filter(value):
+    if not value:
+        return None
+    try:
+        return json.loads(value)
+    except Exception:
+        return None
+
+def _localtime_filter(value):
+    if not isinstance(value, datetime):
+        return value
+    return value + timedelta(hours=8)
+
+templates.env.filters["load_json"] = _load_json_filter
+templates.env.filters["localtime"] = _localtime_filter
 
 
 class NotAuthenticatedException(Exception):

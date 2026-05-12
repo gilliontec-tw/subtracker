@@ -27,7 +27,7 @@
           {% set log = item.log %}
           {% set diff = item.diff %}
           <tr>
-            <td><span class="muted" style="font-size:12px;">{{ log.created_at.strftime('%Y/%m/%d %H:%M') }}</span></td>
+            <td><span class="muted" style="font-size:12px;">{{ (log.created_at | localtime).strftime('%Y/%m/%d %H:%M') if log.created_at else '—' }}</span></td>
             <td style="font-size:13px;">{{ log.user_email }}</td>
             <td>
               {% if log.action == 'create' %}

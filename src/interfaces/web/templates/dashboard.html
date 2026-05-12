@@ -27,7 +27,7 @@
 <div class="page-content">
 
   <!-- KPI cards -->
-  <div class="kpi-grid">
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
     <div class="kpi tone-violet">
       <div class="kpi-icon-wrap">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -86,38 +86,6 @@
       <div class="kpi-value">{{ upcoming_30_count }}</div>
       <div class="kpi-sub">需確認是否續約</div>
     </div>
-    <div class="kpi tone-rose">
-      <div class="kpi-icon-wrap">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M22 21v-2a4 4 0 00-3-3.87" />
-          <path d="M16 3.13a4 4 0 010 7.75" />
-        </svg>
-      </div>
-      <div class="kpi-label">尚未指定使用者</div>
-      <div class="kpi-value">{{ no_owner_count }}</div>
-      <div class="kpi-sub">請盡速指定 User</div>
-    </div>
-  </div>
-
-  <!-- Charts -->
-  <div class="chart-grid-2">
-    <div class="chart-card">
-      <h3>費用分類佔比</h3>
-      <div class="chart-sub">啟用中訂閱年度費用分布</div>
-      <div style="position:relative;height:200px;">
-        <canvas id="donutChart"></canvas>
-      </div>
-    </div>
-    <div class="chart-card">
-      <h3>年費續約預測</h3>
-      <div class="chart-sub">未來 12 個月預估續約金額（TWD）</div>
-      <div style="position:relative;height:200px;">
-        <canvas id="barChart"></canvas>
-      </div>
-    </div>
   </div>
 
   <!-- Upcoming expiry timeline -->
@@ -137,12 +105,12 @@
           <div class="tl-name">{{ s.service_name }}</div>
           <div class="tl-date">到期 {{ s.expiry_date.strftime('%Y/%m/%d') }} · {{ s.category or '未分類' }}</div>
         </div>
-        <div class="tl-cost">${{ "{:,.0f}".format(s.cost|float) if s.cost else '—' }}</div>
+        <div class="tl-cost">${{ "{:,.0f}".format(s.cost|float) if s.cost else '—' }} <span style="font-size:11px;font-weight:400;color:var(--muted);">{{ s.currency }}</span></div>
         <div>
-          {% if s.owner_name %}
+          {% if s.user_name %}
           <span class="owner-cell">
-            <span class="avatar-mini" style="background:var(--primary);">{{ s.owner_name[:1] }}</span>
-            {{ s.owner_name }}
+            <span class="avatar-mini" style="background:var(--primary);">{{ s.user_name[:1] }}</span>
+            {{ s.user_name }}
           </span>
           {% else %}
           <span class="owner-cell unset">未指定</span>
@@ -175,45 +143,6 @@
 
 {% block scripts %}
 <script>
-  const CAT_COLORS = {
-    '生產力工具': '#6E5DE7', '開發工具': '#2B5BD7', '設計工具': '#D86A3D',
-    '雲端基礎': '#0E8C56', '資安合規': '#C13066', '行銷廣告': '#B57600',
-    '財務會計': '#7C3AED', 'HR人資': '#0891B2', '其他': '#6B7280', '未分類': '#B0AEC4',
-  };
-  const catLabels = {{ chart_cat_labels| safe }};
-  const catValues = {{ chart_cat_values| safe }};
-  const monthLabels = {{ chart_month_labels| safe }};
-  const monthValues = {{ chart_month_values| safe }};
-  new Chart(document.getElementById('donutChart'), {
-    type: 'doughnut',
-    data: {
-      labels: catLabels,
-      datasets: [{ data: catValues, backgroundColor: catLabels.map(l => CAT_COLORS[l] || '#B0AEC4'), borderWidth: 0, hoverOffset: 4 }]
-    },
-    options: {
-      cutout: '65%',
-      plugins: {
-        legend: { position: 'right', labels: { font: { size: 11 }, color: '#7A7891', boxWidth: 10, padding: 10 } },
-        tooltip: { callbacks: { label: ctx => ` $${ctx.parsed.toLocaleString()}` } }
-      }
-    }
-  });
-
-  new Chart(document.getElementById('barChart'), {
-    type: 'bar',
-    data: {
-      labels: monthLabels,
-      datasets: [{ data: monthValues, backgroundColor: monthValues.map((_, i) => i === 0 ? '#6E5DE7' : '#E3D9FF'), borderRadius: 4, borderSkipped: false }]
-    },
-    options: {
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#7A7891' } },
-        y: { grid: { color: '#F3F1EE' }, ticks: { font: { size: 11 }, color: '#7A7891', callback: v => v >= 1000 ? '$' + (v / 1000).toFixed(0) + 'K' : '$' + v } }
-      }
-    }
-  });
-
   function toggleView(view, btn) {
     document.querySelectorAll('#viewToggle .btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');

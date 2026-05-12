@@ -29,9 +29,7 @@ def _safe_json(data) -> str:
 
 STATUS_OPTIONS = [
     ("active",    "使用中"),
-    ("renewed",   "已續約"),
-    ("cancelled", "已取消"),
-    ("suspended", "暫停"),
+    ("cancelled", "取消"),
 ]
 
 CURRENCY_OPTIONS = ["TWD", "USD", "EUR", "JPY"]
@@ -535,17 +533,98 @@ def _build_report_sections(active: list) -> list[dict]:
     return sections
 
 
+FX_RATES = {
+    "TWD": 1.0,
+    "USD": 32.5,
+    "EUR": 34.0,
+    "JPY": 0.21,
+}
+
+
+def _build_unified_report(active: list) -> dict:
+    """Build a consolidated report section converting all foreign currencies to TWD equivalent."""
+    total_annual = 0.0
+    cat_map = defaultdict(lambda: {"cost": 0.0, "count": 0, "currencies": set()})
+    dept_map = defaultdict(lambda: {"cost": 0.0, "count": 0, "currencies": set()})
+
+    for s in active:
+        cur = s.currency or "TWD"
+        rate = FX_RATES.get(cur, 1.0)
+        cost_twd = s.annual_cost() * rate
+
+        total_annual += cost_twd
+
+        cat = s.category or "未分類"
+        cat_map[cat]["cost"] += cost_twd
+        cat_map[cat]["count"] += 1
+        cat_map[cat]["currencies"].add(cur)
+
+        dept = s.department or "未分類"
+        dept_map[dept]["cost"] += cost_twd
+        dept_map[dept]["count"] += 1
+        dept_map[dept]["currencies"].add(cur)
+
+    # Sort categories
+    cats = sorted(
+        [
+            {
+                "name": k,
+                "cost": v["cost"],
+                "count": v["count"],
+                "currencies": sorted(list(v["currencies"])),
+            }
+            for k, v in cat_map.items()
+        ],
+        key=lambda c: -c["cost"],
+    )
+    for c in cats:
+        c["monthly"] = c["cost"] / 12
+        c["avg"] = c["cost"] / c["count"] if c["count"] else 0
+        c["pct"] = round(c["cost"] / total_annual * 100, 1) if total_annual else 0
+
+    # Sort departments
+    depts = sorted(
+        [
+            {
+                "name": k,
+                "cost": v["cost"],
+                "count": v["count"],
+                "currencies": sorted(list(v["currencies"])),
+            }
+            for k, v in dept_map.items()
+        ],
+        key=lambda d: -d["cost"],
+    )
+    for d in depts:
+        d["monthly"] = d["cost"] / 12
+        d["pct"] = round(d["cost"] / total_annual * 100, 1) if total_annual else 0
+
+    return {
+        "currency": "TWD (等值約值)",
+        "total_annual": total_annual,
+        "total_monthly": total_annual / 12,
+        "count": len(active),
+        "categories": cats,
+        "departments": depts,
+        "cat_labels_json": _safe_json([c["name"] for c in cats]),
+        "cat_values_json": _safe_json([round(c["cost"], 2) for c in cats]),
+        "cat_colors_json": _safe_json(CAT_COLORS),
+    }
+
+
 @router.get("/reports")
 def reports(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
     subscriptions = uc.execute()
 
     active = [s for s in subscriptions if s.status.value in ("active", "renewed")]
-    sections = _build_report_sections(active)
+    unified_section = _build_unified_report(active) if active else None
+    currency_sections = _build_report_sections(active)
 
     return templates.TemplateResponse("reports.html", {
         "request": request,
         "current_user": current_user,
-        "sections": sections,
+        "unified_section": unified_section,
+        "currency_sections": currency_sections,
         "cat_colors": CAT_COLORS,
     })
 
@@ -672,26 +751,4 @@ def quick_renew(
     
     return RedirectResponse("/", status_code=303)
 
-
-@router.get("/history")
-def history(request: Request, current_user=Depends(get_current_user), audit_repo=Depends(get_audit_log_repo)):
-    logs = audit_repo.get_recent(limit=200)
-    parsed_logs = []
-    for log in logs:
-        diff_obj = None
-        if log.changes:
-            try:
-                diff_obj = json.loads(log.changes)
-            except Exception:
-                pass
-        parsed_logs.append({
-            "log": log,
-            "diff": diff_obj
-        })
-        
-    return templates.TemplateResponse("history.html", {
-        "request": request,
-        "current_user": current_user,
-        "logs": parsed_logs,
-    })
 

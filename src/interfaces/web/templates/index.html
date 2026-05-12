@@ -6,7 +6,7 @@
 {% set STATUS_MAP = {
   'active':    ('badge-success', '使用中'),
   'renewed':   ('badge-info',    '已續約'),
-  'cancelled': ('badge-neutral', '已取消'),
+  'cancelled': ('badge-neutral', '取消'),
   'suspended': ('badge-warning', '暫停'),
 } %}
 {% set can_update = current_user.role == 'admin' or current_user.can_update %}
@@ -42,9 +42,7 @@
     <select class="input input-sm" id="statusFilter" style="width:auto" onchange="applyFilters()">
       <option value="">所有狀態</option>
       <option value="active">使用中</option>
-      <option value="renewed">已續約</option>
-      <option value="cancelled">已取消</option>
-      <option value="suspended">暫停</option>
+      <option value="cancelled">取消</option>
     </select>
     <select class="input input-sm" id="catFilter" style="width:auto" onchange="applyFilters()">
       <option value="">所有分類</option>
@@ -71,9 +69,10 @@
         <tr>
           <th onclick="sortTable(0)" style="cursor:pointer;">帳號 ⇅</th>
           <th onclick="sortTable(1)" style="cursor:pointer;">部門 ⇅</th>
-          <th onclick="sortTable(2)" style="cursor:pointer;">倒數 ⇅</th>
-          <th class="right" onclick="sortTable(3)" style="cursor:pointer;">費用 ⇅</th>
-          <th onclick="sortTable(4)" style="cursor:pointer;">狀態 ⇅</th>
+          <th onclick="sortTable(2)" style="cursor:pointer;">分類 ⇅</th>
+          <th onclick="sortTable(3)" style="cursor:pointer;">倒數 ⇅</th>
+          <th class="right" onclick="sortTable(4)" style="cursor:pointer;">費用 ⇅</th>
+          <th onclick="sortTable(5)" style="cursor:pointer;">狀態 ⇅</th>
           <th></th>
         </tr>
       </thead>
@@ -91,6 +90,7 @@
           data-cat="{{ s.category or '' }}"
           data-dept="{{ s.department or '' }}"
           data-days="{{ days }}"
+          data-cost="{{ s.cost or 0 }}"
         >
 
           <td>
@@ -118,11 +118,16 @@
             {% else %}<span class="muted">—</span>{% endif %}
           </td>
           <td>
+            {% if s.category %}
+            <span class="badge badge-neutral" style="font-size:11px;">{{ s.category }}</span>
+            {% else %}<span class="muted">—</span>{% endif %}
+          </td>
+          <td>
             <span class="tl-days {{ tone }}" style="display:inline-block;padding:3px 10px;font-size:11px;">{{ days }} 天</span>
           </td>
           <td class="right tabnum">
             {% if s.cost %}
-            <div>{{ s.currency }}${{ "{:,.6g}".format(s.cost|float) }}</div>
+            <div>${{ "{:,.0f}".format(s.cost|float) }} <span style="font-size:11px;font-weight:400;color:var(--muted);">{{ s.currency }}</span></div>
             <div class="row-sub" style="text-align:right;">
               {% if s.billing_cycle == "monthly" %}月付
               {% elif s.billing_cycle == "quarterly" %}季付
@@ -138,11 +143,6 @@
               <span class="dot" style="background:currentColor;"></span>
               {{ status_label }}
             </span>
-            {% if s.category %}
-            <div style="margin-top:4px;">
-              <span class="badge badge-neutral" style="font-size:10px;">{{ s.category }}</span>
-            </div>
-            {% endif %}
           </td>
           <td class="right">
             {% if current_user.role == 'admin' or current_user.can_update %}
@@ -225,7 +225,7 @@ function toggleDue(btn) {
 
 function sortTable(n) {
   const table = document.getElementById("subTable");
-  let rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+  let rows, switching, i, shouldSwitch, dir, switchcount = 0;
   switching = true;
   dir = "asc"; 
   while (switching) {
@@ -233,33 +233,41 @@ function sortTable(n) {
     rows = table.rows;
     for (i = 1; i < (rows.length - 1); i++) {
       shouldSwitch = false;
-      x = rows[i].getElementsByTagName("TD")[n];
-      y = rows[i + 1].getElementsByTagName("TD")[n];
-      let cmpX = x.innerHTML.toLowerCase();
-      let cmpY = y.innerHTML.toLowerCase();
+      let rowA = rows[i];
+      let rowB = rows[i + 1];
       
-      if (n === 2 || n === 3) {
-        let valX = parseFloat(cmpX.replace(/[^\d.-]/g, '')) || 0;
-        let valY = parseFloat(cmpY.replace(/[^\d.-]/g, '')) || 0;
-        if (dir == "asc") {
-          if (valX > valY) { shouldSwitch = true; break; }
+      if (n === 3) {
+        let valA = parseInt(rowA.dataset.days) || 0;
+        let valB = parseInt(rowB.dataset.days) || 0;
+        if (dir === "asc") {
+          if (valA > valB) { shouldSwitch = true; break; }
         } else {
-          if (valX < valY) { shouldSwitch = true; break; }
+          if (valA < valB) { shouldSwitch = true; break; }
+        }
+      } else if (n === 4) {
+        let valA = parseFloat(rowA.dataset.cost) || 0;
+        let valB = parseFloat(rowB.dataset.cost) || 0;
+        if (dir === "asc") {
+          if (valA > valB) { shouldSwitch = true; break; }
+        } else {
+          if (valA < valB) { shouldSwitch = true; break; }
         }
       } else {
-        if (dir == "asc") {
-          if (cmpX > cmpY) { shouldSwitch = true; break; }
+        let cellA = rowA.getElementsByTagName("TD")[n].textContent.trim().toLowerCase();
+        let cellB = rowB.getElementsByTagName("TD")[n].textContent.trim().toLowerCase();
+        if (dir === "asc") {
+          if (cellA > cellB) { shouldSwitch = true; break; }
         } else {
-          if (cmpX < cmpY) { shouldSwitch = true; break; }
+          if (cellA < cellB) { shouldSwitch = true; break; }
         }
       }
     }
     if (shouldSwitch) {
       rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
       switching = true;
-      switchcount ++;      
+      switchcount++;      
     } else {
-      if (switchcount == 0 && dir == "asc") {
+      if (switchcount === 0 && dir === "asc") {
         dir = "desc";
         switching = true;
       }
