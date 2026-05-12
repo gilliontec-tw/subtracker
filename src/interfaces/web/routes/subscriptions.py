@@ -1,13 +1,15 @@
 import calendar
-from collections import defaultdict
-from datetime import date, datetime
-from decimal import Decimal
 import csv
 import io
 import json
 import re as _re
+from collections import defaultdict
+from datetime import date, datetime
+from decimal import Decimal
+
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
+
 from src.domain.entities.audit_entry import AuditEntry
 from src.domain.entities.subscription import NotificationDays, SubscriptionStatus
 from src.interfaces.web.constants import NOTIFICATION_OPTIONS
@@ -44,66 +46,59 @@ BILLING_CYCLE_OPTIONS = [
 ]
 
 
-@router.get("/dashboard")
-def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
-    subscriptions = uc.execute()
-    today = date.today()
-
-    active_subs = [s for s in subscriptions if s.status.value in ("active", "renewed")]
-
-    # Per-currency annual cost breakdown
+def _build_cost_summary(active_subs: list) -> list[dict]:
+    """Return per-currency cost breakdown sorted by descending annual spend."""
     cost_by_currency: dict[str, float] = defaultdict(float)
     for s in active_subs:
-        cur = s.currency or "TWD"
-        cost_by_currency[cur] += s.annual_cost()
-    cost_summary = sorted(
+        cost_by_currency[s.currency or "TWD"] += s.annual_cost()
+    return sorted(
         [{"currency": c, "annual": v, "monthly": v / 12} for c, v in cost_by_currency.items()],
         key=lambda x: -x["annual"],
     )
 
-    total_annual_cost = sum(s.annual_cost() for s in active_subs)
-    total_monthly_cost = total_annual_cost / 12
+
+def _build_renewal_chart(active_subs: list, today: date) -> tuple[str, str]:
+    """Return (labels_json, values_json) for upcoming 12-month renewal bar chart.
+
+    Monthly subscriptions are excluded — they renew continuously.
+    """
+    month_keys = []
+    month_data: dict[str, float] = defaultdict(float)
+    for i in range(12):
+        m = (today.month - 1 + i) % 12 + 1
+        y = today.year + (today.month - 1 + i) // 12
+        key = f"{y}-{m:02d}"
+        month_keys.append(key)
+        month_data[key] = 0.0
+
+    for s in active_subs:
+        if (s.billing_cycle or "").lower() == "monthly":
+            continue
+        key = f"{s.expiry_date.year}-{s.expiry_date.month:02d}"
+        if key in month_data:
+            month_data[key] += s.annual_cost()
+
+    labels = _safe_json([f"{k[:4]}/{int(k[5:7])}月" for k in month_keys])
+    values = _safe_json([round(month_data[k], 2) for k in month_keys])
+    return labels, values
+
+
+@router.get("/dashboard")
+def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
+    subscriptions = uc.execute()
+    today = date.today()
+    active_subs = [s for s in subscriptions if s.status.value in ("active", "renewed")]
 
     upcoming_30 = [s for s in active_subs if 0 <= (s.expiry_date - today).days <= 30]
     upcoming_90 = sorted(
         [s for s in active_subs if 0 <= (s.expiry_date - today).days <= 90],
         key=lambda s: s.expiry_date,
     )
-    no_owner = [s for s in active_subs if not s.owner_name]
 
-    trial_expiring = [
-        s for s in active_subs
-        if s.trial_end_date and 0 <= (s.trial_end_date - today).days <= 14
-    ]
-
-    # ── Donut chart: cost by category ────────────────────────────────────
     cat_costs: dict[str, float] = defaultdict(float)
     for s in active_subs:
-        cat = s.category or "未分類"
-        cat_costs[cat] += s.annual_cost()
-    chart_cat_labels = _safe_json(list(cat_costs.keys()))
-    chart_cat_values = _safe_json([round(v, 2) for v in cat_costs.values()])
-
-    # ── Bar chart: annual-sub renewals by month (next 12 months) ─────────
-    month_labels_raw = []
-    month_data: dict[str, float] = defaultdict(float)
-    for i in range(12):
-        m = (today.month - 1 + i) % 12 + 1
-        y = today.year + (today.month - 1 + i) // 12
-        key = f"{y}-{m:02d}"
-        month_labels_raw.append(key)
-        month_data[key] = 0.0
-
-    for s in active_subs:
-        if (s.billing_cycle or "").lower() == "monthly":
-            continue  # skip monthly; they renew every month
-        exp = s.expiry_date
-        key = f"{exp.year}-{exp.month:02d}"
-        if key in month_data:
-            month_data[key] += s.annual_cost()
-
-    chart_month_labels = _safe_json([f"{k[:4]}/{int(k[5:7])}月" for k in month_labels_raw])
-    chart_month_values = _safe_json([round(month_data[k], 2) for k in month_labels_raw])
+        cat_costs[s.category or "未分類"] += s.annual_cost()
+    chart_month_labels, chart_month_values = _build_renewal_chart(active_subs, today)
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
@@ -111,27 +106,25 @@ def dashboard(request: Request, uc=Depends(get_list_uc), current_user=Depends(ge
         "today": today,
         "total_subscriptions": len(subscriptions),
         "active_count": len(active_subs),
-        "cost_summary": cost_summary,
-        "total_annual_cost": total_annual_cost,
-        "total_monthly_cost": total_monthly_cost,
+        "cost_summary": _build_cost_summary(active_subs),
         "upcoming_30_count": len(upcoming_30),
-        "no_owner_count": len(no_owner),
-        "trial_expiring_count": len(trial_expiring),
+        "no_owner_count": sum(1 for s in active_subs if not s.user_name),
         "upcoming_90": upcoming_90,
-        "chart_cat_labels": chart_cat_labels,
-        "chart_cat_values": chart_cat_values,
+        "chart_cat_labels": _safe_json(list(cat_costs.keys())),
+        "chart_cat_values": _safe_json([round(v, 2) for v in cat_costs.values()]),
         "chart_month_labels": chart_month_labels,
         "chart_month_values": chart_month_values,
     })
 
 
-def _csv_safe(v) -> str:
-    if v is None:
+def _sanitize_csv_cell(value) -> str:
+    """Prevent CSV injection by prepending a quote to formula-starting characters."""
+    if value is None:
         return ""
-    s = str(v)
-    if s and s[0] in ("=", "+", "-", "@", "\t", "\r"):
-        return "'" + s
-    return s
+    text = str(value)
+    if text and text[0] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + text
+    return text
 
 
 @router.get("/subscriptions/export")
@@ -141,12 +134,20 @@ def export_csv(uc=Depends(get_list_uc), current_user=Depends(get_current_user)):
     buf.write("﻿")  # UTF-8 BOM for Excel
     writer = csv.writer(buf)
     writer.writerow(["服務名稱", "登入帳號", "到期日", "狀態", "費用", "幣別",
-                     "計費週期", "負責人", "分類", "部門", "備註"])
+                     "計費週期", "使用者", "分類", "部門", "備註"])
     for s in subscriptions:
         writer.writerow([
-            _csv_safe(s.service_name), _csv_safe(s.login_account), s.expiry_date.strftime('%Y/%m/%d'), s.status.value,
-            s.cost or "", s.currency, s.billing_cycle or "",
-            _csv_safe(s.owner_name), _csv_safe(s.category), _csv_safe(s.department), _csv_safe(s.notes),
+            _sanitize_csv_cell(s.service_name),
+            _sanitize_csv_cell(s.login_account),
+            s.expiry_date.strftime('%Y/%m/%d'),
+            s.status.value,
+            s.cost or "",
+            s.currency,
+            s.billing_cycle or "",
+            _sanitize_csv_cell(s.user_name),
+            _sanitize_csv_cell(s.category),
+            _sanitize_csv_cell(s.department),
+            _sanitize_csv_cell(s.notes),
         ])
     return StreamingResponse(
         iter([buf.getvalue().encode("utf-8")]),
@@ -232,14 +233,13 @@ def create_submit(
     cost: str | None = Form(None),
     currency: str = Form("TWD"),
     notes: str | None = Form(None),
-    owner_name: str | None = Form(None),
+    user_name: str | None = Form(None),
     category: str | None = Form(None),
     department: str | None = Form(None),
     billing_cycle: str | None = Form(None),
     payment_account: str | None = Form(None),
     auto_renew: bool = Form(False),
-    trial_end_date: str | None = Form(None),
-    next_billing_date: str | None = Form(None),
+    login_password: str | None = Form(None),
     uc=Depends(get_create_uc),
     current_user=Depends(require_create),
     audit_repo=Depends(get_audit_log_repo),
@@ -260,10 +260,25 @@ def create_submit(
 
     try:
         parsed_expiry = datetime.strptime(expiry_date, "%Y-%m-%d").date()
-        parsed_trial = datetime.strptime(trial_end_date, "%Y-%m-%d").date() if trial_end_date else None
-        parsed_next_billing = datetime.strptime(next_billing_date, "%Y-%m-%d").date() if next_billing_date else None
     except ValueError:
         return _create_error("日期格式不正確，請使用 YYYY-MM-DD 格式")
+
+    valid_statuses = {s[0] for s in STATUS_OPTIONS}
+    valid_currencies = set(CURRENCY_OPTIONS)
+    valid_billing_cycles = {b[0] for b in BILLING_CYCLE_OPTIONS}
+    valid_categories = {o.value for o in config_repo.get_by_type("category")}
+    valid_departments = {d[0] for d in _dept_options(config_repo)}
+    
+    if status not in valid_statuses:
+        return _create_error("無效的狀態選項。")
+    if currency not in valid_currencies:
+        return _create_error("無效的幣別選項。")
+    if billing_cycle and billing_cycle not in valid_billing_cycles:
+        return _create_error("無效的計費週期選項。")
+    if category and category not in valid_categories:
+        return _create_error("無效的分類選項。")
+    if department and department not in valid_departments:
+        return _create_error("無效的部門選項。")
 
     sub = uc.execute(
         service_name=service_name,
@@ -275,15 +290,16 @@ def create_submit(
         cost=Decimal(cost) if cost and cost.strip() else None,
         currency=currency,
         notes=notes or None,
-        owner_name=owner_name or None,
+        user_name=user_name or None,
         category=category or None,
         department=department or None,
         billing_cycle=billing_cycle or None,
         payment_account=payment_account or None,
         auto_renew=bool(auto_renew),
-        trial_end_date=parsed_trial,
-        next_billing_date=parsed_next_billing,
+        login_password=login_password or None,
     )
+    
+    changes = json.dumps({"status": "created"}, ensure_ascii=False)
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
         user_email=current_user.email,
@@ -291,6 +307,7 @@ def create_submit(
         target_type="subscription",
         target_id=sub.id,
         target_name=sub.service_name,
+        changes=changes,
     ))
     return RedirectResponse("/", status_code=303)
 
@@ -330,30 +347,25 @@ def edit_submit(
     cost: str | None = Form(None),
     currency: str = Form("TWD"),
     notes: str | None = Form(None),
-    owner_name: str | None = Form(None),
+    user_name: str | None = Form(None),
     category: str | None = Form(None),
     department: str | None = Form(None),
     billing_cycle: str | None = Form(None),
     payment_account: str | None = Form(None),
     auto_renew: bool = Form(False),
-    trial_end_date: str | None = Form(None),
-    next_billing_date: str | None = Form(None),
+    login_password: str | None = Form(None),
     uc=Depends(get_update_uc),
     single_uc=Depends(get_single_uc),
     current_user=Depends(require_update),
     audit_repo=Depends(get_audit_log_repo),
     config_repo=Depends(get_config_repo),
 ):
-    try:
-        parsed_expiry = datetime.strptime(expiry_date, "%Y-%m-%d").date()
-        parsed_trial = datetime.strptime(trial_end_date, "%Y-%m-%d").date() if trial_end_date else None
-        parsed_next_billing = datetime.strptime(next_billing_date, "%Y-%m-%d").date() if next_billing_date else None
-    except ValueError:
+    def _edit_error(msg: str):
         current_sub = single_uc.execute(subscription_id)
         return templates.TemplateResponse("edit.html", {
             "request": request,
             "sub": current_sub,
-            "error": "日期格式不正確，請使用 YYYY-MM-DD 格式",
+            "error": msg,
             "notification_options": NOTIFICATION_OPTIONS,
             "status_options": STATUS_OPTIONS,
             "currency_options": CURRENCY_OPTIONS,
@@ -363,6 +375,40 @@ def edit_submit(
             "current_user": current_user,
         }, status_code=422)
 
+    try:
+        parsed_expiry = datetime.strptime(expiry_date, "%Y-%m-%d").date()
+    except ValueError:
+        return _edit_error("日期格式不正確，請使用 YYYY-MM-DD 格式")
+
+    valid_statuses = {s[0] for s in STATUS_OPTIONS}
+    valid_currencies = set(CURRENCY_OPTIONS)
+    valid_billing_cycles = {b[0] for b in BILLING_CYCLE_OPTIONS}
+    valid_categories = {o.value for o in config_repo.get_by_type("category")}
+    valid_departments = {d[0] for d in _dept_options(config_repo)}
+    
+    if status not in valid_statuses:
+        return _edit_error("無效的狀態選項。")
+    if currency not in valid_currencies:
+        return _edit_error("無效的幣別選項。")
+    if billing_cycle and billing_cycle not in valid_billing_cycles:
+        return _edit_error("無效的計費週期選項。")
+    if category and category not in valid_categories:
+        return _edit_error("無效的分類選項。")
+    if department and department not in valid_departments:
+        return _edit_error("無效的部門選項。")
+
+    old_sub = single_uc.execute(subscription_id)
+    old_data = {}
+    if old_sub:
+        old_data = {
+            "service_name": old_sub.service_name,
+            "login_account": old_sub.login_account,
+            "expiry_date": str(old_sub.expiry_date) if old_sub.expiry_date else None,
+            "status": old_sub.status.value,
+            "user_name": old_sub.user_name,
+            "cost": float(old_sub.cost) if old_sub.cost else None,
+        }
+        
     sub = uc.execute(
         subscription_id=subscription_id,
         service_name=service_name,
@@ -374,15 +420,26 @@ def edit_submit(
         cost=Decimal(cost) if cost and cost.strip() else None,
         currency=currency,
         notes=notes or None,
-        owner_name=owner_name or None,
+        user_name=user_name or None,
         category=category or None,
         department=department or None,
         billing_cycle=billing_cycle or None,
         payment_account=payment_account or None,
         auto_renew=bool(auto_renew),
-        trial_end_date=parsed_trial,
-        next_billing_date=parsed_next_billing,
+        login_password=login_password or None,
     )
+    
+    new_data = {
+        "service_name": sub.service_name,
+        "login_account": sub.login_account,
+        "expiry_date": str(sub.expiry_date) if sub.expiry_date else None,
+        "status": sub.status.value,
+        "user_name": sub.user_name,
+        "cost": float(sub.cost) if sub.cost else None,
+    }
+    diff = {k: {"old": old_data.get(k), "new": new_data.get(k)} for k in new_data if old_data.get(k) != new_data.get(k)}
+    changes = json.dumps(diff, ensure_ascii=False) if diff else json.dumps({"status": "updated_without_major_changes"})
+
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
         user_email=current_user.email,
@@ -390,6 +447,7 @@ def edit_submit(
         target_type="subscription",
         target_id=sub.id,
         target_name=sub.service_name,
+        changes=changes,
     ))
     return RedirectResponse("/", status_code=303)
 
@@ -517,16 +575,18 @@ def bulk_renew(
             cost=sub.cost,
             currency=sub.currency,
             notes=sub.notes,
-            owner_name=sub.owner_name,
+            user_name=sub.user_name,
             category=sub.category,
             department=sub.department,
             billing_cycle=sub.billing_cycle,
             payment_account=sub.payment_account,
             auto_renew=sub.auto_renew,
-            trial_end_date=sub.trial_end_date,
-            next_billing_date=sub.next_billing_date,
             notifications_enabled=sub.notifications_enabled,
         )
+        
+        diff = {"expiry_date": {"old": str(sub.expiry_date), "new": str(new_expiry)}}
+        changes = json.dumps(diff, ensure_ascii=False)
+        
         audit_repo.add(AuditEntry(
             user_id=current_user.id,
             user_email=current_user.email,
@@ -534,6 +594,7 @@ def bulk_renew(
             target_type="subscription",
             target_id=sub_id,
             target_name=sub.service_name,
+            changes=changes,
         ))
     return RedirectResponse("/", status_code=303)
 
@@ -549,6 +610,7 @@ def delete(
     sub = single_uc.execute(subscription_id)
     service_name = sub.service_name if sub else str(subscription_id)
     uc.execute(subscription_id)
+    changes = json.dumps({"status": "deleted"}, ensure_ascii=False)
     audit_repo.add(AuditEntry(
         user_id=current_user.id,
         user_email=current_user.email,
@@ -556,5 +618,80 @@ def delete(
         target_type="subscription",
         target_id=subscription_id,
         target_name=service_name,
+        changes=changes,
     ))
     return RedirectResponse("/", status_code=303)
+
+
+@router.post("/subscriptions/{subscription_id}/quick-renew")
+def quick_renew(
+    subscription_id: int,
+    uc=Depends(get_update_uc),
+    single_uc=Depends(get_single_uc),
+    current_user=Depends(require_update),
+    audit_repo=Depends(get_audit_log_repo),
+):
+    sub = single_uc.execute(subscription_id)
+    if not sub:
+        return RedirectResponse("/", status_code=303)
+        
+    new_expiry = _add_billing_period(sub.expiry_date, sub.billing_cycle)
+    
+    uc.execute(
+        subscription_id=subscription_id,
+        service_name=sub.service_name,
+        login_account=sub.login_account,
+        expiry_date=new_expiry,
+        notification_emails=sub.notification_emails,
+        notification_days=sub.notification_days,
+        status=sub.status,
+        cost=sub.cost,
+        currency=sub.currency,
+        notes=sub.notes,
+        user_name=sub.user_name,
+        category=sub.category,
+        department=sub.department,
+        billing_cycle=sub.billing_cycle,
+        payment_account=sub.payment_account,
+        auto_renew=sub.auto_renew,
+        notifications_enabled=sub.notifications_enabled,
+    )
+    
+    diff = {"expiry_date": {"old": str(sub.expiry_date), "new": str(new_expiry)}}
+    changes = json.dumps(diff, ensure_ascii=False)
+    
+    audit_repo.add(AuditEntry(
+        user_id=current_user.id,
+        user_email=current_user.email,
+        action="renew",
+        target_type="subscription",
+        target_id=subscription_id,
+        target_name=sub.service_name,
+        changes=changes,
+    ))
+    
+    return RedirectResponse("/", status_code=303)
+
+
+@router.get("/history")
+def history(request: Request, current_user=Depends(get_current_user), audit_repo=Depends(get_audit_log_repo)):
+    logs = audit_repo.get_recent(limit=200)
+    parsed_logs = []
+    for log in logs:
+        diff_obj = None
+        if log.changes:
+            try:
+                diff_obj = json.loads(log.changes)
+            except Exception:
+                pass
+        parsed_logs.append({
+            "log": log,
+            "diff": diff_obj
+        })
+        
+    return templates.TemplateResponse("history.html", {
+        "request": request,
+        "current_user": current_user,
+        "logs": parsed_logs,
+    })
+

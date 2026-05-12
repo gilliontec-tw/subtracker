@@ -1,39 +1,50 @@
 {% extends "base.html" %}
+{% block title %}新增使用者 — SubTrack{% endblock %}
+{% block nav_users %}active{% endblock %}
+
 {% block content %}
-<h4 class="mb-3">新增使用者</h4>
-{% if error %}
-<div class="alert alert-danger">{{ error }}</div>
-{% endif %}
-<form method="POST" action="/admin/users/create" style="max-width:480px">
-  <div class="mb-3">
-    <label class="form-label">Email（需為 @gilliontec.com.tw）</label>
-    <input type="email" name="email" class="form-control" required
-           placeholder="name@gilliontec.com.tw">
-  </div>
-  <div class="mb-3">
-    <label class="form-label">姓名</label>
-    <input type="text" name="display_name" class="form-control" required>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">初始密碼</label>
-    <input type="password" name="password" class="form-control" required>
-  </div>
-  <div class="mb-4">
-    <label class="form-label d-block">權限</label>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="can_create" id="can_create" value="true">
-      <label class="form-check-label" for="can_create">可新增訂閱</label>
+<div class="page-header">
+  <div><h1>新增使用者</h1></div>
+</div>
+<div class="page-content">
+  <div class="card" style="max-width:480px;">
+    <div class="card-body">
+      {% if error %}
+      <div class="alert alert-danger mb-4">{{ error }}</div>
+      {% endif %}
+      <form method="POST" action="/admin/users/create">
+        {{ csrf_field() }}
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="input" required placeholder="name@gilliontec.com.tw">
+        </div>
+        <div class="form-group">
+          <label class="form-label">姓名</label>
+          <input type="text" name="display_name" class="input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">權限</label>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+            <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" name="can_create" value="true"> 可新增訂閱
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" name="can_update" value="true"> 可修改訂閱
+            </label>
+            <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" name="can_delete" value="true"> 可刪除訂閱
+            </label>
+          </div>
+        </div>
+        <div class="form-hint mb-3" style="background:var(--primary-50);border-radius:8px;padding:10px 14px;color:var(--primary);font-size:12px;">
+          建立後系統將自動寄送邀請信給該 Email，請對方點擊連結自行設定密碼（連結 72 小時有效）。
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+          <a href="/admin/users" class="btn btn-outline">取消</a>
+          <button type="submit" class="btn btn-primary">建立並發送邀請</button>
+        </div>
+      </form>
     </div>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="can_update" id="can_update" value="true">
-      <label class="form-check-label" for="can_update">可修改訂閱</label>
-    </div>
-    <div class="form-check">
-      <input class="form-check-input" type="checkbox" name="can_delete" id="can_delete" value="true">
-      <label class="form-check-label" for="can_delete">可刪除訂閱</label>
-    </div>
   </div>
-  <button type="submit" class="btn btn-primary">建立</button>
-  <a href="/admin/users" class="btn btn-secondary ms-2">取消</a>
-</form>
+</div>
 {% endblock %}

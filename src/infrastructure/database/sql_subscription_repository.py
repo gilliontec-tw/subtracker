@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from src.domain.entities.subscription import Subscription, NotificationDays, SubscriptionStatus
 from src.domain.repositories.subscription_repository import SubscriptionRepository
 from src.infrastructure.database.models import SubscriptionModel
+from src.infrastructure.auth.field_encrypt import encrypt as _enc, decrypt as _dec
 
 log = logging.getLogger(__name__)
 
@@ -23,6 +24,11 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         self._session = session
 
     def _to_entity(self, model: SubscriptionModel) -> Subscription:
+        # login_password 以 Fernet 密文儲存於 DB，在此解密後交給 domain 層（明文）
+        raw_pw = _dec(model.login_password)
+        if model.login_password is not None and raw_pw is None:
+            # 解密失敗代表金鑰不符或資料損壞，記錄警告但不中斷讀取
+            log.warning("subscription id=%s: login_password 解密失敗，可能金鑰已輪換或資料損壞", model.id)
         return Subscription(
             id=model.id,
             service_name=model.service_name,
@@ -35,15 +41,14 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             cost=Decimal(str(model.cost)) if model.cost is not None else None,
             currency=model.currency or "TWD",
             notes=model.notes,
-            owner_name=model.owner_name,
+            user_name=model.user_name,
             category=model.category,
             department=model.department,
             billing_cycle=model.billing_cycle,
             payment_account=model.payment_account,
             auto_renew=bool(model.auto_renew),
-            trial_end_date=model.trial_end_date,
-            next_billing_date=model.next_billing_date,
             notifications_enabled=bool(model.notifications_enabled),
+            login_password=raw_pw,  # 已解密的明文（或 None）
             created_at=model.created_at,
             updated_at=model.updated_at,
         )
@@ -59,15 +64,14 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             cost=subscription.cost,
             currency=subscription.currency,
             notes=subscription.notes,
-            owner_name=subscription.owner_name,
+            user_name=subscription.user_name,
             category=subscription.category,
             department=subscription.department,
             billing_cycle=subscription.billing_cycle,
             payment_account=subscription.payment_account,
             auto_renew=subscription.auto_renew,
-            trial_end_date=subscription.trial_end_date,
-            next_billing_date=subscription.next_billing_date,
             notifications_enabled=subscription.notifications_enabled,
+            login_password=_enc(subscription.login_password),  # 明文 → Fernet 密文
         )
         self._session.add(model)
         self._session.commit()
@@ -100,15 +104,14 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         model.cost                = subscription.cost
         model.currency            = subscription.currency
         model.notes               = subscription.notes
-        model.owner_name          = subscription.owner_name
+        model.user_name           = subscription.user_name
         model.category            = subscription.category
         model.department          = subscription.department
         model.billing_cycle       = subscription.billing_cycle
         model.payment_account     = subscription.payment_account
         model.auto_renew              = subscription.auto_renew
-        model.trial_end_date          = subscription.trial_end_date
-        model.next_billing_date       = subscription.next_billing_date
         model.notifications_enabled   = subscription.notifications_enabled
+        model.login_password          = _enc(subscription.login_password)  # 明文 → Fernet 密文
         model.updated_at              = datetime.now(timezone.utc)
         self._session.commit()
         self._session.refresh(model)

@@ -33,15 +33,14 @@ class Subscription:
     cost: Decimal | None = None
     currency: str = "TWD"
     notes: str | None = None
-    owner_name: str | None = None
+    user_name: str | None = None
     category: str | None = None
     department: str | None = None
     billing_cycle: str | None = None  # "monthly" | "annual" | None
     payment_account: str | None = None
     auto_renew: bool = False
-    trial_end_date: date | None = None
-    next_billing_date: date | None = None
     notifications_enabled: bool = True
+    login_password: str | None = None   # 明文；加密儲存由 infrastructure 層負責
     created_at: datetime | None = None
     updated_at: datetime | None = None
 

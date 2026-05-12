@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}系統設定 — SubTrack{% endblock %}
+{% block nav_settings %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>系統設定</h1>
+    <div class="page-sub">管理分類與部門選項</div>
+  </div>
+</div>
+
+<div class="page-content">
+  {% if saved %}
+  <div class="alert alert-success mb-4" id="savedAlert">已儲存。</div>
+  {% endif %}
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+    <!-- ── 分類管理 ── -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">分類</h2>
+        <span class="muted" style="font-size:12px;">{{ categories | length }} 個選項</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        {% if categories %}
+        <ul class="option-list">
+          {% for opt in categories %}
+          <li class="option-item" id="row-{{ opt.id }}">
+            <span class="opt-label" id="lbl-{{ opt.id }}">{{ opt.value }}</span>
+            <!-- inline rename form (hidden) -->
+            <form method="POST" action="/admin/settings/{{ opt.id }}/rename"
+                  class="opt-rename-form" id="rf-{{ opt.id }}" style="display:none;flex:1;gap:6px;">
+              {{ csrf_field() }}
+              <input type="text" name="value" class="input input-sm" value="{{ opt.value }}" style="flex:1;" required>
+              <button type="submit" class="btn btn-primary btn-sm">存</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="cancelRename({{ opt.id }})">✕</button>
+            </form>
+            <div class="opt-actions" id="act-{{ opt.id }}">
+              <button type="button" class="btn-icon" title="改名" onclick="startRename({{ opt.id }})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <form method="POST" action="/admin/settings/{{ opt.id }}/delete" style="margin:0;">
+                {{ csrf_field() }}
+                <button type="submit" class="btn-icon" title="刪除"
+                        onclick="return confirm('刪除「{{ opt.value }}」？')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </form>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">尚無分類選項</div>
+        {% endif %}
+        <div class="option-add-row">
+          <form method="POST" action="/admin/settings/add" style="display:flex;gap:8px;">
+            {{ csrf_field() }}
+            <input type="hidden" name="type" value="category">
+            <input type="text" name="value" class="input input-sm" placeholder="新增分類…" required style="flex:1;">
+            <button type="submit" class="btn btn-primary btn-sm">新增</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 部門管理 ── -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">部門</h2>
+        <span class="muted" style="font-size:12px;">
+          {{ dept_tree | length }} 個頂層部門
+        </span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        {% if dept_tree %}
+        <ul class="option-list">
+          {% for dept in dept_tree %}
+          <!-- 頂層部門 -->
+          <li class="option-item option-item-parent" id="row-{{ dept.id }}">
+            <span class="opt-label" id="lbl-{{ dept.id }}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--muted);margin-right:4px;flex-shrink:0;"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
+              {{ dept.value }}
+            </span>
+            <form method="POST" action="/admin/settings/{{ dept.id }}/rename"
+                  class="opt-rename-form" id="rf-{{ dept.id }}" style="display:none;flex:1;gap:6px;">
+              {{ csrf_field() }}
+              <input type="text" name="value" class="input input-sm" value="{{ dept.value }}" style="flex:1;" required>
+              <button type="submit" class="btn btn-primary btn-sm">存</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="cancelRename({{ dept.id }})">✕</button>
+            </form>
+            <div class="opt-actions" id="act-{{ dept.id }}">
+              <button type="button" class="btn-icon" title="新增子部門"
+                      onclick="toggleAddChild({{ dept.id }})" style="color:var(--primary);">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+              </button>
+              <button type="button" class="btn-icon" title="改名" onclick="startRename({{ dept.id }})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <form method="POST" action="/admin/settings/{{ dept.id }}/delete" style="margin:0;">
+                {{ csrf_field() }}
+                <button type="submit" class="btn-icon" title="刪除（含子部門）"
+                        onclick="return confirm('刪除「{{ dept.value }}」及其所有子部門？')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </form>
+            </div>
+          </li>
+          <!-- 新增子部門列（預設隱藏） -->
+          <li class="option-add-child-row" id="addchild-{{ dept.id }}" style="display:none;">
+            <form method="POST" action="/admin/settings/add" style="display:flex;gap:6px;flex:1;">
+              {{ csrf_field() }}
+              <input type="hidden" name="type" value="department">
+              <input type="hidden" name="parent_id" value="{{ dept.id }}">
+              <input type="text" name="value" class="input input-sm" placeholder="子部門名稱…" required style="flex:1;">
+              <button type="submit" class="btn btn-primary btn-sm">新增</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="toggleAddChild({{ dept.id }})">取消</button>
+            </form>
+          </li>
+          <!-- 子部門 -->
+          {% for child in dept.children %}
+          <li class="option-item option-item-child" id="row-{{ child.id }}">
+            <span class="opt-label" id="lbl-{{ child.id }}">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--muted-soft);margin-right:4px;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+              {{ child.value }}
+            </span>
+            <form method="POST" action="/admin/settings/{{ child.id }}/rename"
+                  class="opt-rename-form" id="rf-{{ child.id }}" style="display:none;flex:1;gap:6px;">
+              {{ csrf_field() }}
+              <input type="text" name="value" class="input input-sm" value="{{ child.value }}" style="flex:1;" required>
+              <button type="submit" class="btn btn-primary btn-sm">存</button>
+              <button type="button" class="btn btn-outline btn-sm" onclick="cancelRename({{ child.id }})">✕</button>
+            </form>
+            <div class="opt-actions" id="act-{{ child.id }}">
+              <button type="button" class="btn-icon" title="改名" onclick="startRename({{ child.id }})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <form method="POST" action="/admin/settings/{{ child.id }}/delete" style="margin:0;">
+                {{ csrf_field() }}
+                <button type="submit" class="btn-icon" title="刪除"
+                        onclick="return confirm('刪除「{{ child.value }}」？')">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                </button>
+              </form>
+            </div>
+          </li>
+          {% endfor %}
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">尚無部門選項</div>
+        {% endif %}
+        <div class="option-add-row">
+          <form method="POST" action="/admin/settings/add" style="display:flex;gap:8px;">
+            {{ csrf_field() }}
+            <input type="hidden" name="type" value="department">
+            <input type="text" name="value" class="input input-sm" placeholder="新增頂層部門…" required style="flex:1;">
+            <button type="submit" class="btn btn-primary btn-sm">新增</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function startRename(id) {
+  document.getElementById('lbl-' + id).style.display = 'none';
+  document.getElementById('act-' + id).style.display = 'none';
+  const form = document.getElementById('rf-' + id);
+  form.style.display = 'flex';
+  form.querySelector('input').focus();
+}
+function cancelRename(id) {
+  document.getElementById('lbl-' + id).style.display = '';
+  document.getElementById('act-' + id).style.display = '';
+  document.getElementById('rf-' + id).style.display = 'none';
+}
+function toggleAddChild(parentId) {
+  const row = document.getElementById('addchild-' + parentId);
+  const visible = row.style.display !== 'none';
+  row.style.display = visible ? 'none' : 'flex';
+  if (!visible) row.querySelector('input[name="value"]').focus();
+}
+{% if saved %}
+setTimeout(() => {
+  const a = document.getElementById('savedAlert');
+  if (a) a.style.display = 'none';
+}, 3000);
+{% endif %}
+</script>
+{% endblock %}

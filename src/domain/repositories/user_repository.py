@@ -24,3 +24,9 @@ class UserRepository(ABC):
     def update(self, user: User) -> User:
         """Persist updated user; user.id must be set."""
         ...
+
+    @abstractmethod
+    def get_by_invite_token(self, token: str) -> User | None: ...
+
+    @abstractmethod
+    def delete(self, user_id: int) -> None: ...

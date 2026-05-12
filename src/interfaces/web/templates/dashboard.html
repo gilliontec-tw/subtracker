@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}Dashboard — SubTrack{% endblock %}
 {% block nav_dashboard %}active{% endblock %}
 
@@ -14,7 +14,11 @@
       <button class="btn" onclick="toggleView('monthly',this)">月費視角</button>
     </div>
     <a href="/subscriptions/export" class="btn btn-outline btn-sm">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+        <path d="M7 10l5 5 5-5M12 15V3" />
+      </svg>
       匯出
     </a>
   </div>
@@ -26,36 +30,45 @@
   <div class="kpi-grid">
     <div class="kpi tone-violet">
       <div class="kpi-icon-wrap">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="13" width="3" height="6"/><rect x="12" y="9" width="3" height="10"/><rect x="17" y="5" width="3" height="14"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18" />
+          <rect x="7" y="13" width="3" height="6" />
+          <rect x="12" y="9" width="3" height="10" />
+          <rect x="17" y="5" width="3" height="14" />
+        </svg>
       </div>
       <div class="kpi-label" id="costLabel">年度總支出</div>
       {% if cost_summary %}
-        {% for item in cost_summary %}
-        <div style="display:flex;align-items:baseline;gap:6px;{% if not loop.first %}margin-top:4px;{% endif %}">
-          {% if loop.first %}
-          <span class="kpi-value"
-                data-annual="{{ item.annual|round(0)|int }}"
-                data-monthly="{{ item.monthly|round(0)|int }}">
-            ${{ "{:,.0f}".format(item.annual) }}
-          </span>
-          {% else %}
-          <span style="font-size:18px;font-weight:700;color:var(--text);"
-                data-annual="{{ item.annual|round(0)|int }}"
-                data-monthly="{{ item.monthly|round(0)|int }}">
-            ${{ "{:,.0f}".format(item.annual) }}
-          </span>
-          {% endif %}
-          <span class="unit">{{ item.currency }}</span>
-        </div>
-        {% endfor %}
+      {% for item in cost_summary %}
+      <div style="display:flex;align-items:baseline;gap:6px;{% if not loop.first %}margin-top:4px;{% endif %}">
+        {% if loop.first %}
+        <span class="kpi-value" data-annual="{{ item.annual|round(0)|int }}"
+          data-monthly="{{ item.monthly|round(0)|int }}">
+          ${{ "{:,.0f}".format(item.annual) }}
+        </span>
+        {% else %}
+        <span style="font-size:18px;font-weight:700;color:var(--text);" data-annual="{{ item.annual|round(0)|int }}"
+          data-monthly="{{ item.monthly|round(0)|int }}">
+          ${{ "{:,.0f}".format(item.annual) }}
+        </span>
+        {% endif %}
+        <span class="unit">{{ item.currency }}</span>
+      </div>
+      {% endfor %}
       {% else %}
-        <div class="kpi-value">—</div>
+      <div class="kpi-value">—</div>
       {% endif %}
       <div class="kpi-sub">啟用中訂閱合計</div>
     </div>
     <div class="kpi tone-blue">
       <div class="kpi-icon-wrap">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><rect x="3" y="10" width="18" height="4" rx="1"/><rect x="3" y="16" width="18" height="4" rx="1"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="4" rx="1" />
+          <rect x="3" y="10" width="18" height="4" rx="1" />
+          <rect x="3" y="16" width="18" height="4" rx="1" />
+        </svg>
       </div>
       <div class="kpi-label">訂閱總數</div>
       <div class="kpi-value">{{ total_subscriptions }}</div>
@@ -63,7 +76,11 @@
     </div>
     <div class="kpi tone-amber">
       <div class="kpi-icon-wrap">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 6v6l4 2" />
+        </svg>
       </div>
       <div class="kpi-label">30 天內到期</div>
       <div class="kpi-value">{{ upcoming_30_count }}</div>
@@ -71,19 +88,17 @@
     </div>
     <div class="kpi tone-rose">
       <div class="kpi-icon-wrap">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M22 21v-2a4 4 0 00-3-3.87" />
+          <path d="M16 3.13a4 4 0 010 7.75" />
+        </svg>
       </div>
-      <div class="kpi-label">尚未指定負責人</div>
+      <div class="kpi-label">尚未指定使用者</div>
       <div class="kpi-value">{{ no_owner_count }}</div>
-      <div class="kpi-sub">請盡速指定 Owner</div>
-    </div>
-    <div class="kpi {% if trial_expiring_count > 0 %}tone-amber{% endif %}">
-      <div class="kpi-icon-wrap">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
-      </div>
-      <div class="kpi-label">試用 14 天內到期</div>
-      <div class="kpi-value" {% if trial_expiring_count > 0 %}style="color:var(--warning-text,#B57600);"{% endif %}>{{ trial_expiring_count }}</div>
-      <div class="kpi-sub">記得取消或升級</div>
+      <div class="kpi-sub">請盡速指定 User</div>
     </div>
   </div>
 
@@ -115,11 +130,8 @@
     <div class="timeline">
       {% for s in upcoming_90[:6] %}
       {% set days = (s.expiry_date - today).days %}
-      {% if days <= 14 %}{% set tone = 'red' %}
-      {% elif days <= 30 %}{% set tone = 'amber' %}
-      {% else %}{% set tone = 'green' %}
-      {% endif %}
-      <div class="timeline-row">
+      {% if days <= 14 %}{% set tone='red' %} {% elif days <=30 %}{% set tone='amber' %} {% else %}{% set tone='green'
+        %} {% endif %} <div class="timeline-row">
         <div class="tl-days {{ tone }}">{{ days }} 天</div>
         <div>
           <div class="tl-name">{{ s.service_name }}</div>
@@ -133,7 +145,7 @@
             {{ s.owner_name }}
           </span>
           {% else %}
-          <span class="owner-cell unset">⚠ 未指定</span>
+          <span class="owner-cell unset">未指定</span>
           {% endif %}
         </div>
         <div class="right">
@@ -141,71 +153,75 @@
           <a href="/subscriptions/{{ s.id }}/edit" class="btn btn-outline btn-sm">編輯</a>
           {% endif %}
         </div>
-      </div>
-      {% endfor %}
     </div>
-    {% else %}
-    <div class="empty">
-      <div class="empty-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      </div>
-      <p>90 天內沒有即將到期的訂閱</p>
-    </div>
-    {% endif %}
+    {% endfor %}
   </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 6v6l4 2" />
+      </svg>
+    </div>
+    <p>90 天內沒有即將到期的訂閱</p>
+  </div>
+  {% endif %}
+</div>
 
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-const CAT_COLORS = {
-  '生產力工具':'#6E5DE7','開發工具':'#2B5BD7','設計工具':'#D86A3D',
-  '雲端基礎':'#0E8C56','資安合規':'#C13066','行銷廣告':'#B57600',
-  '財務會計':'#7C3AED','HR人資':'#0891B2','其他':'#6B7280','未分類':'#B0AEC4',
-};
-const catLabels = {{ chart_cat_labels|safe }};
-const catValues = {{ chart_cat_values|safe }};
-const monthLabels = {{ chart_month_labels|safe }};
-const monthValues = {{ chart_month_values|safe }};
-new Chart(document.getElementById('donutChart'), {
-  type: 'doughnut',
-  data: {
-    labels: catLabels,
-    datasets: [{ data: catValues, backgroundColor: catLabels.map(l => CAT_COLORS[l]||'#B0AEC4'), borderWidth: 0, hoverOffset: 4 }]
-  },
-  options: {
-    cutout: '65%',
-    plugins: {
-      legend: { position: 'right', labels: { font: { size: 11 }, color: '#7A7891', boxWidth: 10, padding: 10 } },
-      tooltip: { callbacks: { label: ctx => ` $${ctx.parsed.toLocaleString()}` } }
+  const CAT_COLORS = {
+    '生產力工具': '#6E5DE7', '開發工具': '#2B5BD7', '設計工具': '#D86A3D',
+    '雲端基礎': '#0E8C56', '資安合規': '#C13066', '行銷廣告': '#B57600',
+    '財務會計': '#7C3AED', 'HR人資': '#0891B2', '其他': '#6B7280', '未分類': '#B0AEC4',
+  };
+  const catLabels = {{ chart_cat_labels| safe }};
+  const catValues = {{ chart_cat_values| safe }};
+  const monthLabels = {{ chart_month_labels| safe }};
+  const monthValues = {{ chart_month_values| safe }};
+  new Chart(document.getElementById('donutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: catLabels,
+      datasets: [{ data: catValues, backgroundColor: catLabels.map(l => CAT_COLORS[l] || '#B0AEC4'), borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 11 }, color: '#7A7891', boxWidth: 10, padding: 10 } },
+        tooltip: { callbacks: { label: ctx => ` $${ctx.parsed.toLocaleString()}` } }
+      }
     }
-  }
-});
-
-new Chart(document.getElementById('barChart'), {
-  type: 'bar',
-  data: {
-    labels: monthLabels,
-    datasets: [{ data: monthValues, backgroundColor: monthValues.map((_,i) => i===0?'#6E5DE7':'#E3D9FF'), borderRadius: 4, borderSkipped: false }]
-  },
-  options: {
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#7A7891' } },
-      y: { grid: { color: '#F3F1EE' }, ticks: { font: { size: 11 }, color: '#7A7891', callback: v => v>=1000?'$'+(v/1000).toFixed(0)+'K':'$'+v } }
-    }
-  }
-});
-
-function toggleView(view, btn) {
-  document.querySelectorAll('#viewToggle .btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('costLabel').textContent = view === 'annual' ? '年度總支出' : '月均支出';
-  document.querySelectorAll('[data-annual]').forEach(el => {
-    const n = parseInt(view === 'annual' ? el.dataset.annual : el.dataset.monthly);
-    el.textContent = '$' + n.toLocaleString();
   });
-}
+
+  new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: monthLabels,
+      datasets: [{ data: monthValues, backgroundColor: monthValues.map((_, i) => i === 0 ? '#6E5DE7' : '#E3D9FF'), borderRadius: 4, borderSkipped: false }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 }, color: '#7A7891' } },
+        y: { grid: { color: '#F3F1EE' }, ticks: { font: { size: 11 }, color: '#7A7891', callback: v => v >= 1000 ? '$' + (v / 1000).toFixed(0) + 'K' : '$' + v } }
+      }
+    }
+  });
+
+  function toggleView(view, btn) {
+    document.querySelectorAll('#viewToggle .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('costLabel').textContent = view === 'annual' ? '年度總支出' : '月均支出';
+    document.querySelectorAll('[data-annual]').forEach(el => {
+      const n = parseInt(view === 'annual' ? el.dataset.annual : el.dataset.monthly);
+      el.textContent = '$' + n.toLocaleString();
+    });
+  }
 </script>
 {% endblock %}

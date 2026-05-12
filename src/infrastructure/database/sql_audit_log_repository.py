@@ -17,6 +17,7 @@ class SqlAuditLogRepository(AuditLogRepository):
             target_type=model.target_type,
             target_id=model.target_id,
             target_name=model.target_name,
+            changes=model.changes,
             created_at=model.created_at,
         )
 
@@ -28,6 +29,7 @@ class SqlAuditLogRepository(AuditLogRepository):
             target_type=entry.target_type,
             target_id=entry.target_id,
             target_name=entry.target_name,
+            changes=entry.changes,
         )
         self._session.add(model)
         self._session.commit()

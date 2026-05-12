@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 from src.infrastructure.auth.hash_utils import hash_password
 from src.interfaces.web.dependencies import get_login_uc, get_change_password_uc, get_current_user, get_user_repo, templates
 from src.interfaces.web.session import create_session_cookie, clear_session_cookie, get_session_user_id
+from src.interfaces.web.rate_limit import check_login_rate_limit, RateLimitExceeded
 
 router = APIRouter()
 
@@ -22,6 +23,13 @@ def login_submit(
     password: str = Form(...),
     uc=Depends(get_login_uc),
 ):
+    try:
+        check_login_rate_limit(request.client.host if request.client else None)
+    except RateLimitExceeded:
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "error": "登入嘗試次數過多，請稍後再試。"}, status_code=429
+        )
+
     try:
         user = uc.execute(email=email, password=password)
     except ValueError:

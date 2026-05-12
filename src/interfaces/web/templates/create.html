@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}新增訂閱 — SubTrack{% endblock %}
 {% block nav_list %}active{% endblock %}
 
@@ -16,25 +16,28 @@
     {{ error }}
   </div>
   {% endif %}
-  <div class="card" style="max-width:600px;">
+  <div class="card">
     <div class="card-body">
       <form method="POST" action="/subscriptions/create">
+        {{ csrf_field() }}
+
         <div class="form-group">
           <label class="form-label">服務名稱 <span style="color:var(--danger)">*</span></label>
           <input type="text" name="service_name" class="input" required placeholder="例如：Slack">
         </div>
+
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">登入帳號 <span style="color:var(--danger)">*</span></label>
             <input type="text" name="login_account" class="input" required placeholder="admin@company.com">
           </div>
           <div class="form-group">
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">到期日 <span style="color:var(--danger)">*</span></label>
-            <input type="date" name="expiry_date" class="input" required>
+            <label class="form-label">登入密碼</label>
+            <input type="text" name="login_password" class="input" placeholder="可選填">
           </div>
+        </div>
+
+        <div class="form-row">
           <div class="form-group">
             <label class="form-label">狀態 <span style="color:var(--danger)">*</span></label>
             <select name="status" class="input" required>
@@ -44,23 +47,11 @@
             </select>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">費用（選填）</label>
-          <div style="display:flex;gap:8px;">
-            <input type="number" name="cost" step="0.01" min="0" class="input" placeholder="例如 12000">
-            <select name="currency" class="input" style="width:100px;flex-shrink:0;">
-              {% for c in currency_options %}
-              <option value="{{ c }}">{{ c }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
+
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">通知收件人 Email <span style="color:var(--danger)">*</span></label>
-            <input type="text" name="notification_emails" class="input" required
-                   placeholder="alice@co.com, bob@co.com">
-            <div class="form-hint">多個收件人請用逗號分隔</div>
+            <label class="form-label">到期日 <span style="color:var(--danger)">*</span></label>
+            <input type="date" name="expiry_date" class="input" required>
           </div>
           <div class="form-group">
             <label class="form-label">提前通知天數 <span style="color:var(--danger)">*</span></label>
@@ -71,33 +62,33 @@
             </select>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">分類（選填）</label>
-            <select name="category" class="input">
-              <option value="">— 請選擇 —</option>
-              {% for opt in category_options %}
-              <option value="{{ opt }}">{{ opt }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">部門（選填）</label>
-            <select name="department" class="input">
-              <option value="">— 請選擇 —</option>
-              {% for value, label in department_options %}
-              <option value="{{ value }}">{{ label }}</option>
-              {% endfor %}
-            </select>
-          </div>
+
+        <div class="form-group">
+          <label class="form-label">通知收件人 Email <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="notification_emails" class="input" required
+                 placeholder="alice@co.com, bob@co.com">
+          <div class="form-hint">多個收件人請用逗號分隔</div>
         </div>
+
+        <!-- 其他資訊 -->
+        <div style="border-top:1px solid var(--border);margin:24px 0 20px;position:relative;">
+          <span style="position:absolute;top:-9px;left:0;background:var(--card-bg,#fff);padding-right:12px;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;">其他資訊</span>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">負責人（選填）</label>
-            <input type="text" name="owner_name" class="input" placeholder="例如：陳小明">
+            <label class="form-label">費用</label>
+            <div style="display:flex;gap:8px;">
+              <input type="number" name="cost" step="0.01" min="0" class="input" placeholder="例如 12000">
+              <select name="currency" class="input" style="width:90px;flex-shrink:0;">
+                {% for c in currency_options %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
           <div class="form-group">
-            <label class="form-label">計費週期（選填）</label>
+            <label class="form-label">計費週期</label>
             <select name="billing_cycle" class="input">
               <option value="">— 請選擇 —</option>
               {% for value, label in billing_cycle_options %}
@@ -106,37 +97,54 @@
             </select>
           </div>
         </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">分類</label>
+            <select name="category" class="input">
+              <option value="">— 請選擇 —</option>
+              {% for opt in category_options %}
+              <option value="{{ opt }}">{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">部門</label>
+            <select name="department" class="input">
+              <option value="">— 請選擇 —</option>
+              {% for value, label in department_options %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">使用者</label>
+            <input type="text" name="user_name" class="input" placeholder="例如：陳小明">
+          </div>
+          <div class="form-group">
+            <label class="form-label">付款帳戶</label>
+            <input type="text" name="payment_account" class="input" placeholder="例如：公司美金卡末4碼1234">
+          </div>
+        </div>
+
+
+
         <div class="form-group">
-          <label class="form-label">備註（選填）</label>
+          <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+            <input type="checkbox" name="auto_renew" value="true">
+            自動續約（到期前會自動扣款）
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">備註</label>
           <textarea name="notes" class="input" rows="3"
                     placeholder="合約編號、購買廠商、授權數量等"></textarea>
         </div>
-        <div class="mb-3">
-          <label class="form-label">付款帳戶（選填）</label>
-          <input type="text" name="payment_account" class="form-control"
-                 placeholder="例如：公司美金卡末4碼1234">
-        </div>
-        <div class="mb-3">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="auto_renew"
-                   id="autoRenewCreate" value="true">
-            <label class="form-check-label" for="autoRenewCreate">
-              自動續約（到期前會自動扣款）
-            </label>
-          </div>
-        </div>
-        <div class="row g-2 mb-3">
-          <div class="col-sm-6">
-            <label class="form-label">試用到期日（選填）</label>
-            <input type="date" name="trial_end_date" class="form-control">
-            <div class="form-text">免費試用結束日，到期前會顯示警示</div>
-          </div>
-          <div class="col-sm-6">
-            <label class="form-label">下次計費日（選填）</label>
-            <input type="date" name="next_billing_date" class="form-control">
-            <div class="form-text">月付訂閱的下次扣款日</div>
-          </div>
-        </div>
+
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
           <a href="/" class="btn btn-outline">取消</a>
           <button type="submit" class="btn btn-primary">儲存</button>
@@ -145,16 +153,4 @@
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function togglePwdField(btn) {
-  const input = btn.closest('.pwd-wrap').querySelector('input');
-  const isHidden = input.type === 'password';
-  input.type = isHidden ? 'text' : 'password';
-  btn.querySelector('.eye-off').style.display = isHidden ? 'none' : '';
-  btn.querySelector('.eye-on').style.display  = isHidden ? '' : 'none';
-}
-</script>
 {% endblock %}

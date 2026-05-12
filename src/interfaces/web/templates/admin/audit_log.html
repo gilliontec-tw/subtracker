@@ -1,41 +1,54 @@
-{% extends "base.html" %}
-{% block content %}
-<h4 class="mb-3">🕵️ 操作紀錄（最近 200 筆）</h4>
+﻿{% extends "base.html" %}
+{% block title %}操作紀錄 — SubTrack{% endblock %}
+{% block nav_audit %}active{% endblock %}
 
-{% if not entries %}
-<p class="text-muted">尚無操作紀錄。</p>
-{% else %}
-<div class="table-responsive">
-<table class="table table-bordered table-hover align-middle table-sm">
-  <thead class="table-header">
-    <tr>
-      <th>時間</th>
-      <th>操作者</th>
-      <th>動作</th>
-      <th>對象</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for e in entries %}
-    {% if e.action == 'create' %}
-      {% set action_badge = 'bg-success' %}
-      {% set action_text  = '新增' %}
-    {% elif e.action == 'update' %}
-      {% set action_badge = 'bg-primary' %}
-      {% set action_text  = '修改' %}
-    {% else %}
-      {% set action_badge = 'bg-danger' %}
-      {% set action_text  = '刪除' %}
-    {% endif %}
-    <tr>
-      <td><small>{{ e.created_at.strftime('%Y-%m-%d %H:%M:%S') if e.created_at else '—' }}</small></td>
-      <td><small>{{ e.user_email }}</small></td>
-      <td><span class="badge {{ action_badge }}">{{ action_text }}</span></td>
-      <td>{{ e.target_name }} <small class="text-muted">(#{{ e.target_id }})</small></td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>操作紀錄</h1>
+    <div class="page-sub">最近 200 筆操作記錄</div>
+  </div>
 </div>
-{% endif %}
+<div class="page-content">
+  {% if not entries %}
+  <div class="card">
+    <div class="empty">
+      <div class="empty-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
+      </div>
+      <p>尚無操作紀錄</p>
+    </div>
+  </div>
+  {% else %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>時間</th>
+          <th>操作者</th>
+          <th>動作</th>
+          <th>對象</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        {% if e.action == 'create' %}{% set badge = 'badge-success' %}{% set label = '新增' %}
+        {% elif e.action == 'update' %}{% set badge = 'badge-info' %}{% set label = '修改' %}
+        {% else %}{% set badge = 'badge-danger' %}{% set label = '刪除' %}
+        {% endif %}
+        <tr>
+          <td class="tabnum no-wrap muted" style="font-size:12px;">{{ e.created_at.strftime('%Y/%m/%d %H:%M:%S') if e.created_at else '—' }}</td>
+          <td style="font-size:12px;">{{ e.user_email }}</td>
+          <td><span class="badge {{ badge }}">{{ label }}</span></td>
+          <td>
+            <span class="row-strong">{{ e.target_name }}</span>
+            <span class="muted" style="font-size:11px;"> (#{{ e.target_id }})</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

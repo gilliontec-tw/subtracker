@@ -1,6 +1,10 @@
+import logging
 from datetime import date
+
 from src.domain.repositories.subscription_repository import SubscriptionRepository
 from src.application.interfaces.email_sender import EmailSender
+
+log = logging.getLogger(__name__)
 
 
 class CheckAndNotifyUseCase:
@@ -56,7 +60,7 @@ class CheckAndNotifyUseCase:
             try:
                 self._email_sender.send(to=recipient, subject=subject, body=body)
             except Exception as exc:
-                print(f"[ERROR] Failed to send email to {recipient}: {exc}")
+                log.error("Failed to send notification email to %s: %s", recipient, exc)
 
         # Return IDs regardless of partial send failures; callers decide on retry policy.
         return [sub.id for sub in due_subs]

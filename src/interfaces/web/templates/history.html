@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}歷史紀錄 — SubTrack{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>歷史紀錄</h1>
+    <div class="page-sub">全站異動總攬</div>
+  </div>
+</div>
+
+<div class="page-content">
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:14%">時間</th>
+            <th style="width:16%">操作者</th>
+            <th style="width:8%">動作</th>
+            <th style="width:18%">目標</th>
+            <th>異動詳情</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in logs %}
+          {% set log = item.log %}
+          {% set diff = item.diff %}
+          <tr>
+            <td><span class="muted" style="font-size:12px;">{{ log.created_at.strftime('%Y/%m/%d %H:%M') }}</span></td>
+            <td style="font-size:13px;">{{ log.user_email }}</td>
+            <td>
+              {% if log.action == 'create' %}
+                <span class="badge badge-success"><span class="dot" style="background:currentColor;"></span>新增</span>
+              {% elif log.action == 'update' %}
+                <span class="badge badge-info"><span class="dot" style="background:currentColor;"></span>編輯</span>
+              {% elif log.action == 'delete' %}
+                <span class="badge badge-danger"><span class="dot" style="background:currentColor;"></span>刪除</span>
+              {% elif log.action == 'renew' %}
+                <span class="badge badge-neutral"><span class="dot" style="background:currentColor;"></span>續約</span>
+              {% else %}
+                <span class="badge badge-neutral">{{ log.action }}</span>
+              {% endif %}
+            </td>
+            <td style="font-size:13px;">{{ log.target_name }} <span class="muted">#{{ log.target_id }}</span></td>
+            <td>
+              {% if diff %}
+                {% if diff.status == 'created' %}
+                  <span style="color:var(--success-text,#0E8C56);font-size:12px;">新增了此筆資料</span>
+                {% elif diff.status == 'deleted' %}
+                  <span style="color:var(--danger-text,#C13066);font-size:12px;">刪除了此筆資料</span>
+                {% elif diff.status == 'updated_without_major_changes' %}
+                  <span class="muted" style="font-size:12px;">無重點欄位異動</span>
+                {% else %}
+                  <ul style="margin:0;padding:0;list-style:none;font-size:12px;">
+                    {% for key, val in diff.items() %}
+                      {% if val.old != val.new %}
+                      <li style="margin-bottom:2px;">
+                        <strong>{{ key }}：</strong>
+                        <span style="color:var(--danger-text,#C13066);text-decoration:line-through;">{{ val.old if val.old is not none else '無' }}</span>
+                        →
+                        <span style="color:var(--success-text,#0E8C56);">{{ val.new if val.new is not none else '無' }}</span>
+                      </li>
+                      {% endif %}
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              {% else %}
+                <span class="muted" style="font-size:12px;">無異動紀錄</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5">
+              <div class="empty">
+                <p>目前沒有任何歷史紀錄。</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

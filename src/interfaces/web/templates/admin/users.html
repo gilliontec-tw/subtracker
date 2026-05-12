@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}使用者管理 — SubTrack{% endblock %}
 {% block nav_users %}active{% endblock %}
 
@@ -78,6 +78,7 @@
             {% if user.role != 'admin' %}
             {% if user.invite_token %}
             <form method="POST" action="/admin/users/{{ user.id }}/resend-invite" style="display:inline;">
+              {{ csrf_field() }}
               <button type="submit" class="btn btn-ghost btn-sm">重發邀請</button>
             </form>
             {% endif %}
@@ -103,6 +104,7 @@
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="document.getElementById('deleteUserModal').classList.remove('show')">取消</button>
       <form id="deleteUserForm" method="POST">
+        {{ csrf_field() }}
         <button type="submit" class="btn btn-danger-soft">確認移除</button>
       </form>
     </div>

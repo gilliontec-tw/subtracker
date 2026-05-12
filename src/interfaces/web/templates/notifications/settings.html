@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}通知設定 — SubTrack{% endblock %}
 {% block nav_notifications %}active{% endblock %}
 
@@ -48,6 +48,7 @@
   </div>
 
   <form id="notifForm" method="POST" action="/notifications/settings">
+    {{ csrf_field() }}
     <div class="table-wrap">
       <table>
         <thead>

@@ -15,3 +15,5 @@ class User:
     is_active: bool = True
     created_at: datetime | None = None
     last_login_at: datetime | None = None
+    invite_token: str | None = None
+    invite_expires_at: datetime | None = None

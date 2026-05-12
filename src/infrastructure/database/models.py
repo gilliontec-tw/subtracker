@@ -22,16 +22,13 @@ class SubscriptionModel(Base):
     cost                = Column(Numeric(10, 2), nullable=True)
     currency            = Column(String(10), nullable=False, default="TWD")
     notes               = Column(String(1000), nullable=True)
-    owner_name          = Column(String(100), nullable=True)
+    user_name           = Column('owner_name', String(100), nullable=True)
     category            = Column(String(100), nullable=True)
     department          = Column(String(100), nullable=True)
     billing_cycle       = Column(String(20), nullable=True)
     payment_account     = Column(String(100), nullable=True)
     auto_renew          = Column(Boolean,     nullable=False, default=False)
-    trial_end_date          = Column(Date,        nullable=True)
-    next_billing_date       = Column(Date,        nullable=True)
     notifications_enabled   = Column(Boolean,     nullable=False, default=True)
-    icon_emoji              = Column(String(10),  nullable=True)
     login_password      = Column(String(500), nullable=True)
     created_at          = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at          = Column(DateTime, nullable=True, onupdate=lambda: datetime.now(timezone.utc))
@@ -75,4 +72,5 @@ class AuditLogModel(Base):
     target_type = Column(String(50), nullable=False)   # subscription
     target_id   = Column(Integer, nullable=False)
     target_name = Column(String(200), nullable=False)
+    changes     = Column(String(4000), nullable=True)  # Store JSON diffs
     created_at  = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))

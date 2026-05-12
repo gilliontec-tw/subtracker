@@ -105,14 +105,12 @@ async def notif_settings_save(
             cost=sub.cost,
             currency=sub.currency,
             notes=sub.notes,
-            owner_name=sub.owner_name,
+            user_name=sub.user_name,
             category=sub.category,
             department=sub.department,
             billing_cycle=sub.billing_cycle,
             payment_account=sub.payment_account,
             auto_renew=sub.auto_renew,
-            trial_end_date=sub.trial_end_date,
-            next_billing_date=sub.next_billing_date,
             notifications_enabled=enabled,
         )
 

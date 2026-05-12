@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% block title %}編輯使用者 — SubTrack{% endblock %}
 {% block nav_users %}active{% endblock %}
 
@@ -16,6 +16,7 @@
       <div class="alert alert-danger mb-4">{{ error }}</div>
       {% endif %}
       <form method="POST" action="/admin/users/{{ user.id }}/edit">
+        {{ csrf_field() }}
         <div class="form-group">
           <label class="form-label">Email</label>
           <div style="font-size:14px;font-weight:600;color:var(--text);padding:4px 0;">{{ user.email }}</div>
@@ -45,12 +46,15 @@
           {% if request.query_params.get('email_failed') %}
           <span style="font-size:12px;color:var(--danger-text,#c0392b);align-self:center;">邀請信寄送失敗，請確認 SMTP 設定</span>
           {% endif %}
-          <form method="POST" action="/admin/users/{{ user.id }}/reset-password" style="margin:0;">
-            <button type="submit" class="btn btn-outline">重置密碼</button>
-          </form>
           <button type="submit" class="btn btn-primary">儲存</button>
         </div>
       </form>
+      <div style="margin-top:8px;display:flex;justify-content:flex-end;">
+        <form method="POST" action="/admin/users/{{ user.id }}/reset-password">
+          {{ csrf_field() }}
+          <button type="submit" class="btn btn-outline">重置密碼</button>
+        </form>
+      </div>
     </div>
   </div>
 </div>
