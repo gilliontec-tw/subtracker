@@ -13,6 +13,8 @@
 4. 重新設計 UI/UX：乾淨、無 emoji、資訊一目了然
 5. 新增付款歷史紀錄功能
 6. 新增訂閱唯讀詳情頁
+7. Admin 可調整任意使用者的角色（admin ↔ user）及權限
+8. 移除多幣別支援，全系統僅使用 NT$（TWD）
 
 ---
 
@@ -237,6 +239,14 @@ CREATE TABLE payment_records (
 `source = 'auto'`：由「續約」動作自動建立。
 `source = 'manual'`：使用者手動補登。
 
+### 幣別欄位處理
+
+`saas_subscriptions.currency` 欄位保留在 DB（避免遷移破壞現有資料），但：
+- 建立 / 編輯訂閱表單移除幣別選擇器，固定寫入 `'TWD'`
+- 前端全面移除幣別顯示邏輯，費用一律顯示 `NT$`
+- `payment_records.currency` 固定 `'TWD'`，不開放使用者選擇
+- 報表頁移除幣別分組，直接合計所有金額為 NT$
+
 ### 資料遷移腳本
 
 提供 `scripts/migrate_to_postgres.py`：從 SQL Server 匯出資料，轉換格式，匯入 PostgreSQL。
@@ -248,7 +258,7 @@ CREATE TABLE payment_records (
 ### 觸發方式
 
 1. **自動**：點擊「續約」按鈕 → API `POST /api/v1/subscriptions/{id}/renew` → 自動建立一筆 `payment_records`（日期=今日、金額=訂閱的 cost、source='auto'）
-2. **手動**：在訂閱詳情頁手動新增歷史紀錄（date、amount、currency、notes 自填）
+2. **手動**：在訂閱詳情頁手動新增歷史紀錄（date、amount、notes 自填，currency 固定 TWD）
 
 ### 重複登錄處理
 
@@ -302,9 +312,7 @@ DELETE /api/v1/payments/{payment_id}              刪除紀錄
 
 **費用顯示統一格式：**
 
-- TWD：`NT$690`（不寫 TWD）
-- USD：`US$17`（不寫 USD）
-- 其他：`{金額} {幣別}`
+全系統僅使用 NT$，直接顯示 `NT$690`，不顯示幣別標籤。
 
 **倒數天數顏色規則（保持現有邏輯）：**
 - ≤ 14 天：紅色
@@ -316,6 +324,22 @@ DELETE /api/v1/payments/{payment_id}              刪除紀錄
 - 移除 emoji（📅 等）
 - KPI cards 保留，視覺更收斂
 - 即將到期 timeline 保留
+
+### 使用者管理改版（Admin）
+
+Admin 在使用者編輯頁可調整：
+- `role`：`admin` ↔ `user`（下拉選單）
+- `can_create` / `can_update` / `can_delete`：勾選框
+- `display_name`、`email`
+
+**限制：**
+- Admin 不能降低自己的 role（避免系統無管理員）
+- 系統至少保留一個 admin，若只剩一位 admin 則不允許降級
+
+**API：**
+```
+PATCH /api/v1/admin/users/{id}   更新使用者（含 role 和 permissions）
+```
 
 ### 表單頁（建立 / 編輯）
 
