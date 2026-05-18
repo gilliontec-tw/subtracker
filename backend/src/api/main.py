@@ -17,7 +17,7 @@ def create_app() -> FastAPI:
         allow_origins=settings.cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
-        allow_headers=["*", "X-CSRF-Token"],
+        allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
     )
 
     @app.get("/health")
