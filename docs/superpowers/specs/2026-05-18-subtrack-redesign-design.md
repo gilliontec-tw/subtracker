@@ -76,9 +76,12 @@ Docker Compose (4 services: db, api, scheduler, web)
 {
   "success": true,
   "data": {},
-  "message": ""
+  "message": "",
+  "meta": {}
 }
 ```
+
+`meta` 用於 pagination（`total`, `limit`, `offset`）或其他附加資訊，無需時省略。
 
 錯誤時：
 
@@ -86,7 +89,8 @@ Docker Compose (4 services: db, api, scheduler, web)
 {
   "success": false,
   "data": null,
-  "message": "錯誤說明"
+  "message": "錯誤說明",
+  "meta": null
 }
 ```
 
@@ -155,7 +159,20 @@ Double submit cookie 模式：
 
 ### Login Rate Limit
 
-使用 `slowapi`：5 次失敗 / 分鐘 / IP，超過回 429。
+使用 `slowapi` + Redis backend：5 次失敗 / 分鐘 / IP，超過回 429。
+
+### JWT Secret 分離
+
+```
+JWT_ACCESS_SECRET_KEY   # 僅用於 access token 簽署
+JWT_REFRESH_SECRET_KEY  # 僅用於 refresh token 簽署
+```
+
+兩組 secret 獨立，access secret 洩漏不影響 refresh token。
+
+### Refresh Token Revocation
+
+Logout 時將 refresh token 的 `jti`（JWT ID）寫入 Redis blacklist，TTL = refresh token 有效期（7 天）。每次 `/auth/refresh` 先驗 jti 是否在 blacklist，在則拒絕。這使 logout 真正有效。
 
 ### Security Headers（Nginx）
 
@@ -194,7 +211,7 @@ alembic/
 alembic.ini
 ```
 
-每次 schema 變更必須建立 migration，支援 upgrade / downgrade。
+每次 schema 變更必須建立 migration，支援 upgrade / downgrade。**規則：1 個 feature = 1 個 migration file**，不使用 `--autogenerate` 後直接 commit，必須人工審查生成內容。
 
 ### Connection Pool（asyncpg）
 
@@ -325,11 +342,23 @@ DELETE /api/v1/payments/{payment_id}              刪除紀錄
 - KPI cards 保留，視覺更收斂
 - 即將到期 timeline 保留
 
+### 權限模型（RBAC）
+
+三個 role，擴展現有 admin/user 二分法：
+
+| Role | 說明 |
+|---|---|
+| `admin` | 完整存取，可管理使用者、角色、系統設定 |
+| `manager` | 可 CRUD 訂閱，可查看報表，無法管理使用者 |
+| `user` | 依 `can_create` / `can_update` / `can_delete` 旗標決定 |
+
+`manager` role 取代原本「部分 admin 操作」的需求，避免日後 RBAC 重構。
+
 ### 使用者管理改版（Admin）
 
 Admin 在使用者編輯頁可調整：
-- `role`：`admin` ↔ `user`（下拉選單）
-- `can_create` / `can_update` / `can_delete`：勾選框
+- `role`：`admin` / `manager` / `user`（下拉選單）
+- `can_create` / `can_update` / `can_delete`：勾選框（role = user 時才有意義）
 - `display_name`、`email`
 
 **限制：**
@@ -357,9 +386,51 @@ PATCH /api/v1/admin/users/{id}   更新使用者（含 role 和 permissions）
 | 框架 | React 18 |
 | 建置 | Vite |
 | 路由 | React Router v6 |
-| 狀態管理（auth） | Zustand |
+| 狀態管理（auth / global UI） | Zustand |
+| Server state（API data） | TanStack Query v5 |
 | HTTP client | Axios（含 interceptor） |
 | 樣式 | Tailwind CSS v3 |
+| UI 元件 | shadcn/ui |
+| 表單驗證 | react-hook-form + zod |
+
+**責任分離：**
+- Zustand 只管 auth state 和 global UI state（sidebar open/close 等）
+- TanStack Query 管理所有 server data（訂閱清單、報表等）
+- 不混用：不要把 API response 存進 Zustand
+
+### Frontend 目錄結構
+
+```
+src/
+  components/       通用 UI 元件（Button、Table、Badge 等，基於 shadcn/ui）
+  features/         功能模組（subscriptions/、payments/、admin/）
+    subscriptions/
+      api.ts        React Query hooks（useSubscriptions、useSubscription）
+      components/   此功能專屬元件
+      types.ts      TypeScript types
+  pages/            頁面元件（組合 features/）
+  layouts/          AppLayout、AuthLayout
+  hooks/            通用 custom hooks
+  services/         axios instance、interceptors
+  lib/              工具函式、zod schemas
+```
+
+### Route Guards
+
+```
+ProtectedRoute   → 未登入 redirect /login
+RoleGuard        → role 不符 redirect /403
+```
+
+所有需要認證的路由包裹 `ProtectedRoute`，admin 路由再套 `RoleGuard role="admin"`。
+
+### Error Handling
+
+TanStack Query 設定全域 `onError`：
+- 401 → 觸發 token refresh（Axios interceptor 已處理）
+- 403 → toast 提示「權限不足」
+- 網路錯誤 → toast 提示「連線失敗，請稍後再試」
+- 5xx → toast 提示 generic message
 
 ### 環境設定
 
@@ -405,6 +476,10 @@ production 環境中，Nginx 將 `/api/*` proxy 至 api container，前端不需
 - 直接連 PostgreSQL（共用 db service）
 - Email 發送邏輯不變（SMTP）
 
+### Distributed Lock
+
+APScheduler 透過 **Redis distributed lock**（`SET NX PX`）確保多 container 環境下通知只執行一次。Lock key：`scheduler:notify_daily`，TTL = 10 分鐘。取得 lock 才執行，結束後釋放。
+
 ---
 
 ## Logging
@@ -415,36 +490,58 @@ production 環境中，Nginx 將 `/api/*` proxy 至 api container，前端不需
 
 ---
 
-## 生產環境備注（不在本次開發範圍）
+## Docker Compose 分環境
+
+```
+docker-compose.yml          共用 base 定義（volumes、networks）
+docker-compose.dev.yml      開發：hot reload、暴露 port、dev tools
+docker-compose.prod.yml     正式：gunicorn workers、no debug、resource limits
+```
+
+指令：
+```bash
+# 開發
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+# 正式
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+## Commit Convention
+
+全專案統一使用 Conventional Commits：
+
+```
+feat:      新功能
+fix:       Bug 修復
+refactor:  重構（不改功能）
+chore:     build、設定、依賴更新
+test:      測試相關
+docs:      文件
+```
+
+pre-commit hook 驗證 commit message 格式（`commitlint`）。
+
+## 生產環境備注
 
 - HTTPS：部署時加入 Let's Encrypt / Certbot
-- Backup：`pg_dump` 排程備份
-- CI/CD：GitHub Actions（未來規劃）
-- Docker image 安全：non-root user、slim image（可在 Dockerfile 加入）
+- Backup：`pg_dump` 排程備份（Plan 6）
+- CI/CD：GitHub Actions（Plan 0）
+- Docker image 安全：non-root user、slim image（Plan 5b）
+- Observability：Prometheus + Grafana + Sentry（Plan 6）
 
 ---
 
-## 實作順序建議
+## 實作計畫（9 Plans）
 
-1. **Phase 1：後端 API 化 + PostgreSQL 遷移**
-   - 建立 Docker Compose 基礎（db、api）
-   - Alembic 初始化，遷移現有 schema 至 PostgreSQL
-   - 建立 `payment_records` table
-   - FastAPI 改為純 REST API（移除 Jinja2）
-   - JWT auth、CSRF、exception handler、統一 response format
-   - 資料遷移腳本
-
-2. **Phase 2：React 前端**
-   - Vite 專案初始化，Docker multi-stage build
-   - Auth flow（login、refresh、logout）
-   - 訂閱清單頁（含新 UI）
-   - 訂閱詳情頁（唯讀）
-   - 建立 / 編輯訂閱
-   - 付款歷史紀錄功能
-   - Dashboard、Reports、其餘頁面
-
-3. **Phase 3：Scheduler + Nginx + 整合**
-   - Scheduler container
-   - Nginx 設定（gzip、security headers、proxy）
-   - 完整 Docker Compose 四個 services
-   - End-to-end 測試
+| Plan | 名稱 | 產出 |
+|---|---|---|
+| **Plan 0** | 架構規範 & 專案骨架 | 目錄結構、CI/CD、測試策略、pre-commit |
+| **Plan 1** | Backend 基礎設施 | Docker(db+api+redis)、PostgreSQL、Alembic、JWT、CSRF |
+| **Plan 2** | Backend 業務 API | 完整 CRUD API、報表、匯出、使用者管理 |
+| **Plan 3** | React 基礎 + Auth | Vite、Tailwind、shadcn/ui、TanStack Query、auth flow |
+| **Plan 4** | React 功能頁面 | 所有業務頁面、新 UI 設計 |
+| **Plan 5a** | Scheduler Container | APScheduler + Redis distributed lock |
+| **Plan 5b** | Nginx + Docker 整合 | 完整 4+1 service、prod/dev compose 分離 |
+| **Plan 5c** | 資料遷移 | SQL Server → PostgreSQL、staging 驗證流程 |
+| **Plan 6** | Observability & Hardening | Prometheus、Grafana、Sentry、backup、load testing |
