@@ -335,14 +335,16 @@ DELETE /api/v1/payments/{payment_id}              刪除紀錄
 | 路由 | React Router v6 |
 | 狀態管理（auth） | Zustand |
 | HTTP client | Axios（含 interceptor） |
-| 樣式 | CSS Modules 或 Tailwind CSS（待定） |
+| 樣式 | Tailwind CSS v3 |
 
 ### 環境設定
 
 ```
 .env.development    → VITE_API_URL=http://localhost:8000
-.env.production     → VITE_API_URL=（由 Nginx proxy，留空或 /api）
+.env.production     → VITE_API_URL=/api
 ```
+
+production 環境中，Nginx 將 `/api/*` proxy 至 api container，前端不需知道 API 的實際 host。
 
 ### Axios Interceptor
 
