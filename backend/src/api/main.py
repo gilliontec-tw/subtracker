@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
 from api.exception_handlers import register_exception_handlers
+from api.middleware.csrf import CSRFMiddleware
 
 
 def create_app() -> FastAPI:
@@ -20,6 +21,7 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
         allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
     )
+    app.add_middleware(CSRFMiddleware)
 
     register_exception_handlers(app)
 
