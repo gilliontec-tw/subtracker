@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.config import settings
+from api.exception_handlers import register_exception_handlers
 
 
 def create_app() -> FastAPI:
@@ -19,6 +20,8 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
         allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],
     )
+
+    register_exception_handlers(app)
 
     @app.get("/health")
     async def health() -> dict:
