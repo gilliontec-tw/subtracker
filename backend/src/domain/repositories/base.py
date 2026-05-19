@@ -1,11 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar
-
-T = TypeVar("T")
-ID = TypeVar("ID")
 
 
-class BaseRepository(ABC, Generic[T, ID]):
+class BaseRepository[T, ID](ABC):
     @abstractmethod
     async def get_by_id(self, id: ID) -> T | None: ...
 

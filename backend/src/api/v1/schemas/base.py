@@ -1,17 +1,18 @@
-from typing import Any, Generic, TypeVar
+from typing import Any
+
 from pydantic import BaseModel
 
-T = TypeVar("T")
 
-
-class ApiResponse(BaseModel, Generic[T]):
+class ApiResponse[T](BaseModel):
     success: bool
     data: T | None = None
     message: str = ""
     meta: dict[str, Any] | None = None
 
     @classmethod
-    def ok(cls, data: T | None = None, message: str = "", meta: dict | None = None) -> "ApiResponse[T]":
+    def ok(
+        cls, data: T | None = None, message: str = "", meta: dict | None = None
+    ) -> "ApiResponse[T]":
         return cls(success=True, data=data, message=message, meta=meta)
 
     @classmethod
