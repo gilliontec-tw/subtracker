@@ -46,6 +46,7 @@ class SubscriptionModel(Base):
     notification_days = Column(Integer, server_default="30")
     cost = Column(Numeric(10, 2))
     currency = Column(String(10), server_default="TWD")
+    exchange_rate = Column(Numeric(12, 6))  # 1 foreign unit = ? TWD; NULL = not set
     notes = Column(Text)
     owner_name = Column(String(255))
     category = Column(String(100))
