@@ -70,6 +70,7 @@ tests/
 
 - `src/api/main.py` — include subscriptions router
 - `src/api/dependencies.py` — 新增 `require_can_create`、`require_can_update`、`require_can_delete`
+- `alembic/versions/002_add_exchange_rate.py` — 新增（新 migration）
 
 ---
 
@@ -78,6 +79,8 @@ tests/
 `src/domain/entities/subscription.py`：
 
 ```python
+SUPPORTED_CURRENCIES = ("TWD", "USD", "EUR", "JPY", "GBP", "CNY")
+
 @dataclass
 class Subscription:
     # 必填
@@ -89,7 +92,8 @@ class Subscription:
 
     # 選填業務欄位
     cost: Decimal | None = None
-    currency: str = "TWD"          # 固定，不開放修改
+    currency: str = "TWD"          # 必須是 SUPPORTED_CURRENCIES 其中之一
+    exchange_rate: Decimal | None = None  # 對 TWD 的匯率；currency="TWD" 時忽略
     notes: str | None = None
     owner_name: str | None = None
     category: str | None = None
@@ -108,7 +112,23 @@ class Subscription:
     updated_at: datetime | None = None
 ```
 
-`currency` 固定為 `"TWD"`，CreateUseCase 強制覆寫此值，不接受前端傳入。
+**幣別規則：**
+- `currency` 只接受 `SUPPORTED_CURRENCIES` 中的值（TWD、USD、EUR、JPY、GBP、CNY）；由 Pydantic schema 的 `Literal` 型別在 API 層驗證。
+- `currency == "TWD"` 時，`exchange_rate` 不需填寫，報表換算時視為 1。
+- `currency != "TWD"` 時，`exchange_rate` 選填——可以先建立訂閱後再補填。若 `exchange_rate` 為 None，報表中該筆費用的 NT$ 換算顯示為「N/A」。
+- `exchange_rate` 代表「1 單位外幣 = ? TWD」（例如 1 USD = 31.5，填 31.5）。
+
+---
+
+## Database Migration
+
+新增 `alembic/versions/002_add_exchange_rate.py`，在 `saas_subscriptions` 加一個欄位：
+
+```sql
+ALTER TABLE saas_subscriptions ADD COLUMN exchange_rate NUMERIC(12, 6);
+```
+
+`NUMERIC(12, 6)` 提供足夠精度處理如 JPY（0.2180 TWD/JPY）等小數位較多的匯率。欄位允許 NULL（表示未填）。
 
 ---
 
@@ -147,7 +167,7 @@ class Subscription:
 ### CreateSubscriptionUseCase
 
 - 輸入：所有建立所需欄位
-- 強制 `currency = "TWD"`
+- `currency` 預設 `"TWD"`（由 schema 提供，use case 不強制覆寫）
 - 呼叫：`repo.save(entity)`（id=None）
 - 回傳：`Subscription`
 
@@ -216,6 +236,8 @@ class Subscription:
 - `login_account: str`（選填，預設空字串）
 - `notification_emails: list[str]`（選填，預設空 list）
 - `notification_days: int`（選填，預設 30）
+- `currency: Literal["TWD","USD","EUR","JPY","GBP","CNY"]`（選填，預設 `"TWD"`）
+- `exchange_rate: Decimal | None`（選填，`currency="TWD"` 時不需填）
 - 其餘欄位全部選填
 
 **SubscriptionUpdate**（PUT body）：所有欄位選填，只更新有傳的欄位。
@@ -257,7 +279,7 @@ async def require_can_delete(current_user: User = Depends(get_current_user)) -> 
 |--------|----------|
 | `test_list_subscriptions_use_case.py` | 分頁參數正確傳給 repo、show_cancelled 作用 |
 | `test_get_subscription_use_case.py` | id 不存在時拋 NotFoundException |
-| `test_create_subscription_use_case.py` | currency 強制為 TWD |
+| `test_create_subscription_use_case.py` | currency 預設為 TWD；非支援幣別由 schema 層擋掉（不在 use case 測試） |
 | `test_update_subscription_use_case.py` | 更新不存在的 id 拋 NotFoundException；只更新傳入欄位 |
 | `test_delete_subscription_use_case.py` | 確認呼叫 soft delete 而非真刪；不存在時拋 NotFoundException |
 
