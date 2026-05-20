@@ -2,8 +2,10 @@ import json
 from datetime import UTC, datetime
 
 from domain.entities.subscription import Subscription
+from domain.exceptions import NotFoundException
 from domain.repositories.subscription_repository import SubscriptionRepository
 from sqlalchemy import func, select
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from infrastructure.database.models import SubscriptionModel
@@ -87,9 +89,15 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         emails_json = json.dumps(entity.notification_emails)
         if entity.id is not None:
             result = await self._session.execute(
-                select(SubscriptionModel).where(SubscriptionModel.id == entity.id)
+                select(SubscriptionModel).where(
+                    SubscriptionModel.id == entity.id,
+                    SubscriptionModel.deleted_at.is_(None),
+                )
             )
-            model = result.scalar_one()
+            try:
+                model = result.scalar_one()
+            except NoResultFound:
+                raise NotFoundException()
             model.service_name = entity.service_name
             model.login_account = entity.login_account
             model.expiry_date = entity.expiry_date
@@ -141,6 +149,9 @@ class SqlSubscriptionRepository(SubscriptionRepository):
                 SubscriptionModel.deleted_at.is_(None),
             )
         )
-        model = result.scalar_one()
+        try:
+            model = result.scalar_one()
+        except NoResultFound:
+            raise NotFoundException()
         model.deleted_at = datetime.now(UTC)
         await self._session.commit()
