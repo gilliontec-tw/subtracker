@@ -1,13 +1,14 @@
 from typing import Annotated
 
 import jwt
+from fastapi import Cookie, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from domain.entities.user import User
 from domain.exceptions import ForbiddenException, NotAuthenticatedException
-from fastapi import Cookie, Depends
 from infrastructure.auth.jwt_service import decode_access_token
 from infrastructure.database.repositories.user_repository import SqlUserRepository
 from infrastructure.database.session import get_db
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_current_user(
@@ -42,3 +43,27 @@ async def require_manager(
     if current_user.role not in ("admin", "manager"):
         raise ForbiddenException()
     return current_user
+
+
+async def require_can_create(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if current_user.role in ("admin", "manager") or current_user.can_create:
+        return current_user
+    raise ForbiddenException()
+
+
+async def require_can_update(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if current_user.role in ("admin", "manager") or current_user.can_update:
+        return current_user
+    raise ForbiddenException()
+
+
+async def require_can_delete(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if current_user.role in ("admin", "manager") or current_user.can_delete:
+        return current_user
+    raise ForbiddenException()
