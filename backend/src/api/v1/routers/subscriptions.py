@@ -4,7 +4,7 @@ from application.use_cases.get_subscription import GetSubscriptionUseCase
 from application.use_cases.list_subscriptions import ListSubscriptionsUseCase
 from application.use_cases.update_subscription import UpdateSubscriptionUseCase
 from domain.entities.user import User
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from infrastructure.database.repositories.subscription_repository import (
     SqlSubscriptionRepository,
 )
@@ -31,10 +31,10 @@ def _get_repo(db: AsyncSession = Depends(get_db)) -> SqlSubscriptionRepository:
     return SqlSubscriptionRepository(db)
 
 
-@router.get("/", response_model=ApiResponse[list[SubscriptionResponse]])
+@router.get("", response_model=ApiResponse[list[SubscriptionResponse]])
 async def list_subscriptions(
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     show_cancelled: bool = False,
     _: User = Depends(get_current_user),
     repo: SqlSubscriptionRepository = Depends(_get_repo),
@@ -47,7 +47,7 @@ async def list_subscriptions(
     )
 
 
-@router.post("/", response_model=ApiResponse[SubscriptionResponse], status_code=201)
+@router.post("", response_model=ApiResponse[SubscriptionResponse], status_code=201)
 async def create_subscription(
     body: SubscriptionCreate,
     _: User = Depends(require_can_create),
