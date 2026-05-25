@@ -3,7 +3,11 @@ import { useAuthStore } from '@/stores/authStore'
 
 function getCsrfToken(): string {
   const match = document.cookie.match(/csrf_token=([^;]+)/)
-  return match ? decodeURIComponent(match[1]) : ''
+  if (!match) {
+    console.warn('[api] csrf_token cookie not found — request may be rejected with 403')
+    return ''
+  }
+  return decodeURIComponent(match[1])
 }
 
 export const api = axios.create({
@@ -23,7 +27,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      useAuthStore.getState().clear()
+      if (useAuthStore.getState().currentUser !== null) {
+        useAuthStore.getState().clear()
+      }
     }
     return Promise.reject(error)
   },

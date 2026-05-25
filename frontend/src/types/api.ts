@@ -6,7 +6,7 @@ export interface User {
   id: number
   email: string
   display_name: string
-  role: string
+  role: 'admin' | 'user'
   can_create: boolean
   can_update: boolean
   can_delete: boolean
