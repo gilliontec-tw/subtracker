@@ -1,14 +1,18 @@
-import type { User } from '@/types/api'
+import { api } from './client'
+import type { ApiResponse, User } from '@/types/api'
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function login(email: string, password: string): Promise<User> {
-  throw new Error('not implemented')
+  const { data } = await api.post<ApiResponse<User>>('/api/v1/auth/login', { email, password })
+  if (!data.success || !data.data) throw new Error(data.message)
+  return data.data
 }
 
 export async function logout(): Promise<void> {
-  throw new Error('not implemented')
+  await api.post('/api/v1/auth/logout')
 }
 
 export async function getMe(): Promise<User> {
-  throw new Error('not implemented')
+  const { data } = await api.get<ApiResponse<User>>('/api/v1/auth/me')
+  if (!data.success || !data.data) throw new Error(data.message)
+  return data.data
 }
