@@ -1,14 +1,13 @@
 from typing import Annotated
 
 import jwt
-from fastapi import Cookie, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from domain.entities.user import User
 from domain.exceptions import ForbiddenException, NotAuthenticatedException
+from fastapi import Cookie, Depends
 from infrastructure.auth.jwt_service import decode_access_token
 from infrastructure.database.repositories.user_repository import SqlUserRepository
 from infrastructure.database.session import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_current_user(

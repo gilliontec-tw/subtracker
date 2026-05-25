@@ -17,6 +17,10 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if request.method in CSRF_SAFE_METHODS or request.url.path in CSRF_EXEMPT_PATHS:
             return await call_next(request)
 
+        # Unauthenticated requests have no session to protect — let auth dependency handle 401
+        if not request.cookies.get("access_token"):
+            return await call_next(request)
+
         cookie_token = request.cookies.get(CSRF_COOKIE_NAME)
         header_token = request.headers.get(CSRF_HEADER_NAME)
 

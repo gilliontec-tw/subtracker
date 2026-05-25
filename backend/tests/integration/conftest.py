@@ -1,17 +1,20 @@
+import httpx
 import pytest
 from api.main import app
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture(scope="module")
-def client():
-    with TestClient(app, base_url="https://testserver", raise_server_exceptions=False) as c:
+async def client():
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="https://testserver",
+    ) as c:
         yield c
 
 
 @pytest.fixture(scope="module")
-def authed_client(client):
-    r = client.post(
+async def authed_client(client):
+    r = await client.post(
         "/api/v1/auth/login",
         json={"email": "admin@test.com", "password": "testpass123"},
     )

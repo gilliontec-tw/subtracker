@@ -2,7 +2,6 @@ from datetime import date
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from application.use_cases.delete_subscription import DeleteSubscriptionUseCase
 from domain.entities.subscription import Subscription
 from domain.exceptions import NotFoundException
