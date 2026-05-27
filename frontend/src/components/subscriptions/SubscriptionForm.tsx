@@ -1,0 +1,332 @@
+import { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import type { Subscription } from '@/types/api'
+
+const BILLING_CYCLES = ['monthly', 'quarterly', 'semi_annual', 'annual', 'biennial'] as const
+const BILLING_CYCLE_LABELS: Record<string, string> = {
+  monthly: '每月',
+  quarterly: '每季',
+  semi_annual: '每半年',
+  annual: '每年',
+  biennial: '每兩年',
+}
+
+const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'GBP', 'CNY'] as const
+const STATUSES = ['active', 'renewed', 'cancelled', 'suspended'] as const
+const STATUS_LABELS: Record<string, string> = {
+  active: '啟用中',
+  renewed: '已續約',
+  cancelled: '已取消',
+  suspended: '暫停',
+}
+
+const schema = z.object({
+  service_name: z.string().min(1, '服務名稱為必填'),
+  expiry_date: z.string().min(1, '到期日為必填'),
+  login_account: z.string().min(1, '帳號為必填'),
+  owner_name: z.string().min(1, '負責人為必填'),
+  department: z.string().min(1, '部門為必填'),
+  billing_cycle: z.enum(BILLING_CYCLES, { error: '請選擇計費週期' }),
+  cost: z.string().optional(),
+  currency: z.enum(CURRENCIES).default('TWD'),
+  exchange_rate: z.string().optional(),
+  payment_account: z.string().optional(),
+  auto_renew: z.boolean().default(false),
+  trial_end_date: z.string().optional(),
+  next_billing_date: z.string().optional(),
+  notification_emails: z.string().optional(),
+  notification_days: z.string().default('30'),
+  status: z.enum(STATUSES).default('active'),
+  notes: z.string().optional(),
+})
+
+type FormValues = z.infer<typeof schema>
+
+function buildPayload(values: FormValues): Record<string, unknown> {
+  return {
+    service_name: values.service_name,
+    login_account: values.login_account,
+    expiry_date: values.expiry_date,
+    owner_name: values.owner_name,
+    department: values.department,
+    billing_cycle: values.billing_cycle,
+    cost: values.cost || undefined,
+    currency: values.currency,
+    exchange_rate: values.currency !== 'TWD' && values.exchange_rate ? values.exchange_rate : undefined,
+    payment_account: values.payment_account || undefined,
+    auto_renew: values.auto_renew,
+    trial_end_date: values.trial_end_date || undefined,
+    next_billing_date: values.next_billing_date || undefined,
+    notification_emails: values.notification_emails
+      ? values.notification_emails
+          .split(',')
+          .map((e) => e.trim())
+          .filter(Boolean)
+      : [],
+    notification_days: parseInt(values.notification_days) || 30,
+    status: values.status,
+    notes: values.notes || undefined,
+  }
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function toFormValues(sub: Subscription): FormValues {
+  return {
+    service_name: sub.service_name,
+    login_account: sub.login_account,
+    expiry_date: sub.expiry_date,
+    owner_name: sub.owner_name ?? '',
+    department: sub.department ?? '',
+    billing_cycle: sub.billing_cycle ?? 'monthly',
+    cost: sub.cost ?? '',
+    currency: sub.currency,
+    exchange_rate: sub.exchange_rate ?? '',
+    payment_account: sub.payment_account ?? '',
+    auto_renew: sub.auto_renew,
+    trial_end_date: sub.trial_end_date ?? '',
+    next_billing_date: sub.next_billing_date ?? '',
+    notification_emails: sub.notification_emails.join(', '),
+    notification_days: String(sub.notification_days),
+    status: sub.status,
+    notes: sub.notes ?? '',
+  }
+}
+
+interface Props {
+  defaultValues?: FormValues
+  onSubmit: (payload: Record<string, unknown>) => void
+  isPending: boolean
+  submitLabel: string
+}
+
+function FormField({
+  label,
+  error,
+  children,
+  required,
+}: {
+  label: string
+  error?: string
+  children: React.ReactNode
+  required?: boolean
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="text-sm font-medium">
+        {label}
+        {required && <span className="ml-1 text-destructive">*</span>}
+      </label>
+      {children}
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  )
+}
+
+export default function SubscriptionForm({
+  defaultValues,
+  onSubmit,
+  isPending,
+  submitLabel,
+}: Props) {
+  const navigate = useNavigate()
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: defaultValues ?? {
+      currency: 'TWD',
+      auto_renew: false,
+      notification_days: '30',
+      status: 'active',
+    },
+  })
+
+  useEffect(() => {
+    if (defaultValues) reset(defaultValues)
+  }, [defaultValues, reset])
+
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const currency = watch('currency')
+
+  return (
+    <form onSubmit={handleSubmit((v) => onSubmit(buildPayload(v)))} className="space-y-8">
+      {/* 必填欄位 */}
+      <section className="space-y-4">
+        <h3 className="text-base font-semibold">基本資訊</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField label="服務名稱" error={errors.service_name?.message} required>
+            <Input {...register('service_name')} placeholder="GitHub" />
+          </FormField>
+
+          <FormField label="到期日" error={errors.expiry_date?.message} required>
+            <Input type="date" {...register('expiry_date')} />
+          </FormField>
+
+          <FormField label="帳號" error={errors.login_account?.message} required>
+            <Input {...register('login_account')} placeholder="user@corp.com" />
+          </FormField>
+
+          <FormField label="負責人" error={errors.owner_name?.message} required>
+            <Input {...register('owner_name')} placeholder="王小明" />
+          </FormField>
+
+          <FormField label="部門" error={errors.department?.message} required>
+            <Input {...register('department')} placeholder="工程部" />
+          </FormField>
+
+          <FormField label="計費週期" error={errors.billing_cycle?.message} required>
+            <Select
+              defaultValue={defaultValues?.billing_cycle}
+              onValueChange={(v) => setValue('billing_cycle', v as FormValues['billing_cycle'], { shouldValidate: true })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="請選擇" />
+              </SelectTrigger>
+              <SelectContent>
+                {BILLING_CYCLES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {BILLING_CYCLE_LABELS[c]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+        </div>
+      </section>
+
+      {/* 費用 */}
+      <section className="space-y-4">
+        <h3 className="text-base font-semibold">費用</h3>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <FormField label="費用" error={errors.cost?.message}>
+            <Input type="number" step="0.01" min="0" {...register('cost')} placeholder="1200" />
+          </FormField>
+
+          <FormField label="幣別">
+            <Select
+              defaultValue={defaultValues?.currency ?? 'TWD'}
+              onValueChange={(v) => setValue('currency', v as FormValues['currency'])}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          {currency !== 'TWD' && (
+            <FormField label="匯率（1 外幣 = ? TWD）" error={errors.exchange_rate?.message}>
+              <Input
+                type="number"
+                step="0.000001"
+                min="0"
+                {...register('exchange_rate')}
+                placeholder="31.5"
+              />
+            </FormField>
+          )}
+        </div>
+      </section>
+
+      {/* 其他資訊 */}
+      <section className="space-y-4">
+        <h3 className="text-base font-semibold">其他資訊</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField label="付款帳號">
+            <Input {...register('payment_account')} placeholder="公司信用卡末四碼 1234" />
+          </FormField>
+
+          <FormField label="狀態">
+            <Select
+              defaultValue={defaultValues?.status ?? 'active'}
+              onValueChange={(v) => setValue('status', v as FormValues['status'])}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {STATUS_LABELS[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <FormField label="試用到期日">
+            <Input type="date" {...register('trial_end_date')} />
+          </FormField>
+
+          <FormField label="下次計費日">
+            <Input type="date" {...register('next_billing_date')} />
+          </FormField>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" className="size-4" {...register('auto_renew')} />
+          自動續費
+        </label>
+      </section>
+
+      {/* 通知 */}
+      <section className="space-y-4">
+        <h3 className="text-base font-semibold">通知設定</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField label="通知信箱（多個請用逗號分隔）">
+            <Input
+              {...register('notification_emails')}
+              placeholder="admin@corp.com, it@corp.com"
+            />
+          </FormField>
+          <FormField label="到期前幾天通知">
+            <Input type="number" min="1" {...register('notification_days')} />
+          </FormField>
+        </div>
+      </section>
+
+      {/* 備註 */}
+      <section className="space-y-2">
+        <h3 className="text-base font-semibold">備註</h3>
+        <textarea
+          {...register('notes')}
+          rows={3}
+          placeholder="備注事項..."
+          className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-base placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        />
+      </section>
+
+      <div className="flex gap-3">
+        <Button type="submit" disabled={isPending}>
+          {isPending ? '儲存中...' : submitLabel}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => navigate('/subscriptions')}>
+          取消
+        </Button>
+      </div>
+    </form>
+  )
+}
