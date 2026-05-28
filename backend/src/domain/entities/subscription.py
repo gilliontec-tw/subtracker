@@ -25,6 +25,7 @@ class Subscription:
     auto_renew: bool = False
     trial_end_date: date | None = None
     next_billing_date: date | None = None
+    last_notified_date: date | None = None
     status: str = "active"
 
     id: int | None = None

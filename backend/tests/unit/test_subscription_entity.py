@@ -56,3 +56,8 @@ def test_accepts_decimal_cost_and_exchange_rate():
     )
     assert sub.cost == Decimal("99.99")
     assert sub.exchange_rate == Decimal("31.500000")
+
+
+def test_last_notified_date_defaults_to_none():
+    sub = make_subscription()
+    assert sub.last_notified_date is None
