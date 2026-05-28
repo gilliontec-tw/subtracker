@@ -1,6 +1,12 @@
 import logging
 
-from domain.exceptions import ForbiddenException, NotAuthenticatedException, NotFoundException
+from domain.exceptions import (
+    DuplicateEmailException,
+    ForbiddenException,
+    LastAdminException,
+    NotAuthenticatedException,
+    NotFoundException,
+)
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -27,6 +33,30 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=404,
             content={"success": False, "data": None, "message": "資源不存在", "meta": None},
+        )
+
+    @app.exception_handler(DuplicateEmailException)
+    async def duplicate_email_handler(request: Request, exc: DuplicateEmailException):
+        return JSONResponse(
+            status_code=409,
+            content={
+                "success": False,
+                "data": None,
+                "message": "此 Email 已被使用",
+                "meta": None,
+            },
+        )
+
+    @app.exception_handler(LastAdminException)
+    async def last_admin_handler(request: Request, exc: LastAdminException):
+        return JSONResponse(
+            status_code=400,
+            content={
+                "success": False,
+                "data": None,
+                "message": "無法刪除唯一的管理員",
+                "meta": None,
+            },
         )
 
     @app.exception_handler(Exception)

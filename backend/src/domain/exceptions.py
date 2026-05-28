@@ -12,3 +12,11 @@ class ForbiddenException(DomainException):
 
 class NotFoundException(DomainException):
     pass
+
+
+class DuplicateEmailException(DomainException):
+    pass
+
+
+class LastAdminException(DomainException):
+    pass
