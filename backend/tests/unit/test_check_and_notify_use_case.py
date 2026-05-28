@@ -38,7 +38,7 @@ def use_case(repo, sender):
 
 
 @pytest.mark.asyncio
-async def test_sends_email_for_due_subscription(use_case, repo, sender):
+async def test_sends_one_email_per_recipient(use_case, repo, sender):
     sub = make_subscription()
     repo.list_due_for_notification = AsyncMock(return_value=[sub])
     repo.mark_notified = AsyncMock()
@@ -54,6 +54,41 @@ async def test_sends_email_for_due_subscription(use_case, repo, sender):
 
 
 @pytest.mark.asyncio
+async def test_consolidates_multiple_subs_for_same_recipient(use_case, repo, sender):
+    subs = [
+        make_subscription(id=1, service_name="GitHub"),
+        make_subscription(id=2, service_name="Slack"),
+    ]
+    repo.list_due_for_notification = AsyncMock(return_value=subs)
+    repo.mark_notified = AsyncMock()
+    sender.send = AsyncMock()
+
+    count = await use_case.execute(today=TODAY)
+
+    # Both subs go to admin@corp.com → only 1 email sent
+    sender.send.assert_called_once()
+    call_kwargs = sender.send.call_args[1]
+    assert "2" in call_kwargs["subject"]
+    assert "GitHub" in call_kwargs["body"]
+    assert "Slack" in call_kwargs["body"]
+    assert count == 1
+
+
+@pytest.mark.asyncio
+async def test_sends_separate_emails_for_different_recipients(use_case, repo, sender):
+    sub1 = make_subscription(id=1, notification_emails=["a@corp.com"])
+    sub2 = make_subscription(id=2, service_name="Slack", notification_emails=["b@corp.com"])
+    repo.list_due_for_notification = AsyncMock(return_value=[sub1, sub2])
+    repo.mark_notified = AsyncMock()
+    sender.send = AsyncMock()
+
+    count = await use_case.execute(today=TODAY)
+
+    assert sender.send.call_count == 2
+    assert count == 2
+
+
+@pytest.mark.asyncio
 async def test_marks_notified_after_send(use_case, repo, sender):
     sub = make_subscription()
     repo.list_due_for_notification = AsyncMock(return_value=[sub])
@@ -66,16 +101,16 @@ async def test_marks_notified_after_send(use_case, repo, sender):
 
 
 @pytest.mark.asyncio
-async def test_returns_count_of_sent_emails(use_case, repo, sender):
-    subs = [make_subscription(id=1), make_subscription(id=2, service_name="Slack")]
-    repo.list_due_for_notification = AsyncMock(return_value=subs)
+async def test_marks_each_sub_notified_once_even_with_multiple_recipients(use_case, repo, sender):
+    sub = make_subscription(id=1, notification_emails=["a@corp.com", "b@corp.com"])
+    repo.list_due_for_notification = AsyncMock(return_value=[sub])
     repo.mark_notified = AsyncMock()
     sender.send = AsyncMock()
 
-    count = await use_case.execute(today=TODAY)
+    await use_case.execute(today=TODAY)
 
-    assert count == 2
-    assert repo.mark_notified.call_count == 2
+    assert sender.send.call_count == 2
+    repo.mark_notified.assert_called_once_with(1, TODAY)
 
 
 @pytest.mark.asyncio
@@ -101,7 +136,7 @@ async def test_uses_todays_date_when_not_provided(use_case, repo, sender):
 
 
 @pytest.mark.asyncio
-async def test_subject_includes_days_remaining(use_case, repo, sender):
+async def test_subject_includes_days_remaining_single_sub(use_case, repo, sender):
     sub = make_subscription(expiry_date=date(2026, 6, 4))  # 7 days from TODAY
     repo.list_due_for_notification = AsyncMock(return_value=[sub])
     repo.mark_notified = AsyncMock()
