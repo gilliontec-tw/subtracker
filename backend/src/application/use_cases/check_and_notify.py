@@ -1,3 +1,4 @@
+import sys
 from datetime import date
 
 from domain.entities.subscription import Subscription
@@ -33,10 +34,15 @@ class CheckAndNotifyUseCase:
         due = await self._repo.list_due_for_notification(today)
         sent = 0
         for sub in due:
-            days = (sub.expiry_date - today).days
-            subject = f"[SubTrack] {sub.service_name} 訂閱將於 {days} 天後到期"
-            body = _format_body(sub, today)
-            await self._sender.send(to=sub.notification_emails, subject=subject, body=body)
-            await self._repo.mark_notified(sub.id, today)
-            sent += 1
+            if sub.id is None:
+                continue
+            try:
+                days = (sub.expiry_date - today).days
+                subject = f"[SubTrack] {sub.service_name} 訂閱將於 {days} 天後到期"
+                body = _format_body(sub, today)
+                await self._sender.send(to=sub.notification_emails, subject=subject, body=body)
+                await self._repo.mark_notified(sub.id, today)
+                sent += 1
+            except Exception as exc:
+                print(f"通知失敗（{sub.service_name}）：{exc}", file=sys.stderr)
         return sent
