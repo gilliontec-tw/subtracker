@@ -1,10 +1,10 @@
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from domain.entities.subscription import Subscription
 from domain.exceptions import NotFoundException
 from domain.repositories.subscription_repository import SubscriptionRepository
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +31,7 @@ def _to_entity(m: SubscriptionModel) -> Subscription:
         auto_renew=m.auto_renew or False,
         trial_end_date=m.trial_end_date,
         next_billing_date=m.next_billing_date,
+        last_notified_date=m.last_notified_date,
         status=m.status or "active",
         deleted_at=m.deleted_at,
         created_at=m.created_at,
@@ -115,6 +116,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             model.auto_renew = entity.auto_renew
             model.trial_end_date = entity.trial_end_date
             model.next_billing_date = entity.next_billing_date
+            model.last_notified_date = entity.last_notified_date
             model.status = entity.status
         else:
             model = SubscriptionModel(
@@ -135,6 +137,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
                 auto_renew=entity.auto_renew,
                 trial_end_date=entity.trial_end_date,
                 next_billing_date=entity.next_billing_date,
+                last_notified_date=entity.last_notified_date,
                 status=entity.status,
             )
             self._session.add(model)
@@ -155,3 +158,38 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             raise NotFoundException()
         model.deleted_at = datetime.now(UTC)
         await self._session.commit()
+
+    async def list_due_for_notification(self, today: date) -> list[Subscription]:
+        result = await self._session.execute(
+            select(SubscriptionModel).where(
+                SubscriptionModel.deleted_at.is_(None),
+                SubscriptionModel.status == "active",
+                SubscriptionModel.notification_emails.isnot(None),
+                SubscriptionModel.notification_emails != "[]",
+                SubscriptionModel.expiry_date >= today,
+                or_(
+                    SubscriptionModel.last_notified_date.is_(None),
+                    SubscriptionModel.last_notified_date < today,
+                ),
+            )
+        )
+        candidates = [_to_entity(m) for m in result.scalars().all()]
+        return [
+            s
+            for s in candidates
+            if s.notification_days > 0
+            and (s.expiry_date - today).days <= s.notification_days
+            and s.notification_emails
+        ]
+
+    async def mark_notified(self, id: int, today: date) -> None:
+        result = await self._session.execute(
+            select(SubscriptionModel).where(
+                SubscriptionModel.id == id,
+                SubscriptionModel.deleted_at.is_(None),
+            )
+        )
+        model = result.scalar_one_or_none()
+        if model:
+            model.last_notified_date = today
+            await self._session.commit()
