@@ -56,6 +56,7 @@ class SubscriptionModel(Base):
     auto_renew = Column(Boolean, server_default="false")
     trial_end_date = Column(Date)
     next_billing_date = Column(Date)
+    last_notified_date = Column(Date)
     status = Column(String(20), server_default="active")  # active|renewed|cancelled|suspended
     deleted_at = Column(DateTime(timezone=True))  # NULL = not deleted (soft delete)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
