@@ -1,16 +1,21 @@
 """Run from backend/ directory: python scripts/run_notifications.py"""
 
 import asyncio
+import os
 import sys
 from pathlib import Path
 
+# Set working directory to backend/ so .env is found when launched by Task Scheduler
+os.chdir(Path(__file__).parent.parent)
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from api.config import get_settings
-from application.use_cases.check_and_notify import CheckAndNotifyUseCase
-from infrastructure.database.repositories.subscription_repository import SqlSubscriptionRepository
-from infrastructure.database.session import AsyncSessionFactory
-from infrastructure.smtp.smtp_email_sender import SmtpEmailSender
+from api.config import get_settings  # noqa: E402
+from application.use_cases.check_and_notify import CheckAndNotifyUseCase  # noqa: E402
+from infrastructure.database.repositories.subscription_repository import (  # noqa: E402
+    SqlSubscriptionRepository,
+)
+from infrastructure.database.session import AsyncSessionFactory  # noqa: E402
+from infrastructure.smtp.smtp_email_sender import SmtpEmailSender  # noqa: E402
 
 
 async def main() -> None:
