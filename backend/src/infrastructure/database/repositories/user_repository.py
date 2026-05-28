@@ -18,7 +18,11 @@ def _to_entity(m: UserModel) -> User:
         can_delete=m.can_delete,
         is_active=m.is_active,
         invite_token=m.invite_token,
-        invite_token_expires_at=m.invite_token_expires_at,
+        invite_token_expires_at=(
+            m.invite_token_expires_at.replace(tzinfo=None)
+            if m.invite_token_expires_at is not None
+            else None
+        ),
         created_at=m.created_at,
         updated_at=m.updated_at,
     )
