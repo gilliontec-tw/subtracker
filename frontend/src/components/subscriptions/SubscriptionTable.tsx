@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Table,
@@ -9,9 +10,12 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, Pencil } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronUp, ChevronsUpDown, Pencil } from 'lucide-react'
 import DeleteConfirmDialog from './DeleteConfirmDialog'
 import type { Subscription } from '@/types/api'
+
+type SortKey = 'service_name' | 'login_account' | 'department' | 'owner_name' | 'cost' | 'expiry_date' | 'status'
+type SortDir = 'asc' | 'desc'
 
 function daysUntil(dateStr: string): number {
   const expiry = new Date(dateStr)
@@ -56,36 +60,92 @@ function formatCost(cost: string | null, currency: string): string {
   return `${currency} ${cost}`
 }
 
+function sortValue(sub: Subscription, key: SortKey): string | number {
+  switch (key) {
+    case 'service_name': return sub.service_name
+    case 'login_account': return sub.login_account || ''
+    case 'department': return sub.department || ''
+    case 'owner_name': return sub.owner_name || ''
+    case 'cost': return parseFloat(sub.cost || '0')
+    case 'expiry_date': return sub.expiry_date
+    case 'status': return sub.status
+  }
+}
+
+function sortSubscriptions(items: Subscription[], key: SortKey, dir: SortDir): Subscription[] {
+  return [...items].sort((a, b) => {
+    const av = sortValue(a, key)
+    const bv = sortValue(b, key)
+    if (typeof av === 'number' && typeof bv === 'number') {
+      return dir === 'asc' ? av - bv : bv - av
+    }
+    const cmp = String(av).localeCompare(String(bv), 'zh-TW')
+    return dir === 'asc' ? cmp : -cmp
+  })
+}
+
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
+  if (col !== sortKey) return <ChevronsUpDown className="ml-1 inline size-3.5 text-muted-foreground/50" />
+  return sortDir === 'asc'
+    ? <ChevronUp className="ml-1 inline size-3.5" />
+    : <ChevronDown className="ml-1 inline size-3.5" />
+}
+
 interface Props {
   subscriptions: Subscription[]
 }
 
 export default function SubscriptionTable({ subscriptions }: Props) {
   const navigate = useNavigate()
+  const [sortKey, setSortKey] = useState<SortKey>('expiry_date')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+
+  function handleSort(col: SortKey) {
+    if (col === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(col)
+      setSortDir('asc')
+    }
+  }
+
+  const sorted = sortSubscriptions(subscriptions, sortKey, sortDir)
+
+  function th(label: string, col: SortKey) {
+    return (
+      <TableHead
+        className="cursor-pointer select-none whitespace-nowrap hover:text-foreground"
+        onClick={() => handleSort(col)}
+      >
+        {label}
+        <SortIcon col={col} sortKey={sortKey} sortDir={sortDir} />
+      </TableHead>
+    )
+  }
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>服務名稱</TableHead>
-          <TableHead>帳號</TableHead>
-          <TableHead>部門</TableHead>
-          <TableHead>負責人</TableHead>
-          <TableHead>費用</TableHead>
-          <TableHead>到期日</TableHead>
-          <TableHead>狀態</TableHead>
+          {th('服務名稱', 'service_name')}
+          {th('帳號', 'login_account')}
+          {th('部門', 'department')}
+          {th('負責人', 'owner_name')}
+          {th('費用', 'cost')}
+          {th('到期日', 'expiry_date')}
+          {th('狀態', 'status')}
           <TableHead className="text-right">操作</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {subscriptions.length === 0 && (
+        {sorted.length === 0 && (
           <TableRow>
             <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
               沒有訂閱資料
             </TableCell>
           </TableRow>
         )}
-        {subscriptions.map((sub) => (
+        {sorted.map((sub) => (
           <TableRow key={sub.id}>
             <TableCell className="font-medium">{sub.service_name}</TableCell>
             <TableCell className="text-muted-foreground">{sub.login_account || '—'}</TableCell>
