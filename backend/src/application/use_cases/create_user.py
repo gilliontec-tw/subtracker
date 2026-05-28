@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from domain.entities.user import User
 from domain.exceptions import DuplicateEmailException
@@ -17,7 +17,7 @@ class CreateUserUseCase:
 
         is_admin = role == "admin"
         token = str(uuid.uuid4())
-        expires_at = datetime.utcnow() + timedelta(days=7)
+        expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(days=7)
 
         user = User(
             email=email,

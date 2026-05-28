@@ -2,24 +2,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from application.use_cases.create_user import CreateUserUseCase
-from domain.entities.user import User
 from domain.exceptions import DuplicateEmailException
 
-
-def make_user(**kwargs) -> User:
-    defaults = dict(
-        id=1,
-        email="u@corp.com",
-        display_name="User",
-        password_hash="hash",
-        role="user",
-        can_create=False,
-        can_update=False,
-        can_delete=False,
-        is_active=True,
-    )
-    defaults.update(kwargs)
-    return User(**defaults)
+from tests.unit.helpers import make_user
 
 
 @pytest.fixture

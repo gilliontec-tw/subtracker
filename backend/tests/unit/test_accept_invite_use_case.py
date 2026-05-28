@@ -1,28 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from application.use_cases.accept_invite import AcceptInviteUseCase
-from domain.entities.user import User
 from domain.exceptions import NotFoundException
 
-
-def make_user(**kwargs) -> User:
-    defaults = dict(
-        id=1,
-        email="u@corp.com",
-        display_name="User",
-        password_hash="",
-        role="user",
-        can_create=False,
-        can_update=False,
-        can_delete=False,
-        is_active=True,
-        invite_token="validtoken",
-        invite_token_expires_at=datetime.utcnow() + timedelta(days=1),
-    )
-    defaults.update(kwargs)
-    return User(**defaults)
+from tests.unit.helpers import make_user
 
 
 @pytest.fixture
@@ -59,7 +42,9 @@ async def test_raises_for_unknown_token(use_case, repo):
 
 @pytest.mark.asyncio
 async def test_raises_for_expired_token(use_case, repo):
-    user = make_user(invite_token_expires_at=datetime.utcnow() - timedelta(days=1))
+    user = make_user(
+        invite_token_expires_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(days=1)
+    )
     repo.get_by_invite_token = AsyncMock(return_value=user)
 
     with pytest.raises(NotFoundException):

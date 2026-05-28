@@ -1,5 +1,11 @@
 from api.exception_handlers import register_exception_handlers
-from domain.exceptions import ForbiddenException, NotAuthenticatedException, NotFoundException
+from domain.exceptions import (
+    DuplicateEmailException,
+    ForbiddenException,
+    LastAdminException,
+    NotAuthenticatedException,
+    NotFoundException,
+)
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -20,6 +26,16 @@ def raise_forbidden():
 @_app.get("/not-found")
 def raise_not_found():
     raise NotFoundException()
+
+
+@_app.get("/duplicate-email")
+def raise_duplicate_email():
+    raise DuplicateEmailException("test@corp.com")
+
+
+@_app.get("/last-admin")
+def raise_last_admin():
+    raise LastAdminException()
 
 
 client = TestClient(_app, raise_server_exceptions=False)
@@ -45,3 +61,19 @@ def test_not_found_returns_404():
     assert r.status_code == 404
     body = r.json()
     assert body["success"] is False
+
+
+def test_duplicate_email_returns_409():
+    r = client.get("/duplicate-email")
+    assert r.status_code == 409
+    body = r.json()
+    assert body["success"] is False
+    assert body["data"] is None
+
+
+def test_last_admin_returns_400():
+    r = client.get("/last-admin")
+    assert r.status_code == 400
+    body = r.json()
+    assert body["success"] is False
+    assert body["data"] is None
