@@ -25,9 +25,9 @@ function daysUntil(dateStr: string): number {
   return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function ExpiryCell({ date }: { date: string }) {
+function ExpiryCell({ date, notificationDays }: { date: string; notificationDays: number }) {
   const days = daysUntil(date)
-  if (days <= 30) {
+  if (days <= notificationDays) {
     return (
       <span className="flex items-center gap-1 font-medium text-red-600">
         <AlertCircle className="size-4" />
@@ -35,7 +35,7 @@ function ExpiryCell({ date }: { date: string }) {
       </span>
     )
   }
-  if (days <= 60) {
+  if (days <= notificationDays * 2) {
     return <span className="text-orange-500">{date}</span>
   }
   return <span>{date}</span>
@@ -153,7 +153,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
             <TableCell>{sub.owner_name || '—'}</TableCell>
             <TableCell>{formatCost(sub.cost, sub.currency)}</TableCell>
             <TableCell>
-              <ExpiryCell date={sub.expiry_date} />
+              <ExpiryCell date={sub.expiry_date} notificationDays={sub.notification_days} />
             </TableCell>
             <TableCell>
               <StatusBadge status={sub.status} />
