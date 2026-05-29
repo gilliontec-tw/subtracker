@@ -54,3 +54,12 @@ export interface ListResponse<T> {
   data: T[]
   meta: ListMeta
 }
+
+export interface UserDetail {
+  id: number
+  email: string
+  display_name: string
+  role: 'admin' | 'user'
+  is_active: boolean
+  created_at: string | null
+}
