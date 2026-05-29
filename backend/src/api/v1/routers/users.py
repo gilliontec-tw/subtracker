@@ -2,11 +2,13 @@ from application.use_cases.create_user import CreateUserUseCase
 from application.use_cases.delete_user import DeleteUserUseCase
 from application.use_cases.toggle_user_status import ToggleUserStatusUseCase
 from application.use_cases.update_user import UpdateUserUseCase
+from domain.entities.user import User
 from fastapi import APIRouter, Depends
 from infrastructure.database.repositories.user_repository import SqlUserRepository
+from infrastructure.database.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_db, require_admin
+from api.dependencies import require_admin
 from api.v1.schemas.base import ApiResponse
 from api.v1.schemas.user import (
     CreateUserRequest,
@@ -19,7 +21,7 @@ from api.v1.schemas.user import (
 router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 
-def _to_response(user) -> UserListItemResponse:
+def _to_response(user: User) -> UserListItemResponse:
     return UserListItemResponse(
         id=user.id,
         email=user.email,
@@ -40,7 +42,7 @@ async def list_users(
     return ApiResponse.ok(data=[_to_response(u) for u in users])
 
 
-@router.post("", response_model=ApiResponse[CreateUserResponse])
+@router.post("", response_model=ApiResponse[CreateUserResponse], status_code=201)
 async def create_user(
     body: CreateUserRequest,
     _=Depends(require_admin),

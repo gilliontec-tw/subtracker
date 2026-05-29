@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 RoleType = Literal["admin", "user"]
 
@@ -41,4 +41,4 @@ class InviteValidateResponse(BaseModel):
 
 
 class InviteAcceptRequest(BaseModel):
-    password: str
+    password: str = Field(min_length=8)

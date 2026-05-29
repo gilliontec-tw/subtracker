@@ -2,9 +2,9 @@ from application.use_cases.accept_invite import AcceptInviteUseCase
 from application.use_cases.validate_invite import ValidateInviteUseCase
 from fastapi import APIRouter, Depends
 from infrastructure.database.repositories.user_repository import SqlUserRepository
+from infrastructure.database.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_db
 from api.v1.schemas.base import ApiResponse
 from api.v1.schemas.user import InviteAcceptRequest, InviteValidateResponse
 
