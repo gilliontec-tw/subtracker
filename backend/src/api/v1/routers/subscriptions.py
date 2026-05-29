@@ -5,6 +5,7 @@ from application.use_cases.list_subscriptions import ListSubscriptionsUseCase
 from application.use_cases.update_subscription import UpdateSubscriptionUseCase
 from domain.entities.user import User
 from fastapi import APIRouter, Depends, Query
+from infrastructure.database.repositories.audit_log_repository import SqlAuditLogRepository
 from infrastructure.database.repositories.subscription_repository import (
     SqlSubscriptionRepository,
 )
@@ -50,10 +51,17 @@ async def list_subscriptions(
 @router.post("", response_model=ApiResponse[SubscriptionResponse], status_code=201)
 async def create_subscription(
     body: SubscriptionCreate,
-    _: User = Depends(require_can_create),
+    current_user: User = Depends(require_can_create),
+    db: AsyncSession = Depends(get_db),
     repo: SqlSubscriptionRepository = Depends(_get_repo),
 ) -> ApiResponse[SubscriptionResponse]:
-    use_case = CreateSubscriptionUseCase(repo)
+    audit_repo = SqlAuditLogRepository(db)
+    use_case = CreateSubscriptionUseCase(
+        repo,
+        audit_repo=audit_repo,
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+    )
     sub = await use_case.execute(**body.model_dump())
     return ApiResponse.ok(data=SubscriptionResponse(**vars(sub)))
 
@@ -73,10 +81,17 @@ async def get_subscription(
 async def update_subscription(
     id: int,
     body: SubscriptionUpdate,
-    _: User = Depends(require_can_update),
+    current_user: User = Depends(require_can_update),
+    db: AsyncSession = Depends(get_db),
     repo: SqlSubscriptionRepository = Depends(_get_repo),
 ) -> ApiResponse[SubscriptionResponse]:
-    use_case = UpdateSubscriptionUseCase(repo)
+    audit_repo = SqlAuditLogRepository(db)
+    use_case = UpdateSubscriptionUseCase(
+        repo,
+        audit_repo=audit_repo,
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+    )
     sub = await use_case.execute(subscription_id=id, **body.model_dump(exclude_unset=True))
     return ApiResponse.ok(data=SubscriptionResponse(**vars(sub)))
 
@@ -84,9 +99,16 @@ async def update_subscription(
 @router.delete("/{id}", response_model=ApiResponse[None])
 async def delete_subscription(
     id: int,
-    _: User = Depends(require_can_delete),
+    current_user: User = Depends(require_can_delete),
+    db: AsyncSession = Depends(get_db),
     repo: SqlSubscriptionRepository = Depends(_get_repo),
 ) -> ApiResponse[None]:
-    use_case = DeleteSubscriptionUseCase(repo)
+    audit_repo = SqlAuditLogRepository(db)
+    use_case = DeleteSubscriptionUseCase(
+        repo,
+        audit_repo=audit_repo,
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+    )
     await use_case.execute(subscription_id=id)
     return ApiResponse.ok(message="Subscription deleted")
