@@ -3,6 +3,7 @@ from application.use_cases.delete_user import DeleteUserUseCase
 from application.use_cases.toggle_user_status import ToggleUserStatusUseCase
 from application.use_cases.update_user import UpdateUserUseCase
 from domain.entities.user import User
+from domain.exceptions import ForbiddenException
 from fastapi import APIRouter, Depends
 from infrastructure.database.repositories.user_repository import SqlUserRepository
 from infrastructure.database.session import get_db
@@ -75,9 +76,11 @@ async def update_user(
 async def toggle_status(
     id: int,
     body: UserStatusRequest,
-    _=Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    if id == current_user.id and not body.is_active:
+        raise ForbiddenException("不能停用自己的帳號")
     repo = SqlUserRepository(db)
     use_case = ToggleUserStatusUseCase(repo)
     user = await use_case.execute(id=id, is_active=body.is_active)
@@ -87,9 +90,11 @@ async def toggle_status(
 @router.delete("/{id}", response_model=ApiResponse[None])
 async def delete_user(
     id: int,
-    _=Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
+    if id == current_user.id:
+        raise ForbiddenException("不能刪除自己的帳號")
     repo = SqlUserRepository(db)
     use_case = DeleteUserUseCase(repo)
     await use_case.execute(id=id)

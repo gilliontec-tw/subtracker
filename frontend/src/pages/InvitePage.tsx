@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { validateInvite, acceptInvite } from '@/api/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,6 +41,7 @@ function Field({
 export default function InvitePage() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [done, setDone] = useState(false)
 
   const { data, isLoading, isError } = useQuery({
@@ -60,6 +61,7 @@ export default function InvitePage() {
   const { mutate, isPending, isError: submitError, error: submitErr } = useMutation({
     mutationFn: (values: FormValues) => acceptInvite(token!, values.password),
     onSuccess: () => {
+      queryClient.removeQueries({ queryKey: ['invite', token] })
       setDone(true)
       setTimeout(() => navigate('/login', { replace: true }), 2000)
     },
