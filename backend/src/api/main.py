@@ -5,7 +5,9 @@ from api.config import settings
 from api.exception_handlers import register_exception_handlers
 from api.middleware.csrf import CSRFMiddleware
 from api.v1.routers.auth import router as auth_router
+from api.v1.routers.invite import router as invite_router
 from api.v1.routers.subscriptions import router as subscriptions_router
+from api.v1.routers.users import router as users_router
 
 
 def create_app() -> FastAPI:
@@ -28,6 +30,8 @@ def create_app() -> FastAPI:
     register_exception_handlers(app)
     app.include_router(auth_router)
     app.include_router(subscriptions_router)
+    app.include_router(users_router)
+    app.include_router(invite_router)
 
     @app.get("/health")
     async def health() -> dict:
