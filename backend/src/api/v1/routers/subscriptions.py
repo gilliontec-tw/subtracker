@@ -53,8 +53,8 @@ async def create_subscription(
     body: SubscriptionCreate,
     current_user: User = Depends(require_can_create),
     db: AsyncSession = Depends(get_db),
-    repo: SqlSubscriptionRepository = Depends(_get_repo),
 ) -> ApiResponse[SubscriptionResponse]:
+    repo = SqlSubscriptionRepository(db)
     audit_repo = SqlAuditLogRepository(db)
     use_case = CreateSubscriptionUseCase(
         repo,
@@ -83,8 +83,8 @@ async def update_subscription(
     body: SubscriptionUpdate,
     current_user: User = Depends(require_can_update),
     db: AsyncSession = Depends(get_db),
-    repo: SqlSubscriptionRepository = Depends(_get_repo),
 ) -> ApiResponse[SubscriptionResponse]:
+    repo = SqlSubscriptionRepository(db)
     audit_repo = SqlAuditLogRepository(db)
     use_case = UpdateSubscriptionUseCase(
         repo,
@@ -101,8 +101,8 @@ async def delete_subscription(
     id: int,
     current_user: User = Depends(require_can_delete),
     db: AsyncSession = Depends(get_db),
-    repo: SqlSubscriptionRepository = Depends(_get_repo),
 ) -> ApiResponse[None]:
+    repo = SqlSubscriptionRepository(db)
     audit_repo = SqlAuditLogRepository(db)
     use_case = DeleteSubscriptionUseCase(
         repo,
