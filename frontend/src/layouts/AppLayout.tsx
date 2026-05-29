@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { logout } from '@/api/auth'
 import { useAuthStore } from '@/stores/authStore'
@@ -25,7 +25,25 @@ export default function AppLayout() {
     <div className="flex min-h-screen flex-col">
       <header className="border-b bg-background px-6 py-3">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <span className="text-lg font-semibold">SubTrack</span>
+          <div className="flex items-center gap-6">
+            <span className="text-lg font-semibold">SubTrack</span>
+            <nav className="flex items-center gap-4 text-sm">
+              <Link
+                to="/subscriptions"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                訂閱列表
+              </Link>
+              {currentUser?.role === 'admin' && (
+                <Link
+                  to="/users"
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  使用者管理
+                </Link>
+              )}
+            </nav>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">{currentUser?.display_name}</span>
             <Button variant="ghost" size="sm" onClick={() => doLogout()}>
