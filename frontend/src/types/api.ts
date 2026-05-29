@@ -63,3 +63,19 @@ export interface UserDetail {
   is_active: boolean
   created_at: string | null
 }
+
+export interface AuditLogChange {
+  field: string
+  before: string
+  after: string
+}
+
+export interface AuditLogEntry {
+  id: number
+  action: 'create' | 'update' | 'delete'
+  resource_id: number
+  user_email: string | null
+  service_name: string | null
+  changes: AuditLogChange[] | null
+  created_at: string
+}

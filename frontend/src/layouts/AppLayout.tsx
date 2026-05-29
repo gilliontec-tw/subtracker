@@ -35,12 +35,20 @@ export default function AppLayout() {
                 訂閱列表
               </Link>
               {currentUser?.role === 'admin' && (
-                <Link
-                  to="/users"
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  使用者管理
-                </Link>
+                <>
+                  <Link
+                    to="/users"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    使用者管理
+                  </Link>
+                  <Link
+                    to="/audit-log"
+                    className="text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    稽核日誌
+                  </Link>
+                </>
               )}
             </nav>
           </div>
