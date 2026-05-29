@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -61,6 +61,7 @@ export default function EditUserModal({ user }: Props) {
     register,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -88,6 +89,16 @@ export default function EditUserModal({ user }: Props) {
       toast({ title: err.message || '更新失敗', variant: 'destructive' })
     },
   })
+
+  useEffect(() => {
+    if (open) {
+      reset({
+        display_name: user.display_name,
+        role: user.role,
+        is_active: user.is_active ? 'active' : 'inactive',
+      })
+    }
+  }, [open, user, reset])
 
   return (
     <>
