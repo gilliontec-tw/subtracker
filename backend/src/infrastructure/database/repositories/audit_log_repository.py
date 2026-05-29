@@ -17,7 +17,7 @@ def _to_entity(m: AuditLogModel) -> AuditEntry:
         resource_type=m.resource_type or "subscription",
         resource_id=m.resource_id or 0,
         details=json.loads(m.details) if m.details else {},
-        created_at=m.created_at,
+        created_at=m.created_at.replace(tzinfo=UTC) if m.created_at else None,
     )
 
 

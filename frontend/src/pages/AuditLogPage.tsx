@@ -18,18 +18,24 @@ const ACTION_LABELS: Record<string, string> = {
   delete: '刪除',
 }
 
+function pad(n: number) {
+  return String(n).padStart(2, '0')
+}
+
 function formatDateTime(iso: string): string {
-  return iso.slice(0, 16).replace('T', ' ')
+  const d = new Date(iso)
+  return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function localDateStr(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 function defaultRange(): { from: string; to: string } {
   const to = new Date()
   const from = new Date()
   from.setDate(from.getDate() - 30)
-  return {
-    from: from.toISOString().slice(0, 10),
-    to: to.toISOString().slice(0, 10),
-  }
+  return { from: localDateStr(from), to: localDateStr(to) }
 }
 
 function ChangesCell({ entry }: { entry: AuditLogEntry }) {
