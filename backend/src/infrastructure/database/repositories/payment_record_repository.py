@@ -39,7 +39,10 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
             )
             .where(PaymentRecordModel.id == payment_id)
         )
-        row = result.one()
+        try:
+            row = result.one()
+        except NoResultFound:
+            raise NotFoundException()
         return _to_entity(row[0], row[1])
 
     async def save(self, record: PaymentRecord) -> PaymentRecord:
@@ -71,13 +74,10 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
         return await self._fetch_with_name(model.id)
 
     async def get_by_id(self, payment_id: int) -> PaymentRecord | None:
-        result = await self._session.execute(
-            select(PaymentRecordModel).where(PaymentRecordModel.id == payment_id)
-        )
-        model = result.scalar_one_or_none()
-        if model is None:
+        try:
+            return await self._fetch_with_name(payment_id)
+        except NotFoundException:
             return None
-        return await self._fetch_with_name(payment_id)
 
     async def list_by_subscription(self, subscription_id: int) -> list[PaymentRecord]:
         result = await self._session.execute(
