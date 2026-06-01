@@ -122,7 +122,10 @@ export default function PaymentRecordFormDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? '編輯付款紀錄' : '新增付款紀錄'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit((v) => mutate(v))} className="space-y-4 pt-2">
+        <form
+          onSubmit={(e) => { e.stopPropagation(); void handleSubmit((v) => mutate(v))(e) }}
+          className="space-y-4 pt-2"
+        >
           <div>
             <label className="text-sm font-medium">付款日期</label>
             <Input type="date" {...register('payment_date')} className="mt-1" />
