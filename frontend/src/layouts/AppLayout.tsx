@@ -34,6 +34,12 @@ export default function AppLayout() {
               >
                 訂閱列表
               </Link>
+              <Link
+                to="/payments"
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
+                付款紀錄
+              </Link>
               {currentUser?.role === 'admin' && (
                 <>
                   <Link

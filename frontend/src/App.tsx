@@ -9,6 +9,7 @@ import SubscriptionNewPage from '@/pages/SubscriptionNewPage'
 import SubscriptionEditPage from '@/pages/SubscriptionEditPage'
 import UsersPage from '@/pages/UsersPage'
 import AuditLogPage from '@/pages/AuditLogPage'
+import PaymentRecordsPage from '@/pages/PaymentRecordsPage'
 import InvitePage from '@/pages/InvitePage'
 
 const queryClient = new QueryClient({
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="/subscriptions/:id/edit" element={<SubscriptionEditPage />} />
               <Route path="/users" element={<UsersPage />} />
               <Route path="/audit-log" element={<AuditLogPage />} />
+              <Route path="/payments" element={<PaymentRecordsPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
