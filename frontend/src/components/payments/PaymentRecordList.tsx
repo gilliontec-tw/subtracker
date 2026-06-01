@@ -87,6 +87,7 @@ export default function PaymentRecordList({ subscriptionId, readOnly = false }: 
         <p className="py-2 text-xs text-muted-foreground">尚無付款紀錄</p>
       )}
       {!isLoading && records.length > 0 && (
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -139,6 +140,7 @@ export default function PaymentRecordList({ subscriptionId, readOnly = false }: 
             ))}
           </TableBody>
         </Table>
+        </div>
       )}
 
       <PaymentRecordFormDialog

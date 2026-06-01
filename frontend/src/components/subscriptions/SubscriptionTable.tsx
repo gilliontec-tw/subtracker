@@ -144,6 +144,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
         </div>
       )}
 
+      <div className="overflow-x-auto rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -222,6 +223,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
           ))}
         </TableBody>
       </Table>
+      </div>
 
       <SubscriptionDetailDialog
         subscription={detailSub}

@@ -36,7 +36,7 @@ export default function SubscriptionsPage() {
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <Input
           placeholder="搜尋服務名稱..."
           value={search}

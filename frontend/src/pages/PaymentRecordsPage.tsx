@@ -122,6 +122,7 @@ export default function PaymentRecordsPage() {
       {isLoading && <p className="text-muted-foreground">載入中...</p>}
       {isError && <p className="text-destructive">載入失敗，請重新整理頁面</p>}
       {!isLoading && !isError && (
+        <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -182,6 +183,7 @@ export default function PaymentRecordsPage() {
             ))}
           </TableBody>
         </Table>
+        </div>
       )}
 
       <PaymentRecordFormDialog

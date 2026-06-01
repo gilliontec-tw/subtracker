@@ -362,7 +362,7 @@ export default function SubscriptionForm({
         </section>
       )}
 
-      <div className="flex items-center justify-between border-t pt-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-6">
         {isEditMode ? (
           <Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
             刪除訂閱

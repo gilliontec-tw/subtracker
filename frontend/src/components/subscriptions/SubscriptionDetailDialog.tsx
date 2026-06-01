@@ -48,12 +48,12 @@ export default function SubscriptionDetailDialog({ subscription: sub, open, onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-full max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{sub.service_name}</DialogTitle>
         </DialogHeader>
 
-        <div className="mt-2 flex gap-6">
+        <div className="mt-2 flex flex-col gap-6 md:flex-row">
           {/* 左欄：訂閱資料 */}
           <div className="min-w-0 flex-1">
             <Row label="登入帳號" value={sub.login_account || null} />
@@ -93,7 +93,7 @@ export default function SubscriptionDetailDialog({ subscription: sub, open, onOp
           </div>
 
           {/* 右欄：付款紀錄（唯讀） */}
-          <div className="w-72 shrink-0 border-l pl-6">
+          <div className="border-t pt-4 md:w-72 md:shrink-0 md:border-l md:border-t-0 md:pl-6 md:pt-0">
             <PaymentRecordList subscriptionId={sub.id} readOnly />
           </div>
         </div>

@@ -68,7 +68,7 @@ export default function AuditLogPage() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">稽核日誌</h2>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <input
           type="date"
           value={fromDate}
@@ -92,6 +92,7 @@ export default function AuditLogPage() {
       {isLoading && <p className="text-muted-foreground">載入中...</p>}
       {isError && <p className="text-destructive">載入失敗，請重新整理頁面</p>}
       {!isLoading && !isError && (
+        <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -129,6 +130,7 @@ export default function AuditLogPage() {
             ))}
           </TableBody>
         </Table>
+        </div>
       )}
     </div>
   )

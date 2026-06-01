@@ -29,6 +29,7 @@ export default function UsersPage() {
         <h1 className="text-xl font-semibold">使用者管理</h1>
         <CreateUserModal />
       </div>
+      <div className="overflow-x-auto rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -81,6 +82,7 @@ export default function UsersPage() {
           ))}
         </TableBody>
       </Table>
+      </div>
     </div>
   )
 }
