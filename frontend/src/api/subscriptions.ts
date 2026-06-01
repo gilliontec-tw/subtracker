@@ -37,3 +37,14 @@ export async function updateSubscription(
 export async function deleteSubscription(id: number): Promise<void> {
   await api.delete(`/api/v1/subscriptions/${id}`)
 }
+
+export type BatchRenewSkipped = { id: number; reason: 'not_found' | 'not_active' | 'missing_billing_cycle' }
+export type BatchRenewResult = { renewed: Subscription[]; skipped: BatchRenewSkipped[] }
+
+export async function batchRenewSubscriptions(ids: number[]): Promise<BatchRenewResult> {
+  const { data } = await api.post<ApiResponse<BatchRenewResult>>('/api/v1/subscriptions/batch-renew', {
+    subscription_ids: ids,
+  })
+  if (!data.success || !data.data) throw new Error('batch renew failed')
+  return data.data
+}

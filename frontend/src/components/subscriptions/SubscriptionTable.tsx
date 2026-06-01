@@ -10,9 +10,10 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, ChevronDown, ChevronUp, ChevronsUpDown, Pencil } from 'lucide-react'
-import DeleteConfirmDialog from './DeleteConfirmDialog'
+import { AlertCircle, ChevronDown, ChevronUp, ChevronsUpDown, Pencil, Wallet } from 'lucide-react'
 import SubscriptionDetailDialog from './SubscriptionDetailDialog'
+import BatchRenewDialog from './BatchRenewDialog'
+import PaymentRecordFormDialog from '@/components/payments/PaymentRecordFormDialog'
 import { useAuthStore } from '@/stores/authStore'
 import type { Subscription } from '@/types/api'
 
@@ -103,10 +104,13 @@ export default function SubscriptionTable({ subscriptions }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('expiry_date')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [detailSub, setDetailSub] = useState<Subscription | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [paymentSubId, setPaymentSubId] = useState<number | null>(null)
+  const [batchOpen, setBatchOpen] = useState(false)
 
   const canUpdate = currentUser?.can_update ?? false
-  const canDelete = currentUser?.can_delete ?? false
-  const hasActions = canUpdate || canDelete
+  const canCreate = currentUser?.can_create ?? currentUser?.role === 'admin'
+  const hasActions = canUpdate || canCreate
 
   function handleSort(col: SortKey) {
     if (col === sortKey) {
@@ -133,9 +137,28 @@ export default function SubscriptionTable({ subscriptions }: Props) {
 
   return (
     <>
+      {selectedIds.size > 0 && (
+        <div className="mb-3 flex items-center justify-end">
+          <Button onClick={() => setBatchOpen(true)}>
+            續訂 ({selectedIds.size})
+          </Button>
+        </div>
+      )}
+
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <input
+                type="checkbox"
+                className="size-4"
+                checked={selectedIds.size === sorted.length && sorted.length > 0}
+                ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < sorted.length }}
+                onChange={(e) => {
+                  setSelectedIds(e.target.checked ? new Set(sorted.map(s => s.id)) : new Set())
+                }}
+              />
+            </TableHead>
             {th('服務名稱', 'service_name')}
             {th('帳號', 'login_account')}
             {th('部門', 'department')}
@@ -149,7 +172,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
         <TableBody>
           {sorted.length === 0 && (
             <TableRow>
-              <TableCell colSpan={hasActions ? 8 : 7} className="py-8 text-center text-muted-foreground">
+              <TableCell colSpan={hasActions ? 9 : 8} className="py-8 text-center text-muted-foreground">
                 沒有訂閱資料
               </TableCell>
             </TableRow>
@@ -160,6 +183,20 @@ export default function SubscriptionTable({ subscriptions }: Props) {
               className="cursor-pointer"
               onClick={() => setDetailSub(sub)}
             >
+              <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="checkbox"
+                  className="size-4"
+                  checked={selectedIds.has(sub.id)}
+                  onChange={(e) => {
+                    setSelectedIds(prev => {
+                      const next = new Set(prev)
+                      if (e.target.checked) { next.add(sub.id) } else { next.delete(sub.id) }
+                      return next
+                    })
+                  }}
+                />
+              </TableCell>
               <TableCell className="font-medium">{sub.service_name}</TableCell>
               <TableCell className="text-muted-foreground">{sub.login_account || '—'}</TableCell>
               <TableCell>{sub.department || '—'}</TableCell>
@@ -183,8 +220,14 @@ export default function SubscriptionTable({ subscriptions }: Props) {
                         <Pencil className="size-4" />
                       </Button>
                     )}
-                    {canDelete && (
-                      <DeleteConfirmDialog subscriptionId={sub.id} serviceName={sub.service_name} />
+                    {canCreate && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setPaymentSubId(sub.id)}
+                      >
+                        <Wallet className="size-4" />
+                      </Button>
                     )}
                   </div>
                 </TableCell>
@@ -198,6 +241,19 @@ export default function SubscriptionTable({ subscriptions }: Props) {
         subscription={detailSub}
         open={detailSub !== null}
         onOpenChange={(open) => { if (!open) setDetailSub(null) }}
+      />
+
+      <PaymentRecordFormDialog
+        open={paymentSubId !== null}
+        onOpenChange={(open) => { if (!open) setPaymentSubId(null) }}
+        subscriptionId={paymentSubId ?? undefined}
+      />
+
+      <BatchRenewDialog
+        open={batchOpen}
+        onOpenChange={setBatchOpen}
+        subscriptions={sorted.filter(s => selectedIds.has(s.id))}
+        onSuccess={() => setSelectedIds(new Set())}
       />
     </>
   )
