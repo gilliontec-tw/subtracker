@@ -22,13 +22,15 @@ import { Pencil, Trash2, Plus } from 'lucide-react'
 import PaymentRecordFormDialog from './PaymentRecordFormDialog'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/use-toast'
+import { fmtDate } from '@/lib/utils'
 import type { PaymentRecord } from '@/types/api'
 
 interface Props {
   subscriptionId: number
+  readOnly?: boolean
 }
 
-export default function PaymentRecordList({ subscriptionId }: Props) {
+export default function PaymentRecordList({ subscriptionId, readOnly = false }: Props) {
   const { currentUser } = useAuthStore()
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -55,9 +57,9 @@ export default function PaymentRecordList({ subscriptionId }: Props) {
   })
 
   const records = data ?? []
-  const canCreate = currentUser?.can_create || currentUser?.role === 'admin'
-  const canUpdate = currentUser?.can_update || currentUser?.role === 'admin'
-  const canDelete = currentUser?.can_delete || currentUser?.role === 'admin'
+  const canCreate = !readOnly && (currentUser?.can_create || currentUser?.role === 'admin')
+  const canUpdate = !readOnly && (currentUser?.can_update || currentUser?.role === 'admin')
+  const canDelete = !readOnly && (currentUser?.can_delete || currentUser?.role === 'admin')
   const hasActions = canUpdate || canDelete
 
   return (
@@ -97,7 +99,7 @@ export default function PaymentRecordList({ subscriptionId }: Props) {
           <TableBody>
             {records.map((r) => (
               <TableRow key={r.id}>
-                <TableCell className="text-xs">{r.payment_date}</TableCell>
+                <TableCell className="text-xs">{fmtDate(r.payment_date)}</TableCell>
                 <TableCell className="text-xs">{r.amount}</TableCell>
                 <TableCell className="text-xs">{r.currency}</TableCell>
                 <TableCell className="text-xs">{r.notes ?? '—'}</TableCell>

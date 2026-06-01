@@ -10,11 +10,11 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle, ChevronDown, ChevronUp, ChevronsUpDown, Pencil, Wallet } from 'lucide-react'
+import { AlertCircle, ChevronDown, ChevronUp, ChevronsUpDown, Pencil } from 'lucide-react'
 import SubscriptionDetailDialog from './SubscriptionDetailDialog'
 import BatchRenewDialog from './BatchRenewDialog'
-import PaymentRecordFormDialog from '@/components/payments/PaymentRecordFormDialog'
 import { useAuthStore } from '@/stores/authStore'
+import { fmtDate } from '@/lib/utils'
 import type { Subscription } from '@/types/api'
 
 type SortKey = 'service_name' | 'login_account' | 'department' | 'owner_name' | 'cost' | 'expiry_date' | 'status'
@@ -30,18 +30,19 @@ function daysUntil(dateStr: string): number {
 
 function ExpiryCell({ date, notificationDays }: { date: string; notificationDays: number }) {
   const days = daysUntil(date)
+  const display = fmtDate(date)
   if (days <= notificationDays) {
     return (
       <span className="flex items-center gap-1 font-medium text-red-600">
         <AlertCircle className="size-4" />
-        {date}
+        {display}
       </span>
     )
   }
   if (days <= notificationDays * 2) {
-    return <span className="text-orange-500">{date}</span>
+    return <span className="text-orange-500">{display}</span>
   }
-  return <span>{date}</span>
+  return <span>{display}</span>
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -105,12 +106,10 @@ export default function SubscriptionTable({ subscriptions }: Props) {
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [detailSub, setDetailSub] = useState<Subscription | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
-  const [paymentSubId, setPaymentSubId] = useState<number | null>(null)
   const [batchOpen, setBatchOpen] = useState(false)
 
   const canUpdate = currentUser?.can_update ?? false
-  const canCreate = currentUser?.can_create ?? false
-  const hasActions = canUpdate || canCreate
+  const hasActions = canUpdate
 
   function handleSort(col: SortKey) {
     if (col === sortKey) {
@@ -166,7 +165,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
             {th('費用', 'cost')}
             {th('到期日', 'expiry_date')}
             {th('狀態', 'status')}
-            {hasActions && <TableHead className="text-right">操作</TableHead>}
+            {hasActions && <TableHead className="w-12" />}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -210,26 +209,13 @@ export default function SubscriptionTable({ subscriptions }: Props) {
               </TableCell>
               {hasActions && (
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex justify-end gap-1">
-                    {canUpdate && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate(`/subscriptions/${sub.id}/edit`)}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                    )}
-                    {canCreate && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setPaymentSubId(sub.id)}
-                      >
-                        <Wallet className="size-4" />
-                      </Button>
-                    )}
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate(`/subscriptions/${sub.id}/edit`)}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
                 </TableCell>
               )}
             </TableRow>
@@ -241,12 +227,6 @@ export default function SubscriptionTable({ subscriptions }: Props) {
         subscription={detailSub}
         open={detailSub !== null}
         onOpenChange={(open) => { if (!open) setDetailSub(null) }}
-      />
-
-      <PaymentRecordFormDialog
-        open={paymentSubId !== null}
-        onOpenChange={(open) => { if (!open) setPaymentSubId(null) }}
-        subscriptionId={paymentSubId ?? undefined}
       />
 
       <BatchRenewDialog

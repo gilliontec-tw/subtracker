@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { deleteSubscription } from '@/api/subscriptions'
 import { useToast } from '@/hooks/use-toast'
+import PaymentRecordList from '@/components/payments/PaymentRecordList'
 import type { Subscription } from '@/types/api'
 
 const BILLING_CYCLES = ['monthly', 'quarterly', 'semi_annual', 'annual', 'biennial'] as const
@@ -202,6 +203,19 @@ export default function SubscriptionForm({
 
   return (
     <form onSubmit={handleSubmit((v) => onSubmit(buildPayload(v)))} className="space-y-8">
+      {/* 危險操作 — 頂部 */}
+      {isEditMode && (
+        <section className="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-destructive">刪除訂閱</p>
+            <p className="text-xs text-muted-foreground">刪除後無法復原</p>
+          </div>
+          <Button type="button" variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
+            刪除訂閱
+          </Button>
+        </section>
+      )}
+
       {/* 必填欄位 */}
       <section className="space-y-4">
         <h3 className="text-base font-semibold">基本資訊</h3>
@@ -363,14 +377,10 @@ export default function SubscriptionForm({
         </Button>
       </div>
 
-      {/* 危險操作 */}
+      {/* 付款紀錄 — 底部（僅編輯模式） */}
       {isEditMode && (
-        <section className="mt-12 border-t border-destructive/30 pt-6">
-          <h3 className="text-base font-semibold text-destructive">危險操作</h3>
-          <p className="mt-1 text-sm text-muted-foreground">刪除後無法復原。</p>
-          <Button type="button" variant="destructive" className="mt-3" onClick={() => setDeleteOpen(true)}>
-            刪除訂閱
-          </Button>
+        <section className="border-t pt-6">
+          <PaymentRecordList subscriptionId={subscriptionId!} />
         </section>
       )}
 

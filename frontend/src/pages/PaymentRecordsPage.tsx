@@ -20,6 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Pencil, Trash2 } from 'lucide-react'
+import { fmtDate } from '@/lib/utils'
 import PaymentRecordFormDialog from '@/components/payments/PaymentRecordFormDialog'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/use-toast'
@@ -145,7 +146,7 @@ export default function PaymentRecordsPage() {
             )}
             {records.map((r) => (
               <TableRow key={r.id}>
-                <TableCell className="whitespace-nowrap text-sm">{r.payment_date}</TableCell>
+                <TableCell className="whitespace-nowrap text-sm">{fmtDate(r.payment_date)}</TableCell>
                 <TableCell className="text-sm">{r.service_name ?? '—'}</TableCell>
                 <TableCell className="text-sm">{r.amount}</TableCell>
                 <TableCell className="text-sm">{r.currency}</TableCell>

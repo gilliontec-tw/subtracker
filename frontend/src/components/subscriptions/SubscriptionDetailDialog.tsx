@@ -5,8 +5,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import type { Subscription } from '@/types/api'
 import PaymentRecordList from '@/components/payments/PaymentRecordList'
+import { fmtDate } from '@/lib/utils'
+import type { Subscription } from '@/types/api'
 
 const BILLING_CYCLE_LABELS: Record<string, string> = {
   monthly: '每月',
@@ -25,7 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[140px_1fr] gap-2 py-2 border-b last:border-0">
+    <div className="grid grid-cols-[120px_1fr] gap-2 border-b py-2 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       <span className="text-sm">{value ?? '—'}</span>
     </div>
@@ -47,47 +48,55 @@ export default function SubscriptionDetailDialog({ subscription: sub, open, onOp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+      <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{sub.service_name}</DialogTitle>
         </DialogHeader>
-        <div className="mt-2">
-          <Row label="登入帳號" value={sub.login_account || null} />
-          <Row
-            label="狀態"
-            value={
-              <Badge
-                variant={sub.status === 'active' ? undefined : 'secondary'}
-                className={
-                  sub.status === 'active'
-                    ? 'border-transparent bg-green-100 text-green-800 hover:bg-green-100'
-                    : ''
-                }
-              >
-                {STATUS_LABELS[sub.status] ?? sub.status}
-              </Badge>
-            }
-          />
-          <Row label="到期日" value={sub.expiry_date} />
-          <Row label="計費週期" value={sub.billing_cycle ? BILLING_CYCLE_LABELS[sub.billing_cycle] : null} />
-          <Row label="自動續費" value={sub.auto_renew ? '是' : '否'} />
-          <Row label="試用到期日" value={sub.trial_end_date} />
-          <Row label="下次帳單日" value={sub.next_billing_date} />
-          <Row label="費用" value={costStr} />
-          <Row label="付款帳號" value={sub.payment_account} />
-          <Row label="負責人" value={sub.owner_name} />
-          <Row label="部門" value={sub.department} />
-          <Row label="分類" value={sub.category} />
-          <Row
-            label="通知信箱"
-            value={sub.notification_emails.length > 0 ? sub.notification_emails.join(', ') : null}
-          />
-          <Row label="提前通知天數" value={`${sub.notification_days} 天`} />
-          <Row label="備註" value={sub.notes} />
-          <Row label="建立時間" value={sub.created_at ? sub.created_at.slice(0, 10) : null} />
-          <Row label="最後更新" value={sub.updated_at ? sub.updated_at.slice(0, 10) : null} />
+
+        <div className="mt-2 flex gap-6">
+          {/* 左欄：訂閱資料 */}
+          <div className="min-w-0 flex-1">
+            <Row label="登入帳號" value={sub.login_account || null} />
+            <Row
+              label="狀態"
+              value={
+                <Badge
+                  variant={sub.status === 'active' ? undefined : 'secondary'}
+                  className={
+                    sub.status === 'active'
+                      ? 'border-transparent bg-green-100 text-green-800 hover:bg-green-100'
+                      : ''
+                  }
+                >
+                  {STATUS_LABELS[sub.status] ?? sub.status}
+                </Badge>
+              }
+            />
+            <Row label="到期日" value={fmtDate(sub.expiry_date)} />
+            <Row label="計費週期" value={sub.billing_cycle ? BILLING_CYCLE_LABELS[sub.billing_cycle] : null} />
+            <Row label="自動續費" value={sub.auto_renew ? '是' : '否'} />
+            <Row label="試用到期日" value={fmtDate(sub.trial_end_date)} />
+            <Row label="下次帳單日" value={fmtDate(sub.next_billing_date)} />
+            <Row label="費用" value={costStr} />
+            <Row label="付款帳號" value={sub.payment_account} />
+            <Row label="負責人" value={sub.owner_name} />
+            <Row label="部門" value={sub.department} />
+            <Row label="分類" value={sub.category} />
+            <Row
+              label="通知信箱"
+              value={sub.notification_emails.length > 0 ? sub.notification_emails.join(', ') : null}
+            />
+            <Row label="提前通知天數" value={`${sub.notification_days} 天`} />
+            <Row label="備註" value={sub.notes} />
+            <Row label="建立時間" value={fmtDate(sub.created_at)} />
+            <Row label="最後更新" value={fmtDate(sub.updated_at)} />
+          </div>
+
+          {/* 右欄：付款紀錄（唯讀） */}
+          <div className="w-72 shrink-0 border-l pl-6">
+            <PaymentRecordList subscriptionId={sub.id} readOnly />
+          </div>
         </div>
-        <PaymentRecordList subscriptionId={sub.id} />
       </DialogContent>
     </Dialog>
   )

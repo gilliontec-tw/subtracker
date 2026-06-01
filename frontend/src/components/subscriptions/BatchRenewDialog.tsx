@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { batchRenewSubscriptions } from '@/api/subscriptions'
 import { useToast } from '@/hooks/use-toast'
+import { fmtDate } from '@/lib/utils'
 import type { Subscription } from '@/types/api'
 
 interface Props {
@@ -27,15 +28,20 @@ const CYCLE_LABELS: Record<string, string> = {
 }
 
 function addCycle(dateStr: string, cycle: string): string {
-  const d = new Date(dateStr)
+  const [year, month, day] = dateStr.split('-').map(Number)
+  let y = year, m = month // 1-indexed month
   switch (cycle) {
-    case 'monthly': d.setMonth(d.getMonth() + 1); break
-    case 'quarterly': d.setMonth(d.getMonth() + 3); break
-    case 'semi_annual': d.setMonth(d.getMonth() + 6); break
-    case 'annual': d.setFullYear(d.getFullYear() + 1); break
-    case 'biennial': d.setFullYear(d.getFullYear() + 2); break
+    case 'monthly':    m += 1;  break
+    case 'quarterly':  m += 3;  break
+    case 'semi_annual': m += 6; break
+    case 'annual':     y += 1;  break
+    case 'biennial':   y += 2;  break
   }
-  return d.toISOString().slice(0, 10)
+  while (m > 12) { m -= 12; y++ }
+  // new Date(y, m, 0) = last day of month m (1-indexed), using 0-day-of-next-month trick
+  const lastDay = new Date(y, m, 0).getDate()
+  const d = Math.min(day, lastDay)
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
 type EligibleEntry = {
@@ -101,7 +107,7 @@ export default function BatchRenewDialog({ subscriptions, open, onOpenChange, on
                   {entry.sub.billing_cycle ? CYCLE_LABELS[entry.sub.billing_cycle] ?? entry.sub.billing_cycle : ''}
                 </span>
                 <span className="text-muted-foreground">
-                  {entry.sub.expiry_date} → {entry.newExpiry}
+                  {fmtDate(entry.sub.expiry_date)} → {fmtDate(entry.newExpiry)}
                 </span>
               </div>
             ) : (
