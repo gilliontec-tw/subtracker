@@ -47,4 +47,5 @@ async def test_no_params_returns_empty_list():
     uc = ListPaymentRecordsUseCase(repo)
     result = await uc.execute()
     assert result == []
-    repo.list_by_subscription.assert_not_called() if hasattr(repo, "list_by_subscription") else None
+    repo.list_by_subscription.assert_not_called()
+    repo.list_by_filters.assert_not_called()
