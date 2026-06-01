@@ -203,19 +203,6 @@ export default function SubscriptionForm({
 
   return (
     <form onSubmit={handleSubmit((v) => onSubmit(buildPayload(v)))} className="space-y-8">
-      {/* 危險操作 — 頂部 */}
-      {isEditMode && (
-        <section className="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3">
-          <div>
-            <p className="text-sm font-medium text-destructive">刪除訂閱</p>
-            <p className="text-xs text-muted-foreground">刪除後無法復原</p>
-          </div>
-          <Button type="button" variant="destructive" size="sm" onClick={() => setDeleteOpen(true)}>
-            刪除訂閱
-          </Button>
-        </section>
-      )}
-
       {/* 必填欄位 */}
       <section className="space-y-4">
         <h3 className="text-base font-semibold">基本資訊</h3>
@@ -368,21 +355,31 @@ export default function SubscriptionForm({
         />
       </section>
 
-      <div className="flex gap-3">
+      {/* 付款紀錄（僅編輯模式） */}
+      {isEditMode && (
+        <section className="border-t pt-6">
+          <PaymentRecordList subscriptionId={subscriptionId!} />
+        </section>
+      )}
+
+      <div className="flex items-center gap-3 border-t pt-6">
         <Button type="submit" disabled={isPending}>
           {isPending ? '儲存中...' : submitLabel}
         </Button>
         <Button type="button" variant="outline" onClick={() => navigate('/subscriptions')}>
           取消
         </Button>
+        {isEditMode && (
+          <Button
+            type="button"
+            variant="destructive"
+            className="ml-auto"
+            onClick={() => setDeleteOpen(true)}
+          >
+            刪除訂閱
+          </Button>
+        )}
       </div>
-
-      {/* 付款紀錄 — 底部（僅編輯模式） */}
-      {isEditMode && (
-        <section className="border-t pt-6">
-          <PaymentRecordList subscriptionId={subscriptionId!} />
-        </section>
-      )}
 
       {/* 刪除確認 Dialog */}
       {isEditMode && (
