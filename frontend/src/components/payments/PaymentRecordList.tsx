@@ -68,6 +68,7 @@ export default function PaymentRecordList({ subscriptionId, readOnly = false }: 
         <span className="text-sm font-medium">付款紀錄</span>
         {canCreate && (
           <Button
+            type="button"
             size="sm"
             variant="outline"
             onClick={() => {
@@ -108,6 +109,7 @@ export default function PaymentRecordList({ subscriptionId, readOnly = false }: 
                     <div className="flex justify-end gap-1">
                       {canUpdate && (
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
                           className="size-6"
@@ -121,6 +123,7 @@ export default function PaymentRecordList({ subscriptionId, readOnly = false }: 
                       )}
                       {canDelete && (
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
                           className="size-6"
@@ -152,10 +155,11 @@ export default function PaymentRecordList({ subscriptionId, readOnly = false }: 
             <DialogDescription>確定要刪除此付款紀錄嗎？此操作無法復原。</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeletingId(null)} disabled={isDeleting}>
+            <Button type="button" variant="outline" onClick={() => setDeletingId(null)} disabled={isDeleting}>
               取消
             </Button>
             <Button
+              type="button"
               variant="destructive"
               onClick={() => deletingId !== null && doDelete(deletingId)}
               disabled={isDeleting}

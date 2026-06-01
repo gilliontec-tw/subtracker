@@ -362,23 +362,20 @@ export default function SubscriptionForm({
         </section>
       )}
 
-      <div className="flex items-center gap-3 border-t pt-6">
-        <Button type="submit" disabled={isPending}>
-          {isPending ? '儲存中...' : submitLabel}
-        </Button>
-        <Button type="button" variant="outline" onClick={() => navigate('/subscriptions')}>
-          取消
-        </Button>
-        {isEditMode && (
-          <Button
-            type="button"
-            variant="destructive"
-            className="ml-auto"
-            onClick={() => setDeleteOpen(true)}
-          >
+      <div className="flex items-center justify-between border-t pt-6">
+        {isEditMode ? (
+          <Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
             刪除訂閱
           </Button>
-        )}
+        ) : <span />}
+        <div className="flex gap-3">
+          <Button type="submit" className="bg-green-600 hover:bg-green-700" disabled={isPending}>
+            {isPending ? '儲存中...' : submitLabel}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => navigate('/subscriptions')}>
+            取消
+          </Button>
+        </div>
       </div>
 
       {/* 刪除確認 Dialog */}
