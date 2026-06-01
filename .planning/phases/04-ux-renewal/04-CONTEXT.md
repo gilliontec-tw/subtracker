@@ -44,9 +44,11 @@
   - semi_annual → +6 個月
   - annual → +1 年
   - biennial → +2 年
-  - `billing_cycle` 為 null 的訂閱：+1 年（預設）
+  - `billing_cycle` 為 null 的訂閱：在確認視窗中標示警告「缺少計費週期，請先編輯訂閱」，並從本次續訂中排除（不更新）
 - **D-12:** 續訂後只更新到期日，不自動建立付款紀錄
 - **D-13:** 確認執行後，所有勾選訂閱的 checkbox 自動取消
+- **D-14:** 只有 `status == "active"` 的訂閱可被續訂；已取消（cancelled）/暫停（suspended）的訂閱在確認視窗中標示警告並從本次續訂排除
+- **D-15:** 計費週期（`billing_cycle`）在訂閱新增/編輯**前端表單**改為必填（不能儲存空值）；後端 schema 維持可空，不做資料 migration；現有空值訂閱下次編輯時才要求補填
 
 ### Claude's Discretion
 - 錢袋 icon 具體使用哪個 lucide-react icon（建議 `Wallet` 或 `CreditCard`）
