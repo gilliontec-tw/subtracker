@@ -109,7 +109,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
   const [batchOpen, setBatchOpen] = useState(false)
 
   const canUpdate = currentUser?.can_update ?? false
-  const canCreate = currentUser?.can_create ?? currentUser?.role === 'admin'
+  const canCreate = currentUser?.can_create ?? false
   const hasActions = canUpdate || canCreate
 
   function handleSort(col: SortKey) {
