@@ -7,6 +7,7 @@ from api.middleware.csrf import CSRFMiddleware
 from api.v1.routers.audit_log import router as audit_log_router
 from api.v1.routers.auth import router as auth_router
 from api.v1.routers.invite import router as invite_router
+from api.v1.routers.payments import router as payments_router
 from api.v1.routers.subscriptions import router as subscriptions_router
 from api.v1.routers.users import router as users_router
 
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(users_router)
     app.include_router(invite_router)
     app.include_router(audit_log_router)
+    app.include_router(payments_router)
 
     @app.get("/health")
     async def health() -> dict:
