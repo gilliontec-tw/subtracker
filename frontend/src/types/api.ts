@@ -79,3 +79,15 @@ export interface AuditLogEntry {
   changes: AuditLogChange[] | null
   created_at: string
 }
+
+export interface PaymentRecord {
+  id: number
+  subscription_id: number
+  service_name: string | null
+  payment_date: string
+  amount: string
+  currency: string
+  notes: string | null
+  source: string
+  created_at: string
+}
