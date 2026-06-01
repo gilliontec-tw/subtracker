@@ -22,10 +22,10 @@ class PaymentRecordUpdate(BaseModel):
 class PaymentRecordResponse(BaseModel):
     id: int
     subscription_id: int
-    service_name: str | None
+    service_name: str | None = None
     payment_date: date
     amount: Decimal
     currency: str
-    notes: str | None
+    notes: str | None = None
     source: str
     created_at: datetime
