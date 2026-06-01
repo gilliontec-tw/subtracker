@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useNavigate } from 'react-router-dom'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -12,6 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { deleteSubscription } from '@/api/subscriptions'
+import { useToast } from '@/hooks/use-toast'
 import type { Subscription } from '@/types/api'
 
 const BILLING_CYCLES = ['monthly', 'quarterly', 'semi_annual', 'annual', 'biennial'] as const
@@ -82,14 +93,14 @@ function buildPayload(values: FormValues): Record<string, unknown> {
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export function toFormValues(sub: Subscription): FormValues {
+export function toFormValues(sub: Subscription): Partial<FormValues> {
   return {
     service_name: sub.service_name,
     login_account: sub.login_account,
     expiry_date: sub.expiry_date,
     owner_name: sub.owner_name ?? '',
     department: sub.department ?? '',
-    billing_cycle: sub.billing_cycle ?? 'monthly',
+    billing_cycle: sub.billing_cycle as FormValues['billing_cycle'],
     cost: sub.cost ?? '',
     currency: sub.currency,
     exchange_rate: sub.exchange_rate ?? '',
@@ -105,10 +116,12 @@ export function toFormValues(sub: Subscription): FormValues {
 }
 
 interface Props {
-  defaultValues?: FormValues
+  defaultValues?: Partial<FormValues>
   onSubmit: (payload: Record<string, unknown>) => void
   isPending: boolean
   submitLabel: string
+  subscriptionId?: number
+  serviceName?: string
 }
 
 function FormField({
@@ -139,8 +152,14 @@ export default function SubscriptionForm({
   onSubmit,
   isPending,
   submitLabel,
+  subscriptionId,
+  serviceName,
 }: Props) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const [deleteOpen, setDeleteOpen] = useState(false)
+
   const {
     register,
     handleSubmit,
@@ -164,6 +183,22 @@ export default function SubscriptionForm({
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const currency = watch('currency')
+  const billingCycle = watch('billing_cycle')
+
+  const { mutate: deleteMutate, isPending: isDeleting } = useMutation({
+    mutationFn: () => deleteSubscription(subscriptionId!),
+    onSuccess: () => {
+      setDeleteOpen(false)
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] })
+      toast({ title: `「${serviceName}」已刪除` })
+      navigate('/subscriptions')
+    },
+    onError: () => {
+      toast({ title: '刪除失敗', variant: 'destructive' })
+    },
+  })
+
+  const isEditMode = subscriptionId !== undefined && serviceName !== undefined
 
   return (
     <form onSubmit={handleSubmit((v) => onSubmit(buildPayload(v)))} className="space-y-8">
@@ -193,7 +228,7 @@ export default function SubscriptionForm({
 
           <FormField label="計費週期" error={errors.billing_cycle?.message} required>
             <Select
-              defaultValue={defaultValues?.billing_cycle}
+              value={billingCycle ?? ''}
               onValueChange={(v) => setValue('billing_cycle', v as FormValues['billing_cycle'], { shouldValidate: true })}
             >
               <SelectTrigger>
@@ -327,6 +362,39 @@ export default function SubscriptionForm({
           取消
         </Button>
       </div>
+
+      {/* 危險操作 */}
+      {isEditMode && (
+        <section className="mt-12 border-t border-destructive/30 pt-6">
+          <h3 className="text-base font-semibold text-destructive">危險操作</h3>
+          <p className="mt-1 text-sm text-muted-foreground">刪除後無法復原。</p>
+          <Button type="button" variant="destructive" className="mt-3" onClick={() => setDeleteOpen(true)}>
+            刪除訂閱
+          </Button>
+        </section>
+      )}
+
+      {/* 刪除確認 Dialog */}
+      {isEditMode && (
+        <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>確認刪除</DialogTitle>
+              <DialogDescription>
+                確定要刪除「{serviceName}」嗎？此操作無法復原。
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={isDeleting}>
+                取消
+              </Button>
+              <Button variant="destructive" onClick={() => deleteMutate()} disabled={isDeleting}>
+                {isDeleting ? '刪除中...' : '確認刪除'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </form>
   )
 }

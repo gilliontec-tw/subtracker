@@ -1,3 +1,4 @@
+from application.use_cases.batch_renew_subscriptions import BatchRenewSubscriptionsUseCase
 from application.use_cases.create_subscription import CreateSubscriptionUseCase
 from application.use_cases.delete_subscription import DeleteSubscriptionUseCase
 from application.use_cases.get_subscription import GetSubscriptionUseCase
@@ -20,6 +21,9 @@ from api.dependencies import (
 )
 from api.v1.schemas.base import ApiResponse, PaginationMeta
 from api.v1.schemas.subscription import (
+    BatchRenewRequest,
+    BatchRenewResponse,
+    BatchRenewSkipped,
     SubscriptionCreate,
     SubscriptionResponse,
     SubscriptionUpdate,
@@ -64,6 +68,29 @@ async def create_subscription(
     )
     sub = await use_case.execute(**body.model_dump())
     return ApiResponse.ok(data=SubscriptionResponse(**vars(sub)))
+
+
+@router.post("/batch-renew", response_model=ApiResponse[BatchRenewResponse])
+async def batch_renew(
+    body: BatchRenewRequest,
+    current_user: User = Depends(require_can_update),
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[BatchRenewResponse]:
+    repo = SqlSubscriptionRepository(db)
+    audit_repo = SqlAuditLogRepository(db)
+    uc = BatchRenewSubscriptionsUseCase(
+        repo,
+        audit_repo=audit_repo,
+        actor_user_id=current_user.id,
+        actor_email=current_user.email,
+    )
+    result = await uc.execute(subscription_ids=body.subscription_ids)
+    return ApiResponse.ok(
+        data=BatchRenewResponse(
+            renewed=[SubscriptionResponse(**vars(s)) for s in result["renewed"]],
+            skipped=[BatchRenewSkipped(**s) for s in result["skipped"]],
+        )
+    )
 
 
 @router.get("/{id}", response_model=ApiResponse[SubscriptionResponse])

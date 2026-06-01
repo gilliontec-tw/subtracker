@@ -5,10 +5,12 @@ import { listSubscriptions } from '@/api/subscriptions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import SubscriptionTable from '@/components/subscriptions/SubscriptionTable'
+import { useAuthStore } from '@/stores/authStore'
 import { Plus } from 'lucide-react'
 
 export default function SubscriptionsPage() {
   const navigate = useNavigate()
+  const { currentUser } = useAuthStore()
   const [search, setSearch] = useState('')
   const [showCancelled, setShowCancelled] = useState(false)
 
@@ -26,10 +28,12 @@ export default function SubscriptionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">訂閱管理</h2>
-        <Button onClick={() => navigate('/subscriptions/new')}>
-          <Plus className="size-4" />
-          新增訂閱
-        </Button>
+        {currentUser?.can_create && (
+          <Button onClick={() => navigate('/subscriptions/new')}>
+            <Plus className="size-4" />
+            新增訂閱
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-4">

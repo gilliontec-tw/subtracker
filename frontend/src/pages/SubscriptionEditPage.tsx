@@ -44,6 +44,8 @@ export default function SubscriptionEditPage() {
         onSubmit={mutate}
         isPending={isPending}
         submitLabel="儲存"
+        subscriptionId={subId}
+        serviceName={subscription.service_name}
       />
     </div>
   )

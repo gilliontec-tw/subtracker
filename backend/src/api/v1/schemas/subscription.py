@@ -71,3 +71,17 @@ class SubscriptionResponse(BaseModel):
     status: str
     created_at: datetime | None
     updated_at: datetime | None
+
+
+class BatchRenewRequest(BaseModel):
+    subscription_ids: list[int]
+
+
+class BatchRenewSkipped(BaseModel):
+    id: int
+    reason: str  # "not_found" | "not_active" | "missing_billing_cycle"
+
+
+class BatchRenewResponse(BaseModel):
+    renewed: list[SubscriptionResponse]
+    skipped: list[BatchRenewSkipped]

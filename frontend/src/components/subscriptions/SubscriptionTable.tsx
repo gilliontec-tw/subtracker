@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { AlertCircle, ChevronDown, ChevronUp, ChevronsUpDown, Pencil } from 'lucide-react'
 import DeleteConfirmDialog from './DeleteConfirmDialog'
+import SubscriptionDetailDialog from './SubscriptionDetailDialog'
+import { useAuthStore } from '@/stores/authStore'
 import type { Subscription } from '@/types/api'
 
 type SortKey = 'service_name' | 'login_account' | 'department' | 'owner_name' | 'cost' | 'expiry_date' | 'status'
@@ -97,8 +99,14 @@ interface Props {
 
 export default function SubscriptionTable({ subscriptions }: Props) {
   const navigate = useNavigate()
+  const { currentUser } = useAuthStore()
   const [sortKey, setSortKey] = useState<SortKey>('expiry_date')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [detailSub, setDetailSub] = useState<Subscription | null>(null)
+
+  const canUpdate = currentUser?.can_update ?? false
+  const canDelete = currentUser?.can_delete ?? false
+  const hasActions = canUpdate || canDelete
 
   function handleSort(col: SortKey) {
     if (col === sortKey) {
@@ -124,55 +132,73 @@ export default function SubscriptionTable({ subscriptions }: Props) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          {th('服務名稱', 'service_name')}
-          {th('帳號', 'login_account')}
-          {th('部門', 'department')}
-          {th('負責人', 'owner_name')}
-          {th('費用', 'cost')}
-          {th('到期日', 'expiry_date')}
-          {th('狀態', 'status')}
-          <TableHead className="text-right">操作</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {sorted.length === 0 && (
+    <>
+      <Table>
+        <TableHeader>
           <TableRow>
-            <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
-              沒有訂閱資料
-            </TableCell>
+            {th('服務名稱', 'service_name')}
+            {th('帳號', 'login_account')}
+            {th('部門', 'department')}
+            {th('負責人', 'owner_name')}
+            {th('費用', 'cost')}
+            {th('到期日', 'expiry_date')}
+            {th('狀態', 'status')}
+            {hasActions && <TableHead className="text-right">操作</TableHead>}
           </TableRow>
-        )}
-        {sorted.map((sub) => (
-          <TableRow key={sub.id}>
-            <TableCell className="font-medium">{sub.service_name}</TableCell>
-            <TableCell className="text-muted-foreground">{sub.login_account || '—'}</TableCell>
-            <TableCell>{sub.department || '—'}</TableCell>
-            <TableCell>{sub.owner_name || '—'}</TableCell>
-            <TableCell>{formatCost(sub.cost, sub.currency)}</TableCell>
-            <TableCell>
-              <ExpiryCell date={sub.expiry_date} notificationDays={sub.notification_days} />
-            </TableCell>
-            <TableCell>
-              <StatusBadge status={sub.status} />
-            </TableCell>
-            <TableCell className="text-right">
-              <div className="flex justify-end gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate(`/subscriptions/${sub.id}/edit`)}
-                >
-                  <Pencil className="size-4" />
-                </Button>
-                <DeleteConfirmDialog subscriptionId={sub.id} serviceName={sub.service_name} />
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {sorted.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={hasActions ? 8 : 7} className="py-8 text-center text-muted-foreground">
+                沒有訂閱資料
+              </TableCell>
+            </TableRow>
+          )}
+          {sorted.map((sub) => (
+            <TableRow
+              key={sub.id}
+              className="cursor-pointer"
+              onClick={() => setDetailSub(sub)}
+            >
+              <TableCell className="font-medium">{sub.service_name}</TableCell>
+              <TableCell className="text-muted-foreground">{sub.login_account || '—'}</TableCell>
+              <TableCell>{sub.department || '—'}</TableCell>
+              <TableCell>{sub.owner_name || '—'}</TableCell>
+              <TableCell>{formatCost(sub.cost, sub.currency)}</TableCell>
+              <TableCell>
+                <ExpiryCell date={sub.expiry_date} notificationDays={sub.notification_days} />
+              </TableCell>
+              <TableCell>
+                <StatusBadge status={sub.status} />
+              </TableCell>
+              {hasActions && (
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-end gap-1">
+                    {canUpdate && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/subscriptions/${sub.id}/edit`)}
+                      >
+                        <Pencil className="size-4" />
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <DeleteConfirmDialog subscriptionId={sub.id} serviceName={sub.service_name} />
+                    )}
+                  </div>
+                </TableCell>
+              )}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <SubscriptionDetailDialog
+        subscription={detailSub}
+        open={detailSub !== null}
+        onOpenChange={(open) => { if (!open) setDetailSub(null) }}
+      />
+    </>
   )
 }
