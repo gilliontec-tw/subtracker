@@ -16,3 +16,7 @@ export async function getMe(): Promise<User> {
   if (!data.success || !data.data) throw new Error(data.message)
   return data.data
 }
+
+export async function forgotPassword(email: string): Promise<void> {
+  await api.post('/api/v1/auth/forgot-password', { email })
+}

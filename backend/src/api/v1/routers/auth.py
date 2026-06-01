@@ -2,6 +2,7 @@ import secrets
 from datetime import UTC, datetime
 
 import redis.asyncio as aioredis
+from application.use_cases.request_password_reset import RequestPasswordResetUseCase
 from domain.entities.user import User
 from domain.exceptions import NotAuthenticatedException
 from fastapi import APIRouter, Cookie, Depends, Request, Response
@@ -14,11 +15,12 @@ from infrastructure.auth.password import verify_password
 from infrastructure.cache.redis_client import get_redis
 from infrastructure.database.repositories.user_repository import SqlUserRepository
 from infrastructure.database.session import get_db
+from infrastructure.smtp.smtp_email_sender import SmtpEmailSender
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.config import settings
 from api.dependencies import get_current_user
-from api.v1.schemas.auth import LoginRequest, UserResponse
+from api.v1.schemas.auth import ForgotPasswordRequest, LoginRequest, UserResponse
 from api.v1.schemas.base import ApiResponse
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -159,6 +161,24 @@ async def refresh(
         max_age=settings.jwt_access_expire_minutes * 60,
     )
     return ApiResponse.ok(message="Token 已更新")
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[None]:
+    repo = SqlUserRepository(db)
+    email_sender = SmtpEmailSender(
+        host=settings.smtp_host,
+        port=settings.smtp_port,
+        username=settings.smtp_user,
+        password=settings.smtp_password,
+        from_addr=settings.smtp_from,
+    )
+    use_case = RequestPasswordResetUseCase(repo, email_sender, settings.app_url)
+    await use_case.execute(email=str(body.email))
+    return ApiResponse.ok(message="若此 Email 已註冊，重設連結已寄出，請查收信箱")
 
 
 @router.get("/me")

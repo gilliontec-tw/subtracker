@@ -1,4 +1,4 @@
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -80,6 +80,14 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? '登入中...' : '登入'}
             </Button>
+            <div className="text-center">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+              >
+                忘記密碼？
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

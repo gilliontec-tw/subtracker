@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     smtp_from: str = ""
 
     app_env: str = "production"
+    app_url: str = "http://localhost:5173"
 
 
 @lru_cache
