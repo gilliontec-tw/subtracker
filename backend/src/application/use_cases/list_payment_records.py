@@ -17,6 +17,4 @@ class ListPaymentRecordsUseCase:
     ) -> list[PaymentRecord]:
         if subscription_id is not None:
             return await self._repo.list_by_subscription(subscription_id)
-        if from_date is not None and to_date is not None:
-            return await self._repo.list_by_filters(from_date, to_date, service_name)
-        return []
+        return await self._repo.list_by_filters(from_date, to_date, service_name)

@@ -5,7 +5,7 @@ from application.use_cases.delete_payment_record import DeletePaymentRecordUseCa
 from application.use_cases.list_payment_records import ListPaymentRecordsUseCase
 from application.use_cases.update_payment_record import UpdatePaymentRecordUseCase
 from domain.entities.user import User
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from infrastructure.database.repositories.payment_record_repository import (
     SqlPaymentRecordRepository,
 )
@@ -40,11 +40,6 @@ async def list_payments(
     _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[list[PaymentRecordResponse]]:
-    if subscription_id is None and (from_date is None or to_date is None):
-        raise HTTPException(
-            status_code=400, detail="Provide subscription_id or both from_date and to_date"
-        )
-
     repo = SqlPaymentRecordRepository(db)
     use_case = ListPaymentRecordsUseCase(repo)
     records = await use_case.execute(

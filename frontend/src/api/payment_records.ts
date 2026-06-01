@@ -10,14 +10,14 @@ export async function listBySubscription(subscriptionId: number): Promise<Paymen
 }
 
 export async function listByFilters(
-  fromDate: string,
-  toDate: string,
+  fromDate?: string,
+  toDate?: string,
   serviceName?: string,
 ): Promise<PaymentRecord[]> {
   const { data } = await api.get<ApiResponse<PaymentRecord[]>>('/api/v1/payments', {
     params: {
-      from_date: fromDate,
-      to_date: toDate,
+      ...(fromDate ? { from_date: fromDate } : {}),
+      ...(toDate ? { to_date: toDate } : {}),
       ...(serviceName ? { service_name: serviceName } : {}),
     },
   })

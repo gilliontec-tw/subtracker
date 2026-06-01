@@ -93,12 +93,16 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
         return [_to_entity(row[0], row[1]) for row in result.all()]
 
     async def list_by_filters(
-        self, from_date: date, to_date: date, service_name: str | None
+        self,
+        from_date: date | None,
+        to_date: date | None,
+        service_name: str | None,
     ) -> list[PaymentRecord]:
-        filters = [
-            PaymentRecordModel.payment_date >= from_date,
-            PaymentRecordModel.payment_date <= to_date,
-        ]
+        filters = []
+        if from_date is not None:
+            filters.append(PaymentRecordModel.payment_date >= from_date)
+        if to_date is not None:
+            filters.append(PaymentRecordModel.payment_date <= to_date)
         if service_name:
             filters.append(SubscriptionModel.service_name.ilike(f"%{service_name}%"))
         result = await self._session.execute(

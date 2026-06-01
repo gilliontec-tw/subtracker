@@ -26,29 +26,13 @@ import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/use-toast'
 import type { PaymentRecord } from '@/types/api'
 
-function pad(n: number) {
-  return String(n).padStart(2, '0')
-}
-
-function localDateStr(d: Date): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
-function defaultRange() {
-  const to = new Date()
-  const from = new Date()
-  from.setDate(from.getDate() - 30)
-  return { from: localDateStr(from), to: localDateStr(to) }
-}
-
 export default function PaymentRecordsPage() {
-  const def = defaultRange()
-  const [fromDate, setFromDate] = useState(def.from)
-  const [toDate, setToDate] = useState(def.to)
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
   const [serviceName, setServiceName] = useState('')
   const [queryParams, setQueryParams] = useState({
-    from: def.from,
-    to: def.to,
+    from: '',
+    to: '',
     service: '',
   })
   const [editing, setEditing] = useState<PaymentRecord | undefined>(undefined)
@@ -66,7 +50,11 @@ export default function PaymentRecordsPage() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['payments', 'global', queryParams.from, queryParams.to, queryParams.service],
     queryFn: () =>
-      listByFilters(queryParams.from, queryParams.to, queryParams.service || undefined),
+      listByFilters(
+        queryParams.from || undefined,
+        queryParams.to || undefined,
+        queryParams.service || undefined,
+      ),
   })
 
   const { mutate: doDelete, isPending: isDeleting } = useMutation({

@@ -16,7 +16,10 @@ class PaymentRecordRepository(ABC):
 
     @abstractmethod
     async def list_by_filters(
-        self, from_date: date, to_date: date, service_name: str | None
+        self,
+        from_date: date | None,
+        to_date: date | None,
+        service_name: str | None,
     ) -> list[PaymentRecord]: ...
 
     @abstractmethod

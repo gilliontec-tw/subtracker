@@ -42,10 +42,10 @@ async def test_date_range_path_calls_list_by_filters():
 
 
 @pytest.mark.asyncio
-async def test_no_params_returns_empty_list():
+async def test_no_params_calls_list_by_filters_with_none():
     repo = MagicMock()
+    repo.list_by_filters = AsyncMock(return_value=[])
     uc = ListPaymentRecordsUseCase(repo)
     result = await uc.execute()
+    repo.list_by_filters.assert_called_once_with(None, None, None)
     assert result == []
-    repo.list_by_subscription.assert_not_called()
-    repo.list_by_filters.assert_not_called()
