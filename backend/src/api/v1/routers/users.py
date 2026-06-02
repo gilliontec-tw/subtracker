@@ -1,5 +1,6 @@
 from application.use_cases.create_user import CreateUserUseCase
 from application.use_cases.delete_user import DeleteUserUseCase
+from application.use_cases.regenerate_invite import RegenerateInviteUseCase
 from application.use_cases.toggle_user_status import ToggleUserStatusUseCase
 from application.use_cases.update_user import UpdateUserUseCase
 from domain.entities.user import User
@@ -14,6 +15,7 @@ from api.v1.schemas.base import ApiResponse
 from api.v1.schemas.user import (
     CreateUserRequest,
     CreateUserResponse,
+    RegenerateInviteResponse,
     UpdateUserRequest,
     UserListItemResponse,
     UserStatusRequest,
@@ -99,3 +101,15 @@ async def delete_user(
     use_case = DeleteUserUseCase(repo)
     await use_case.execute(id=id)
     return ApiResponse.ok()
+
+
+@router.post("/{id}/invite", response_model=ApiResponse[RegenerateInviteResponse])
+async def regenerate_invite(
+    id: int,
+    _=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    repo = SqlUserRepository(db)
+    use_case = RegenerateInviteUseCase(repo)
+    user = await use_case.execute(user_id=id)
+    return ApiResponse.ok(data=RegenerateInviteResponse(invite_token=user.invite_token))

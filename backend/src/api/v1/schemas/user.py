@@ -42,3 +42,7 @@ class InviteValidateResponse(BaseModel):
 
 class InviteAcceptRequest(BaseModel):
     password: str = Field(min_length=8)
+
+
+class RegenerateInviteResponse(BaseModel):
+    invite_token: str
