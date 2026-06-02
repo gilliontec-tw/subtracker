@@ -122,6 +122,12 @@ export default function SubscriptionTable({ subscriptions }: Props) {
 
   const sorted = sortSubscriptions(subscriptions, sortKey, sortDir)
 
+  // Derive active selection: only ids that still exist in the current subscriptions list.
+  // This ensures stale selections are silently dropped when the subscriptions prop changes
+  // (e.g. after a filter update), without needing an effect or ref.
+  const currentIdSet = new Set(sorted.map((s) => s.id))
+  const activeSelectedIds = new Set([...selectedIds].filter((id) => currentIdSet.has(id)))
+
   function th(label: string, col: SortKey) {
     return (
       <TableHead
@@ -136,10 +142,10 @@ export default function SubscriptionTable({ subscriptions }: Props) {
 
   return (
     <>
-      {selectedIds.size > 0 && (
+      {activeSelectedIds.size > 0 && (
         <div className="mb-3 flex items-center justify-end">
           <Button onClick={() => setBatchOpen(true)}>
-            續訂 ({selectedIds.size})
+            續訂 ({activeSelectedIds.size})
           </Button>
         </div>
       )}
@@ -152,8 +158,8 @@ export default function SubscriptionTable({ subscriptions }: Props) {
               <input
                 type="checkbox"
                 className="size-4"
-                checked={selectedIds.size === sorted.length && sorted.length > 0}
-                ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < sorted.length }}
+                checked={activeSelectedIds.size === sorted.length && sorted.length > 0}
+                ref={(el) => { if (el) el.indeterminate = activeSelectedIds.size > 0 && activeSelectedIds.size < sorted.length }}
                 onChange={(e) => {
                   setSelectedIds(e.target.checked ? new Set(sorted.map(s => s.id)) : new Set())
                 }}
@@ -187,7 +193,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
                 <input
                   type="checkbox"
                   className="size-4"
-                  checked={selectedIds.has(sub.id)}
+                  checked={activeSelectedIds.has(sub.id)}
                   onChange={(e) => {
                     setSelectedIds(prev => {
                       const next = new Set(prev)
@@ -234,7 +240,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
       <BatchRenewDialog
         open={batchOpen}
         onOpenChange={setBatchOpen}
-        subscriptions={sorted.filter(s => selectedIds.has(s.id))}
+        subscriptions={sorted.filter(s => activeSelectedIds.has(s.id))}
         onSuccess={() => setSelectedIds(new Set())}
       />
     </>
