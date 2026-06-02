@@ -73,6 +73,18 @@ export async function deleteUser(id: number): Promise<void> {
   }
 }
 
+export async function regenerateInvite(id: number): Promise<{ invite_token: string }> {
+  try {
+    const { data } = await api.post<ApiResponse<{ invite_token: string }>>(
+      `/api/v1/users/${id}/invite`,
+    )
+    if (!data.success || !data.data) throw new Error(data.message)
+    return data.data
+  } catch (err) {
+    return extractMessage(err, '重設連結失敗')
+  }
+}
+
 export async function validateInvite(token: string): Promise<{ email: string }> {
   const { data } = await api.get<ApiResponse<{ email: string }>>(`/api/v1/invite/${token}`)
   if (!data.success || !data.data) throw new Error(data.message)
