@@ -64,7 +64,7 @@ function ExpiringTable({ items }: { items: DashboardStats['expiringSubscriptions
 }
 
 export default function DashboardPage() {
-  const { data: subsData } = useQuery({
+  const { data: subsData, isLoading, isError } = useQuery({
     queryKey: ['subscriptions'],
     queryFn: () => listSubscriptions(),
   })
@@ -80,18 +80,25 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">總覽</h1>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <StatCard title="訂閱總數" value={`${stats.activeCount} 個`} />
-        <StatCard title="即將到期" value={`${stats.expiringCount} 個`} />
-        <StatCard title="本月費用" value={formatTWD(stats.thisMonthCost)} />
-        <StatCard title="下月費用" value={formatTWD(stats.nextMonthCost)} />
-        <StatCard title="歷史付款總計" value={formatTWD(stats.historicalTotal)} />
-      </div>
+      {isLoading && <p className="text-sm text-muted-foreground">載入中...</p>}
+      {isError && <p className="text-sm text-destructive">載入失敗，請重新整理頁面</p>}
 
-      <div>
-        <h2 className="mb-3 text-lg font-medium">即將到期（30 天內）</h2>
-        <ExpiringTable items={stats.expiringSubscriptions} />
-      </div>
+      {!isLoading && !isError && (
+        <>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            <StatCard title="訂閱總數" value={`${stats.activeCount} 個`} />
+            <StatCard title="即將到期" value={`${stats.expiringCount} 個`} />
+            <StatCard title="本月費用" value={formatTWD(stats.thisMonthCost)} />
+            <StatCard title="下月費用" value={formatTWD(stats.nextMonthCost)} />
+            <StatCard title="歷史付款總計" value={formatTWD(stats.historicalTotal)} />
+          </div>
+
+          <div>
+            <h2 className="mb-3 text-lg font-medium">即將到期（30 天內）</h2>
+            <ExpiringTable items={stats.expiringSubscriptions} />
+          </div>
+        </>
+      )}
     </div>
   )
 }
