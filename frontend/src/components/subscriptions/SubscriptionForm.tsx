@@ -101,7 +101,9 @@ export function toFormValues(sub: Subscription): Partial<FormValues> {
     expiry_date: sub.expiry_date,
     owner_name: sub.owner_name ?? '',
     department: sub.department ?? '',
-    billing_cycle: sub.billing_cycle as FormValues['billing_cycle'],
+    billing_cycle: (BILLING_CYCLES as readonly string[]).includes(sub.billing_cycle ?? '')
+      ? (sub.billing_cycle as FormValues['billing_cycle'])
+      : undefined,
     cost: sub.cost ?? '',
     currency: sub.currency,
     exchange_rate: sub.exchange_rate ?? '',
