@@ -185,6 +185,7 @@ export default function SubscriptionForm({
   // eslint-disable-next-line react-hooks/incompatible-library
   const currency = watch('currency')
   const billingCycle = watch('billing_cycle')
+  const statusVal = watch('status')
 
   const { mutate: deleteMutate, isPending: isDeleting } = useMutation({
     mutationFn: () => deleteSubscription(subscriptionId!),
@@ -257,8 +258,8 @@ export default function SubscriptionForm({
 
           <FormField label="幣別">
             <Select
-              defaultValue={defaultValues?.currency ?? 'TWD'}
-              onValueChange={(v) => setValue('currency', v as FormValues['currency'])}
+              value={currency ?? 'TWD'}
+              onValueChange={(v) => setValue('currency', v as FormValues['currency'], { shouldValidate: true })}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -297,8 +298,8 @@ export default function SubscriptionForm({
 
           <FormField label="狀態">
             <Select
-              defaultValue={defaultValues?.status ?? 'active'}
-              onValueChange={(v) => setValue('status', v as FormValues['status'])}
+              value={statusVal ?? 'active'}
+              onValueChange={(v) => setValue('status', v as FormValues['status'], { shouldValidate: true })}
             >
               <SelectTrigger>
                 <SelectValue />
