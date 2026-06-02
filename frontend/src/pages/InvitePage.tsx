@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { validateInvite, acceptInvite } from '@/api/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,10 +41,9 @@ function Field({
 export default function InvitePage() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [done, setDone] = useState(false)
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['invite', token],
     queryFn: () => validateInvite(token!),
     retry: false,
@@ -61,7 +60,6 @@ export default function InvitePage() {
   const { mutate, isPending, isError: submitError, error: submitErr } = useMutation({
     mutationFn: (values: FormValues) => acceptInvite(token!, values.password),
     onSuccess: () => {
-      queryClient.removeQueries({ queryKey: ['invite', token] })
       setDone(true)
       setTimeout(() => navigate('/login', { replace: true }), 2000)
     },
@@ -75,7 +73,22 @@ export default function InvitePage() {
     )
   }
 
-  if (isError || !data) {
+  if (done) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader>
+            <CardTitle>密碼設定成功</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">正在導向登入頁面...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (!data) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-sm">
@@ -86,21 +99,6 @@ export default function InvitePage() {
             <p className="text-sm text-muted-foreground">
               此邀請連結已失效或過期，請聯絡管理員重新產生。
             </p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (done) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle>密碼設定成功</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">正在導向登入頁面...</p>
           </CardContent>
         </Card>
       </div>

@@ -11,8 +11,6 @@ import UsersPage from '@/pages/UsersPage'
 import AuditLogPage from '@/pages/AuditLogPage'
 import PaymentRecordsPage from '@/pages/PaymentRecordsPage'
 import InvitePage from '@/pages/InvitePage'
-import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
-import ResetPasswordPage from '@/pages/ResetPasswordPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -25,8 +23,6 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/invite/:token" element={<InvitePage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
               <Route index element={<Navigate to="/subscriptions" replace />} />
