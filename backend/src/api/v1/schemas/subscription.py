@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 CurrencyType = Literal["TWD", "USD", "EUR", "JPY", "GBP", "CNY"]
 
@@ -75,6 +75,17 @@ class SubscriptionResponse(BaseModel):
 
 class BatchRenewRequest(BaseModel):
     subscription_ids: list[int]
+
+    @field_validator("subscription_ids")
+    @classmethod
+    def validate_ids(cls, v: list[int]) -> list[int]:
+        if not v:
+            raise ValueError("subscription_ids must not be empty")
+        if any(i <= 0 for i in v):
+            raise ValueError("all subscription_ids must be positive integers")
+        if len(v) != len(set(v)):
+            raise ValueError("subscription_ids must not contain duplicates")
+        return v
 
 
 class BatchRenewSkipped(BaseModel):
