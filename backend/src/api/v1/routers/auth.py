@@ -2,6 +2,7 @@ import secrets
 from datetime import UTC, datetime
 
 import redis.asyncio as aioredis
+from application.use_cases.change_password import ChangePasswordUseCase
 from application.use_cases.request_password_reset import RequestPasswordResetUseCase
 from domain.entities.user import User
 from domain.exceptions import NotAuthenticatedException
@@ -20,7 +21,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.config import settings
 from api.dependencies import get_current_user
-from api.v1.schemas.auth import ForgotPasswordRequest, LoginRequest, UserResponse
+from api.v1.schemas.auth import (
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
+    LoginRequest,
+    UserResponse,
+)
 from api.v1.schemas.base import ApiResponse
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
@@ -179,6 +185,18 @@ async def forgot_password(
     use_case = RequestPasswordResetUseCase(repo, email_sender, settings.app_url)
     await use_case.execute(email=str(body.email))
     return ApiResponse.ok(message="若此 Email 已註冊，重設連結已寄出，請查收信箱")
+
+
+@router.post("/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[None]:
+    repo = SqlUserRepository(db)
+    use_case = ChangePasswordUseCase(repo)
+    await use_case.execute(current_user, body.current_password, body.new_password)
+    return ApiResponse.ok(message="密碼已更新")
 
 
 @router.get("/me")
