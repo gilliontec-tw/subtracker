@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import AppLayout from '@/layouts/AppLayout'
 import LoginPage from '@/pages/LoginPage'
+import DashboardPage from '@/pages/DashboardPage'
 import SubscriptionsPage from '@/pages/SubscriptionsPage'
 import SubscriptionNewPage from '@/pages/SubscriptionNewPage'
 import SubscriptionEditPage from '@/pages/SubscriptionEditPage'
@@ -25,7 +26,8 @@ export default function App() {
           <Route path="/invite/:token" element={<InvitePage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              <Route index element={<Navigate to="/subscriptions" replace />} />
+              <Route index element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/subscriptions" element={<SubscriptionsPage />} />
               <Route path="/subscriptions/new" element={<SubscriptionNewPage />} />
               <Route path="/subscriptions/:id/edit" element={<SubscriptionEditPage />} />

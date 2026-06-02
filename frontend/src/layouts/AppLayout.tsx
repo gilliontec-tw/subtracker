@@ -80,6 +80,13 @@ export default function AppLayout() {
   const navLinks = (
     <>
       <Link
+        to="/dashboard"
+        className="text-muted-foreground transition-colors hover:text-foreground"
+        onClick={() => setMobileOpen(false)}
+      >
+        總覽
+      </Link>
+      <Link
         to="/subscriptions"
         className="text-muted-foreground transition-colors hover:text-foreground"
         onClick={() => setMobileOpen(false)}
