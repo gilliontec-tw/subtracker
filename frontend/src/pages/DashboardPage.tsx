@@ -4,6 +4,7 @@ import { listSubscriptions } from '@/api/subscriptions'
 import { listByFilters } from '@/api/payment_records'
 import { computeStats } from '@/lib/dashboardStats'
 import type { DashboardStats } from '@/lib/dashboardStats'
+import { fmtDate } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
@@ -49,7 +50,7 @@ function ExpiringTable({ items }: { items: DashboardStats['expiringSubscriptions
               onClick={() => navigate('/subscriptions')}
             >
               <td className="px-4 py-3">{item.service_name}</td>
-              <td className="px-4 py-3">{item.expiry_date}</td>
+              <td className="px-4 py-3">{fmtDate(item.expiry_date)}</td>
               <td className="px-4 py-3">
                 <Badge variant={item.daysLeft <= 7 ? 'destructive' : 'secondary'}>
                   {item.daysLeft} 天
@@ -64,15 +65,17 @@ function ExpiringTable({ items }: { items: DashboardStats['expiringSubscriptions
 }
 
 export default function DashboardPage() {
-  const { data: subsData, isLoading, isError } = useQuery({
-    queryKey: ['subscriptions'],
+  const { data: subsData, isLoading, isError: subsError } = useQuery({
+    queryKey: ['subscriptions', false],
     queryFn: () => listSubscriptions(),
   })
 
-  const { data: payments } = useQuery({
+  const { data: payments, isError: paymentsError } = useQuery({
     queryKey: ['payments'],
     queryFn: () => listByFilters(),
   })
+
+  const isError = subsError || paymentsError
 
   const stats = computeStats(subsData?.items ?? [], payments ?? [])
 

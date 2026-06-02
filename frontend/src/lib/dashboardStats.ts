@@ -70,7 +70,9 @@ export function computeStats(
     .filter((s) => s.next_billing_date !== null && isInYearMonth(s.next_billing_date, nextMonthYear, nextMonth))
     .reduce((sum, s) => sum + toCostTWD(s), 0)
 
-  const historicalTotal = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0)
+  const historicalTotal = payments
+    .filter((p) => p.currency === 'TWD')
+    .reduce((sum, p) => sum + parseFloat(p.amount), 0)
 
   return {
     activeCount: active.length,
