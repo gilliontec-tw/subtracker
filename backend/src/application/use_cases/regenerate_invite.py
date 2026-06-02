@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
+from domain.entities.user import User
 from domain.exceptions import ForbiddenException, NotFoundException
 from domain.repositories.user_repository import UserRepository
 
@@ -9,7 +10,7 @@ class RegenerateInviteUseCase:
     def __init__(self, repo: UserRepository) -> None:
         self._repo = repo
 
-    async def execute(self, user_id: int):
+    async def execute(self, user_id: int) -> User:
         user = await self._repo.get_by_id(user_id)
         if user is None:
             raise NotFoundException("使用者不存在")
