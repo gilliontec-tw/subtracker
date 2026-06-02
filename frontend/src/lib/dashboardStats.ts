@@ -19,8 +19,10 @@ export interface DashboardStats {
 function toCostTWD(sub: Subscription): number {
   if (sub.cost === null) return 0
   const cost = parseFloat(sub.cost)
+  if (isNaN(cost)) return 0
   if (sub.currency === 'TWD' || sub.exchange_rate === null) return cost
-  return cost * parseFloat(sub.exchange_rate)
+  const rate = parseFloat(sub.exchange_rate)
+  return isNaN(rate) ? cost : cost * rate
 }
 
 function daysFromToday(dateStr: string): number {
