@@ -37,7 +37,10 @@ function addCycle(dateStr: string, cycle: string): string {
     case 'annual':     y += 1;  break
     case 'biennial':   y += 2;  break
   }
-  while (m > 12) { m -= 12; y++ }
+  if (m > 12) {
+    y += Math.floor((m - 1) / 12)
+    m = ((m - 1) % 12) + 1
+  }
   // new Date(y, m, 0) = last day of month m (1-indexed), using 0-day-of-next-month trick
   const lastDay = new Date(y, m, 0).getDate()
   const d = Math.min(day, lastDay)
