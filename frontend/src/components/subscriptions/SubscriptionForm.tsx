@@ -59,7 +59,7 @@ const schema = z.object({
   trial_end_date: z.string().optional(),
   next_billing_date: z.string().optional(),
   notification_emails: z.string().optional(),
-  notification_days: z.string().default('30'),
+  notification_days: z.string().default('30').refine((v) => parseInt(v) > 0, '必須大於 0 天'),
   status: z.enum(STATUSES).default('active'),
   notes: z.string().optional(),
 })
@@ -87,7 +87,7 @@ function buildPayload(values: FormValues): Record<string, unknown> {
           .map((e) => e.trim())
           .filter(Boolean)
       : [],
-    notification_days: parseInt(values.notification_days) || 30,
+    notification_days: Math.max(1, parseInt(values.notification_days) || 30),
     status: values.status,
     notes: values.notes || undefined,
   }
