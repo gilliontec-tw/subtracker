@@ -10,12 +10,12 @@ export default function SubscriptionEditPage() {
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const subId = Number(id)
+  const subId = parseInt(id ?? '', 10)
 
   const { data: subscription, isLoading, isError } = useQuery({
     queryKey: ['subscription', subId],
     queryFn: () => getSubscription(subId),
-    enabled: !isNaN(subId),
+    enabled: Number.isInteger(subId) && subId > 0,
   })
 
   const { mutate, isPending } = useMutation({
