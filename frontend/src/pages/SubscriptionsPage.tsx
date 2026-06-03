@@ -75,7 +75,7 @@ export default function SubscriptionsPage() {
             <Download className="size-4" />
             匯出 CSV
           </Button>
-          {currentUser?.can_create && (
+          {(currentUser?.can_create || currentUser?.role === 'admin') && (
             <Button onClick={() => navigate('/subscriptions/new')}>
               <Plus className="size-4" />
               新增訂閱
@@ -100,7 +100,7 @@ export default function SubscriptionsPage() {
           />
           顯示已取消
         </label>
-        {currentUser?.can_update && (
+        {(currentUser?.can_update || currentUser?.role === 'admin') && (
           <span className="text-xs text-muted-foreground">勾選列可批次續訂</span>
         )}
       </div>

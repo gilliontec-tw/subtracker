@@ -1,10 +1,11 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { listUsers, regenerateInvite } from '@/api/users'
+import { useAuthStore } from '@/stores/authStore'
 import CreateUserModal from '@/components/users/CreateUserModal'
 import EditUserModal from '@/components/users/EditUserModal'
 import DeleteUserDialog from '@/components/users/DeleteUserDialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -22,8 +23,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useToast } from '@/hooks/use-toast'
+import { fmtDate } from '@/lib/utils'
 
 export default function UsersPage() {
+  const currentUser = useAuthStore((s) => s.currentUser)
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: listUsers,
@@ -52,6 +55,7 @@ export default function UsersPage() {
     setCopied(true)
   }
 
+  if (currentUser?.role !== 'admin') return <Navigate to="/dashboard" replace />
   if (isLoading) {
     return <div className="text-muted-foreground">載入中...</div>
   }
@@ -88,23 +92,19 @@ export default function UsersPage() {
                 <TableCell className="text-muted-foreground">{user.email}</TableCell>
                 <TableCell>
                   {user.role === 'admin' ? (
-                    <Badge className="border-transparent bg-purple-100 text-purple-800 hover:bg-purple-100">
-                      管理員
-                    </Badge>
+                    <span className="font-medium text-violet-700">管理員</span>
                   ) : (
-                    <Badge variant="secondary">一般使用者</Badge>
+                    <span className="text-slate-600">一般使用者</span>
                   )}
                 </TableCell>
                 <TableCell>
                   {user.is_active ? (
-                    <Badge className="border-transparent bg-green-100 text-green-800 hover:bg-green-100">
-                      啟用中
-                    </Badge>
+                    <span className="font-medium text-emerald-600">啟用中</span>
                   ) : (
-                    <Badge variant="secondary">已停用</Badge>
+                    <span className="text-slate-400">已停用</span>
                   )}
                 </TableCell>
-                <TableCell>{user.created_at ?? '—'}</TableCell>
+                <TableCell>{fmtDate(user.created_at ?? '') || '—'}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     {user.is_active && (

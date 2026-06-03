@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -162,6 +163,8 @@ export default function SubscriptionForm({
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const currentUser = useAuthStore((s) => s.currentUser)
+  const canDelete = currentUser?.can_delete || currentUser?.role === 'admin'
 
   const {
     register,
@@ -366,7 +369,7 @@ export default function SubscriptionForm({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-6">
-        {isEditMode ? (
+        {isEditMode && canDelete ? (
           <Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
             刪除訂閱
           </Button>
