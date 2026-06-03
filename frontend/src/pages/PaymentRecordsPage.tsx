@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listByFilters, deletePayment } from '@/api/payment_records'
+import { listSubscriptions } from '@/api/subscriptions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -15,11 +16,12 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { fmtDate } from '@/lib/utils'
 import PaymentRecordFormDialog from '@/components/payments/PaymentRecordFormDialog'
 import { useAuthStore } from '@/stores/authStore'
@@ -43,9 +45,16 @@ export default function PaymentRecordsPage() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
+  const canCreate = currentUser?.can_create || currentUser?.role === 'admin'
   const canUpdate = currentUser?.can_update || currentUser?.role === 'admin'
   const canDelete = currentUser?.can_delete || currentUser?.role === 'admin'
   const hasActions = canUpdate || canDelete
+
+  const { data: subsData } = useQuery({
+    queryKey: ['subscriptions', false],
+    queryFn: () => listSubscriptions(false),
+  })
+  const activeSubscriptions = subsData?.items ?? []
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['payments', 'global', queryParams.from, queryParams.to, queryParams.service],
@@ -72,9 +81,30 @@ export default function PaymentRecordsPage() {
 
   const records = data ?? []
 
+  const subMap = new Map((subsData?.items ?? []).map((s) => [s.id, s]))
+  let unconvertibleCount = 0
+  const twdTotal = records.reduce((sum, p) => {
+    const amount = parseFloat(p.amount)
+    if (isNaN(amount)) return sum
+    if (p.currency === 'TWD') return sum + amount
+    const sub = subMap.get(p.subscription_id)
+    if (!sub || !sub.exchange_rate) { unconvertibleCount++; return sum }
+    const rate = parseFloat(sub.exchange_rate)
+    if (isNaN(rate)) { unconvertibleCount++; return sum }
+    return sum + amount * rate
+  }, 0)
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">付款紀錄</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">付款紀錄</h2>
+        {canCreate && (
+          <Button onClick={() => { setEditing(undefined); setFormOpen(true) }}>
+            <Plus className="size-4" />
+            新增付款
+          </Button>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <input
@@ -170,6 +200,23 @@ export default function PaymentRecordsPage() {
               </TableRow>
             ))}
           </TableBody>
+          {records.length > 0 && (
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={hasActions ? 6 : 5} className="text-right tabular-nums">
+                  <span className="mr-4 text-sm text-slate-500">{records.length} 筆</span>
+                  <span className="font-semibold text-slate-900">
+                    合計：NT$ {Math.round(twdTotal).toLocaleString('zh-TW')}
+                  </span>
+                  {unconvertibleCount > 0 && (
+                    <span className="ml-2 text-xs text-slate-400">
+                      （另有 {unconvertibleCount} 筆外幣無法換算）
+                    </span>
+                  )}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          )}
         </Table>
         </div>
       )}
@@ -178,6 +225,7 @@ export default function PaymentRecordsPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         record={editing}
+        subscriptions={!editing ? activeSubscriptions : undefined}
       />
 
       <Dialog
