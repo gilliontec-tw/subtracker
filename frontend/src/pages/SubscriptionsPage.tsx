@@ -38,7 +38,10 @@ function downloadCSV(items: Subscription[]) {
   const d = new Date()
   a.href = url
   a.download = `subscriptions-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.csv`
+  a.style.display = 'none'
+  document.body.appendChild(a)
   a.click()
+  document.body.removeChild(a)
   URL.revokeObjectURL(url)
 }
 
