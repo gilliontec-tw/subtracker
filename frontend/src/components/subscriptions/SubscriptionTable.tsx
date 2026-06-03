@@ -9,54 +9,55 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { AlertCircle, ChevronDown, ChevronUp, ChevronsUpDown, Pencil } from 'lucide-react'
+import { ChevronDown, ChevronUp, ChevronsUpDown, Pencil } from 'lucide-react'
 import SubscriptionDetailDialog from './SubscriptionDetailDialog'
 import BatchRenewDialog from './BatchRenewDialog'
 import { useAuthStore } from '@/stores/authStore'
-import { fmtDate } from '@/lib/utils'
 import type { Subscription } from '@/types/api'
+import { fmtDate } from '@/lib/utils'
 
-type SortKey = 'service_name' | 'login_account' | 'department' | 'owner_name' | 'cost' | 'expiry_date' | 'status'
+type SortKey = 'service_name' | 'login_account' | 'department' | 'owner_name' | 'cost' | 'billing_cycle' | 'expiry_date' | 'status'
 type SortDir = 'asc' | 'desc'
 
-function daysUntil(dateStr: string): number {
-  const expiry = new Date(dateStr)
+function daysFromToday(dateStr: string): number {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  expiry.setHours(0, 0, 0, 0)
-  return Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+  const target = new Date(dateStr)
+  target.setHours(0, 0, 0, 0)
+  return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-function ExpiryCell({ date, notificationDays }: { date: string; notificationDays: number }) {
-  const days = daysUntil(date)
-  const display = fmtDate(date)
-  if (days <= notificationDays) {
-    return (
-      <span className="flex items-center gap-1 font-medium text-red-600">
-        <AlertCircle className="size-4" />
-        {display}
-      </span>
-    )
-  }
-  if (days <= notificationDays * 2) {
-    return <span className="text-orange-500">{display}</span>
-  }
-  return <span>{display}</span>
+function ExpiryCell({ dateStr }: { dateStr: string }) {
+  const days = daysFromToday(dateStr)
+  const formatted = fmtDate(dateStr)
+  if (days < 0) return <span className="text-slate-400 line-through">{formatted}</span>
+  if (days <= 14) return <span className="font-semibold text-red-600">{formatted}</span>
+  if (days <= 30) return <span className="text-amber-600">{formatted}</span>
+  return <span className="text-slate-500">{formatted}</span>
+}
+
+const BILLING_CYCLE_LABELS: Record<string, string> = {
+  monthly: '月繳',
+  quarterly: '季繳',
+  semi_annual: '半年繳',
+  annual: '年繳',
+  biennial: '兩年繳',
+}
+
+const STATUS_TEXT: Record<string, { label: string; className: string }> = {
+  active:    { label: '啟用中', className: 'font-medium text-emerald-600' },
+  cancelled: { label: '已取消', className: 'text-slate-400' },
+  renewed:   { label: '已續訂', className: 'text-slate-500' },
+  suspended: { label: '已暫停', className: 'text-amber-600' },
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === 'active') {
-    return (
-      <Badge className="border-transparent bg-green-100 text-green-800 hover:bg-green-100">
-        啟用中
-      </Badge>
-    )
-  }
-  if (status === 'cancelled') {
-    return <Badge variant="secondary">已取消</Badge>
-  }
-  return <Badge variant="secondary">{status}</Badge>
+  const s = STATUS_TEXT[status]
+  return (
+    <span className={s?.className ?? 'text-slate-500'}>
+      {s?.label ?? status}
+    </span>
+  )
 }
 
 function formatCost(cost: string | null, currency: string): string {
@@ -71,6 +72,7 @@ function sortValue(sub: Subscription, key: SortKey): string | number {
     case 'department': return sub.department || ''
     case 'owner_name': return sub.owner_name || ''
     case 'cost': return parseFloat(sub.cost || '0')
+    case 'billing_cycle': return sub.billing_cycle || ''
     case 'expiry_date': return sub.expiry_date
     case 'status': return sub.status
   }
@@ -102,7 +104,7 @@ interface Props {
 export default function SubscriptionTable({ subscriptions }: Props) {
   const navigate = useNavigate()
   const { currentUser } = useAuthStore()
-  const [sortKey, setSortKey] = useState<SortKey>('expiry_date')
+  const [sortKey, setSortKey] = useState<SortKey>('service_name')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [detailSub, setDetailSub] = useState<Subscription | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
@@ -154,10 +156,10 @@ export default function SubscriptionTable({ subscriptions }: Props) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-10">
+            <TableHead className="w-10" title="勾選後可批次執行續訂">
               <input
                 type="checkbox"
-                className="size-4"
+                className="size-4 cursor-pointer"
                 checked={activeSelectedIds.size === sorted.length && sorted.length > 0}
                 ref={(el) => { if (el) el.indeterminate = activeSelectedIds.size > 0 && activeSelectedIds.size < sorted.length }}
                 onChange={(e) => {
@@ -170,6 +172,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
             {th('部門', 'department')}
             {th('負責人', 'owner_name')}
             {th('費用', 'cost')}
+            {th('計費週期', 'billing_cycle')}
             {th('到期日', 'expiry_date')}
             {th('狀態', 'status')}
             {hasActions && <TableHead className="w-12" />}
@@ -178,7 +181,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
         <TableBody>
           {sorted.length === 0 && (
             <TableRow>
-              <TableCell colSpan={hasActions ? 9 : 8} className="py-8 text-center text-muted-foreground">
+              <TableCell colSpan={hasActions ? 10 : 9} className="py-8 text-center text-muted-foreground">
                 沒有訂閱資料
               </TableCell>
             </TableRow>
@@ -208,8 +211,11 @@ export default function SubscriptionTable({ subscriptions }: Props) {
               <TableCell>{sub.department || '—'}</TableCell>
               <TableCell>{sub.owner_name || '—'}</TableCell>
               <TableCell>{formatCost(sub.cost, sub.currency)}</TableCell>
+              <TableCell className="text-slate-500">
+                {sub.billing_cycle ? (BILLING_CYCLE_LABELS[sub.billing_cycle] ?? sub.billing_cycle) : '—'}
+              </TableCell>
               <TableCell>
-                <ExpiryCell date={sub.expiry_date} notificationDays={sub.notification_days} />
+                <ExpiryCell dateStr={sub.expiry_date} />
               </TableCell>
               <TableCell>
                 <StatusBadge status={sub.status} />
