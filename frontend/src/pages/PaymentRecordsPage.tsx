@@ -81,7 +81,7 @@ export default function PaymentRecordsPage() {
 
   const records = data ?? []
 
-  const subMap = new Map((subsData?.items ?? []).map((s) => [s.id, s]))
+  const subMap = new Map(activeSubscriptions.map((s) => [s.id, s]))
   let unconvertibleCount = 0
   const twdTotal = records.reduce((sum, p) => {
     const amount = parseFloat(p.amount)
