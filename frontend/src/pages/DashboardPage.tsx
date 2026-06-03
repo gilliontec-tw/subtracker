@@ -260,7 +260,7 @@ function TrendChart({
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="px-5 pt-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">每月支出走勢</p>
-        <p className="mt-0.5 text-xs text-slate-500">近 12 個月實際付款紀錄</p>
+        <p className="mt-0.5 text-xs text-slate-500">實際付款紀錄（最多 36 個月）</p>
       </div>
       <div className="px-5 pb-5 pt-3">
         {!hasData ? (
