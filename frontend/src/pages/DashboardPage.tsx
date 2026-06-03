@@ -7,7 +7,7 @@ import {
 } from 'recharts'
 import { listSubscriptions } from '@/api/subscriptions'
 import { listByFilters } from '@/api/payment_records'
-import { computeStats } from '@/lib/dashboardStats'
+import { computeStats, monthlyEquivalentTWD } from '@/lib/dashboardStats'
 import type { DashboardStats, Breakdown } from '@/lib/dashboardStats'
 import { Button } from '@/components/ui/button'
 import type { Subscription, PaymentRecord } from '@/types/api'
@@ -109,23 +109,8 @@ function ExpiringTable({
 const CYCLE_LABEL: Record<string, string> = {
   monthly: '月繳', quarterly: '季繳', semi_annual: '半年繳', annual: '年繳', biennial: '兩年繳',
 }
-const CYCLE_MONTHS: Record<string, number> = {
-  monthly: 1, quarterly: 3, semi_annual: 6, annual: 12, biennial: 24,
-}
-
-function monthlyTWD(sub: Subscription): number {
-  const costRaw = sub.cost ? parseFloat(sub.cost) : 0
-  const rate = sub.exchange_rate ? parseFloat(sub.exchange_rate) : 1
-  const months = sub.billing_cycle ? (CYCLE_MONTHS[sub.billing_cycle] ?? 1) : 1
-  const baseCost = sub.currency === 'TWD' ? costRaw : costRaw * rate
-  return baseCost / months
-}
-
 interface BreakdownRow { groupKey: string; sub: Subscription }
 
-// variant='department': col1=部門(groupKey), col2=服務名稱
-// variant='service':    col1=服務名稱, col2=部門
-// 篩選後 col1 隱藏（context 已從標題得知），只顯示 col2
 function BreakdownTable({
   rows,
   variant,
@@ -159,7 +144,7 @@ function BreakdownTable({
               <td className="px-4 py-2 text-slate-600">
                 {sub.billing_cycle ? (CYCLE_LABEL[sub.billing_cycle] ?? sub.billing_cycle) : '—'}
               </td>
-              <td className="px-4 py-2 text-right tabular-nums text-slate-700">{formatTWD(monthlyTWD(sub))}</td>
+              <td className="px-4 py-2 text-right tabular-nums text-slate-700">{formatTWD(monthlyEquivalentTWD(sub))}</td>
             </tr>
           ))}
         </tbody>

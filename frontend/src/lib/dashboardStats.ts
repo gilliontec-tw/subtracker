@@ -46,7 +46,7 @@ function toCostTWD(sub: Subscription): number {
   return isNaN(rate) ? cost : cost * rate
 }
 
-function monthlyEquivalentTWD(sub: Subscription): number {
+export function monthlyEquivalentTWD(sub: Subscription): number {
   const costTWD = toCostTWD(sub)
   const cycleMonths = sub.billing_cycle ? (CYCLE_MONTHS[sub.billing_cycle] ?? 1) : 1
   return costTWD / cycleMonths
@@ -64,9 +64,6 @@ export function computeStats(
   subscriptions: Subscription[],
   payments: PaymentRecord[],
 ): DashboardStats {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
   const active = subscriptions.filter((s) => s.status === 'active')
 
   const monthlyBurnRate = active.reduce((sum, s) => sum + monthlyEquivalentTWD(s), 0)
