@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { listAuditLog } from '@/api/audit_log'
 import { Button } from '@/components/ui/button'
@@ -52,6 +53,7 @@ function ChangesCell({ entry }: { entry: AuditLogEntry }) {
 }
 
 export default function AuditLogPage() {
+  const navigate = useNavigate()
   const def = defaultRange()
   const [fromDate, setFromDate] = useState(def.from)
   const [toDate, setToDate] = useState(def.to)
@@ -99,7 +101,7 @@ export default function AuditLogPage() {
               <TableHead className="whitespace-nowrap">時間</TableHead>
               <TableHead className="whitespace-nowrap">操作者</TableHead>
               <TableHead className="whitespace-nowrap">動作</TableHead>
-              <TableHead className="whitespace-nowrap">訂閱名稱（ID）</TableHead>
+              <TableHead className="whitespace-nowrap">訂閱</TableHead>
               <TableHead>變更詳情</TableHead>
             </TableRow>
           </TableHeader>
@@ -123,8 +125,16 @@ export default function AuditLogPage() {
                   {ACTION_LABELS[entry.action] ?? entry.action}
                 </TableCell>
                 <TableCell className="text-sm">
-                  {entry.service_name ?? '—'}
-                  <span className="ml-1 text-xs text-muted-foreground">(#{entry.resource_id})</span>
+                  {entry.action !== 'delete' && entry.resource_id ? (
+                    <button
+                      className="text-left underline-offset-2 hover:underline"
+                      onClick={() => navigate(`/subscriptions/${entry.resource_id}`)}
+                    >
+                      {entry.service_name ?? '—'}
+                    </button>
+                  ) : (
+                    <span className="text-muted-foreground">{entry.service_name ?? '—'}</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <ChangesCell entry={entry} />
