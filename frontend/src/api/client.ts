@@ -23,14 +23,53 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+let isRefreshing = false
+let refreshQueue: Array<(ok: boolean) => void> = []
+
+function notifyQueue(ok: boolean) {
+  refreshQueue.forEach((cb) => cb(ok))
+  refreshQueue = []
+}
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      if (useAuthStore.getState().currentUser !== null) {
-        useAuthStore.getState().clear()
+  async (error) => {
+    const original = error.config
+    const is401 = error.response?.status === 401
+    const isRefreshEndpoint = original?.url?.includes('/auth/refresh')
+
+    if (is401 && !original?._retry && !isRefreshEndpoint) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          refreshQueue.push((ok) => {
+            if (ok) resolve(api(original))
+            else reject(error)
+          })
+        })
+      }
+
+      original._retry = true
+      isRefreshing = true
+
+      try {
+        await api.post('/api/v1/auth/refresh')
+        isRefreshing = false
+        notifyQueue(true)
+        return api(original)
+      } catch {
+        isRefreshing = false
+        notifyQueue(false)
+        if (useAuthStore.getState().currentUser !== null) {
+          useAuthStore.getState().clear()
+        }
+        return Promise.reject(error)
       }
     }
+
+    if (is401 && useAuthStore.getState().currentUser !== null) {
+      useAuthStore.getState().clear()
+    }
+
     return Promise.reject(error)
   },
 )
