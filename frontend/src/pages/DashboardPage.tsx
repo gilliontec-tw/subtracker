@@ -66,12 +66,12 @@ function ExpiringTable({
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-slate-50">
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">服務名稱</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">帳號</th>
-            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-400">費用</th>
-            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">到期日</th>
-            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-slate-400">剩餘天數</th>
+          <tr className="border-b bg-[#00a8e8]">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">服務名稱</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">帳號</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-white">費用</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">到期日</th>
+            <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-white">剩餘天數</th>
           </tr>
         </thead>
         <tbody>
@@ -129,11 +129,11 @@ function BreakdownTable({
     <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-slate-50">
-            <th className="px-4 py-2 text-left text-xs font-medium text-slate-400">{col1.header}</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-slate-400">{col2.header}</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-slate-400">帳單週期</th>
-            <th className="px-4 py-2 text-right text-xs font-medium text-slate-400">月均費用</th>
+          <tr className="border-b bg-[#00a8e8]">
+            <th className="px-4 py-2 text-left text-xs font-medium text-white">{col1.header}</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-white">{col2.header}</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-white">帳單週期</th>
+            <th className="px-4 py-2 text-right text-xs font-medium text-white">月均費用</th>
           </tr>
         </thead>
         <tbody>
