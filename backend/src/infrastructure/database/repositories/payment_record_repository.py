@@ -10,7 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from infrastructure.database.models import PaymentRecordModel, SubscriptionModel
 
 
-def _to_entity(m: PaymentRecordModel, service_name: str | None = None) -> PaymentRecord:
+def _to_entity(
+    m: PaymentRecordModel,
+    service_name: str | None = None,
+    department: str | None = None,
+    login_account: str | None = None,
+) -> PaymentRecord:
     return PaymentRecord(
         id=m.id,
         subscription_id=m.subscription_id,
@@ -22,6 +27,8 @@ def _to_entity(m: PaymentRecordModel, service_name: str | None = None) -> Paymen
         created_at=m.created_at.replace(tzinfo=UTC) if m.created_at else None,
         created_by=m.created_by,
         service_name=service_name,
+        department=department,
+        login_account=login_account,
     )
 
 
@@ -31,7 +38,12 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
 
     async def _fetch_with_name(self, payment_id: int) -> PaymentRecord:
         result = await self._session.execute(
-            select(PaymentRecordModel, SubscriptionModel.service_name)
+            select(
+                PaymentRecordModel,
+                SubscriptionModel.service_name,
+                SubscriptionModel.department,
+                SubscriptionModel.login_account,
+            )
             .join(
                 SubscriptionModel,
                 PaymentRecordModel.subscription_id == SubscriptionModel.id,
@@ -43,7 +55,7 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
             row = result.one()
         except NoResultFound:
             raise NotFoundException()
-        return _to_entity(row[0], row[1])
+        return _to_entity(row[0], row[1], row[2], row[3])
 
     async def save(self, record: PaymentRecord) -> PaymentRecord:
         if record.id is not None:
@@ -81,7 +93,12 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
 
     async def list_by_subscription(self, subscription_id: int) -> list[PaymentRecord]:
         result = await self._session.execute(
-            select(PaymentRecordModel, SubscriptionModel.service_name)
+            select(
+                PaymentRecordModel,
+                SubscriptionModel.service_name,
+                SubscriptionModel.department,
+                SubscriptionModel.login_account,
+            )
             .join(
                 SubscriptionModel,
                 PaymentRecordModel.subscription_id == SubscriptionModel.id,
@@ -90,7 +107,7 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
             .where(PaymentRecordModel.subscription_id == subscription_id)
             .order_by(PaymentRecordModel.payment_date.desc())
         )
-        return [_to_entity(row[0], row[1]) for row in result.all()]
+        return [_to_entity(row[0], row[1], row[2], row[3]) for row in result.all()]
 
     async def list_by_filters(
         self,
@@ -106,7 +123,12 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
         if service_name:
             filters.append(SubscriptionModel.service_name.ilike(f"%{service_name}%"))
         result = await self._session.execute(
-            select(PaymentRecordModel, SubscriptionModel.service_name)
+            select(
+                PaymentRecordModel,
+                SubscriptionModel.service_name,
+                SubscriptionModel.department,
+                SubscriptionModel.login_account,
+            )
             .join(
                 SubscriptionModel,
                 PaymentRecordModel.subscription_id == SubscriptionModel.id,
@@ -116,7 +138,7 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
             .order_by(PaymentRecordModel.payment_date.desc())
             .limit(500)
         )
-        return [_to_entity(row[0], row[1]) for row in result.all()]
+        return [_to_entity(row[0], row[1], row[2], row[3]) for row in result.all()]
 
     async def delete(self, payment_id: int) -> None:
         result = await self._session.execute(

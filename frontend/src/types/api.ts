@@ -84,6 +84,8 @@ export interface PaymentRecord {
   id: number
   subscription_id: number
   service_name: string | null
+  department: string | null
+  login_account: string | null
   payment_date: string
   amount: string
   currency: string

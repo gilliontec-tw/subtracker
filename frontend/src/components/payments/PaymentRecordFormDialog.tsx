@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import type { PaymentRecord } from '@/types/api'
+import type { PaymentRecord, Subscription } from '@/types/api'
 
 const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'GBP', 'CNY']
 
@@ -50,6 +50,7 @@ interface Props {
   onOpenChange: (open: boolean) => void
   subscriptionId?: number
   record?: PaymentRecord
+  subscriptions?: Subscription[]
 }
 
 export default function PaymentRecordFormDialog({
@@ -57,8 +58,11 @@ export default function PaymentRecordFormDialog({
   onOpenChange,
   subscriptionId,
   record,
+  subscriptions,
 }: Props) {
   const isEdit = !!record
+  const needsSubSelect = !subscriptionId && !isEdit && !!subscriptions
+  const [selectedSubId, setSelectedSubId] = useState<number | null>(null)
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -79,6 +83,7 @@ export default function PaymentRecordFormDialog({
 
   useEffect(() => {
     if (open) {
+      setSelectedSubId(null)
       reset(
         record
           ? {
@@ -92,6 +97,8 @@ export default function PaymentRecordFormDialog({
     }
   }, [open, record, reset])
 
+  const resolvedSubId = subscriptionId ?? selectedSubId
+
   const { mutate, isPending } = useMutation({
     mutationFn: (values: FormValues) => {
       if (isEdit && record) {
@@ -101,7 +108,7 @@ export default function PaymentRecordFormDialog({
         })
       }
       return createPayment({
-        subscription_id: subscriptionId!,
+        subscription_id: resolvedSubId!,
         ...values,
         notes: values.notes || undefined,
       })
@@ -126,6 +133,30 @@ export default function PaymentRecordFormDialog({
           onSubmit={(e) => { e.stopPropagation(); void handleSubmit((v) => mutate(v))(e) }}
           className="space-y-4 pt-2"
         >
+          {needsSubSelect && (
+            <div>
+              <label className="text-sm font-medium">訂閱項目</label>
+              <Select
+                value={selectedSubId ? String(selectedSubId) : ''}
+                onValueChange={(v) => setSelectedSubId(Number(v))}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="請選擇訂閱" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subscriptions!.map((s) => {
+                    const sub = s.login_account || s.owner_name || s.department
+                    return (
+                      <SelectItem key={s.id} value={String(s.id)}>
+                        {s.service_name}
+                        {sub && <span className="ml-1.5 text-muted-foreground">— {sub}</span>}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div>
             <label className="text-sm font-medium">付款日期</label>
             <Input type="date" {...register('payment_date')} className="mt-1" />
@@ -171,7 +202,7 @@ export default function PaymentRecordFormDialog({
             >
               取消
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button type="submit" disabled={isPending || (needsSubSelect && !selectedSubId)}>
               {isPending ? '儲存中...' : '儲存'}
             </Button>
           </div>

@@ -21,12 +21,35 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Download, Pencil, Plus, Trash2 } from 'lucide-react'
 import { fmtDate } from '@/lib/utils'
 import PaymentRecordFormDialog from '@/components/payments/PaymentRecordFormDialog'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/use-toast'
 import type { PaymentRecord } from '@/types/api'
+
+function exportCSV(records: PaymentRecord[]) {
+  const headers = ['付款日期', '訂閱名稱', '部門', '帳號', '幣別', '金額', '備註']
+  const rows = records.map((r) => [
+    r.payment_date,
+    r.service_name ?? '',
+    r.department ?? '',
+    r.login_account ?? '',
+    r.currency,
+    r.amount,
+    r.notes ?? '',
+  ])
+  const csv = [headers, ...rows]
+    .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `付款記錄_${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 export default function PaymentRecordsPage() {
   const [fromDate, setFromDate] = useState('')
@@ -94,16 +117,26 @@ export default function PaymentRecordsPage() {
     return sum + amount * rate
   }, 0)
 
+  const colSpan = hasActions ? 8 : 7
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">付款紀錄</h2>
-        {canCreate && (
-          <Button onClick={() => { setEditing(undefined); setFormOpen(true) }}>
-            <Plus className="size-4" />
-            新增付款
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {records.length > 0 && (
+            <Button variant="outline" onClick={() => exportCSV(records)}>
+              <Download className="mr-1 size-4" />
+              匯出 CSV
+            </Button>
+          )}
+          {canCreate && (
+            <Button onClick={() => { setEditing(undefined); setFormOpen(true) }}>
+              <Plus className="size-4" />
+              新增付款
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -141,83 +174,87 @@ export default function PaymentRecordsPage() {
       {isError && <p className="text-destructive">載入失敗，請重新整理頁面</p>}
       {!isLoading && !isError && (
         <div className="overflow-x-auto rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="whitespace-nowrap">付款日期</TableHead>
-              <TableHead className="whitespace-nowrap">訂閱名稱</TableHead>
-              <TableHead className="whitespace-nowrap">金額</TableHead>
-              <TableHead className="whitespace-nowrap">幣別</TableHead>
-              <TableHead>備註</TableHead>
-              {hasActions && <TableHead className="text-right">操作</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {records.length === 0 && (
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={hasActions ? 6 : 5}
-                  className="py-8 text-center text-muted-foreground"
-                >
-                  此區間內沒有付款紀錄
-                </TableCell>
+                <TableHead className="whitespace-nowrap">付款日期</TableHead>
+                <TableHead className="whitespace-nowrap">訂閱名稱</TableHead>
+                <TableHead className="whitespace-nowrap">部門</TableHead>
+                <TableHead className="whitespace-nowrap">帳號</TableHead>
+                <TableHead className="whitespace-nowrap">幣別</TableHead>
+                <TableHead className="whitespace-nowrap">金額</TableHead>
+                <TableHead>備註</TableHead>
+                {hasActions && <TableHead className="text-right">操作</TableHead>}
               </TableRow>
-            )}
-            {records.map((r) => (
-              <TableRow key={r.id}>
-                <TableCell className="whitespace-nowrap text-sm">{fmtDate(r.payment_date)}</TableCell>
-                <TableCell className="text-sm">{r.service_name ?? '—'}</TableCell>
-                <TableCell className="text-sm">{r.amount}</TableCell>
-                <TableCell className="text-sm">{r.currency}</TableCell>
-                <TableCell className="text-sm">{r.notes ?? '—'}</TableCell>
-                {hasActions && (
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      {canUpdate && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditing(r)
-                            setFormOpen(true)
-                          }}
-                        >
-                          <Pencil className="size-4" />
-                        </Button>
-                      )}
-                      {canDelete && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setDeletingId(r.id)}
-                        >
-                          <Trash2 className="size-4 text-destructive" />
-                        </Button>
-                      )}
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {records.length === 0 && (
+                <TableRow>
+                  <TableCell
+                    colSpan={colSpan}
+                    className="py-8 text-center text-muted-foreground"
+                  >
+                    此區間內沒有付款紀錄
                   </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-          {records.length > 0 && (
-            <TableFooter>
-              <TableRow>
-                <TableCell colSpan={hasActions ? 6 : 5} className="text-right tabular-nums">
-                  <span className="mr-4 text-sm text-slate-500">{records.length} 筆</span>
-                  <span className="font-semibold text-slate-900">
-                    合計：NT$ {Math.round(twdTotal).toLocaleString('zh-TW')}
-                  </span>
-                  {unconvertibleCount > 0 && (
-                    <span className="ml-2 text-xs text-slate-400">
-                      （另有 {unconvertibleCount} 筆外幣無法換算）
-                    </span>
+                </TableRow>
+              )}
+              {records.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="whitespace-nowrap text-sm">{fmtDate(r.payment_date)}</TableCell>
+                  <TableCell className="text-sm">{r.service_name ?? '—'}</TableCell>
+                  <TableCell className="text-sm">{r.department ?? '—'}</TableCell>
+                  <TableCell className="text-sm">{r.login_account ?? '—'}</TableCell>
+                  <TableCell className="text-sm">{r.currency}</TableCell>
+                  <TableCell className="text-sm">{r.amount}</TableCell>
+                  <TableCell className="text-sm">{r.notes ?? '—'}</TableCell>
+                  {hasActions && (
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        {canUpdate && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditing(r)
+                              setFormOpen(true)
+                            }}
+                          >
+                            <Pencil className="size-4" />
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletingId(r.id)}
+                          >
+                            <Trash2 className="size-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
                   )}
-                </TableCell>
-              </TableRow>
-            </TableFooter>
-          )}
-        </Table>
+                </TableRow>
+              ))}
+            </TableBody>
+            {records.length > 0 && (
+              <TableFooter>
+                <TableRow>
+                  <TableCell colSpan={colSpan} className="text-right tabular-nums">
+                    <span className="mr-4 text-sm text-slate-500">{records.length} 筆</span>
+                    <span className="font-semibold text-slate-900">
+                      合計：NT$ {Math.round(twdTotal).toLocaleString('zh-TW')}
+                    </span>
+                    {unconvertibleCount > 0 && (
+                      <span className="ml-2 text-xs text-slate-400">
+                        （另有 {unconvertibleCount} 筆外幣無法換算）
+                      </span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            )}
+          </Table>
         </div>
       )}
 

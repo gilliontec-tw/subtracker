@@ -23,6 +23,8 @@ class PaymentRecordResponse(BaseModel):
     id: int
     subscription_id: int
     service_name: str | None = None
+    department: str | None = None
+    login_account: str | None = None
     payment_date: date
     amount: Decimal
     currency: str

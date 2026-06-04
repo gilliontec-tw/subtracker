@@ -104,10 +104,10 @@ Only fields where `old_value != new_value` are included.
 - "查詢" button triggers query; TanStack Query key: `['audit-log', fromDate, toDate]`
 - Table columns: 時間 | 操作者 | 動作 | 訂閱名稱 | 變更詳情
 
-**動作 Badge colors:**
-- create → green (新增)
-- update → blue (編輯)  
-- delete → red (刪除)
+**動作欄：** 純文字，不用顏色
+- create → 新增
+- update → 編輯
+- delete → 刪除
 
 **變更詳情 column:**
 - create / delete: `—`

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -77,45 +77,34 @@ export default function AppLayout() {
     },
   })
 
-  const navLinks = (
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    isActive
+      ? 'text-white font-semibold border-b-2 border-white/80 pb-0.5 transition-colors'
+      : 'text-white/85 transition-colors hover:text-white font-medium'
+
+  const desktopNavLinks = (
     <>
-      <Link
-        to="/dashboard"
-        className="text-muted-foreground transition-colors hover:text-foreground"
-        onClick={() => setMobileOpen(false)}
-      >
-        總覽
-      </Link>
-      <Link
-        to="/subscriptions"
-        className="text-muted-foreground transition-colors hover:text-foreground"
-        onClick={() => setMobileOpen(false)}
-      >
-        訂閱列表
-      </Link>
-      <Link
-        to="/payments"
-        className="text-muted-foreground transition-colors hover:text-foreground"
-        onClick={() => setMobileOpen(false)}
-      >
-        付款紀錄
-      </Link>
+      <NavLink to="/dashboard" className={navLinkClass}>總覽</NavLink>
+      <NavLink to="/subscriptions" className={navLinkClass}>訂閱列表</NavLink>
+      <NavLink to="/payments" className={navLinkClass}>付款紀錄</NavLink>
       {currentUser?.role === 'admin' && (
         <>
-          <Link
-            to="/users"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => setMobileOpen(false)}
-          >
-            使用者管理
-          </Link>
-          <Link
-            to="/audit-log"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => setMobileOpen(false)}
-          >
-            稽核日誌
-          </Link>
+          <NavLink to="/users" className={navLinkClass}>使用者管理</NavLink>
+          <NavLink to="/audit-log" className={navLinkClass}>稽核日誌</NavLink>
+        </>
+      )}
+    </>
+  )
+
+  const mobileNavLinks = (
+    <>
+      <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>總覽</NavLink>
+      <NavLink to="/subscriptions" className={navLinkClass} onClick={() => setMobileOpen(false)}>訂閱列表</NavLink>
+      <NavLink to="/payments" className={navLinkClass} onClick={() => setMobileOpen(false)}>付款紀錄</NavLink>
+      {currentUser?.role === 'admin' && (
+        <>
+          <NavLink to="/users" className={navLinkClass} onClick={() => setMobileOpen(false)}>使用者管理</NavLink>
+          <NavLink to="/audit-log" className={navLinkClass} onClick={() => setMobileOpen(false)}>稽核日誌</NavLink>
         </>
       )}
     </>
@@ -123,30 +112,40 @@ export default function AppLayout() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b bg-background">
+      <header style={{ backgroundColor: '#00a8e8' }}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex h-14 items-center justify-between">
             <div className="flex items-center gap-6">
-              <span className="text-lg font-semibold">SubTrack</span>
-              <nav className="hidden items-center gap-4 text-sm sm:flex">
-                {navLinks}
+              <span className="text-lg font-bold tracking-tight text-white">SubTrack</span>
+              <nav className="hidden items-center gap-5 text-sm sm:flex">
+                {desktopNavLinks}
               </nav>
             </div>
-            <div className="flex items-center gap-2 sm:gap-4">
-              <span className="hidden text-sm text-muted-foreground sm:block">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <span className="hidden text-sm text-white/60 sm:block">
                 {currentUser?.display_name}
               </span>
-              <Button variant="ghost" size="sm" onClick={() => setPwOpen(true)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white/80 hover:bg-white/15 hover:text-white"
+                onClick={() => setPwOpen(true)}
+              >
                 修改密碼
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => doLogout()}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white/80 hover:bg-white/15 hover:text-white"
+                onClick={() => doLogout()}
+              >
                 登出
               </Button>
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="sm:hidden"
+                className="text-white hover:bg-white/15 sm:hidden"
                 onClick={() => setMobileOpen((o) => !o)}
               >
                 {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -155,12 +154,11 @@ export default function AppLayout() {
           </div>
         </div>
 
-        {/* Mobile nav */}
         {mobileOpen && (
-          <div className="border-t px-4 py-3 sm:hidden">
-            <p className="mb-2 text-xs text-muted-foreground">{currentUser?.display_name}</p>
+          <div className="border-t border-white/20 px-4 py-3 sm:hidden">
+            <p className="mb-2 text-xs text-white/50">{currentUser?.display_name}</p>
             <nav className="flex flex-col gap-3 text-sm">
-              {navLinks}
+              {mobileNavLinks}
             </nav>
           </div>
         )}
@@ -193,7 +191,7 @@ export default function AppLayout() {
         </DialogContent>
       </Dialog>
 
-      <main className="flex-1 px-4 py-6 sm:px-6 sm:py-8">
+      <main className="flex-1 bg-slate-50 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-7xl">
           <Outlet />
         </div>

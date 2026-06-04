@@ -15,3 +15,5 @@ class PaymentRecord:
     created_at: datetime | None = None
     created_by: int | None = None
     service_name: str | None = None  # populated by JOIN queries; not stored in DB
+    department: str | None = None
+    login_account: str | None = None

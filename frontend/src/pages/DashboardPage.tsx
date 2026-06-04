@@ -226,62 +226,6 @@ function PieBreakdown({ title, breakdown, variant }: { title: string; breakdown:
   )
 }
 
-// ── Trend chart ───────────────────────────────────────────────
-function TrendChart({
-  payments,
-  subs,
-  fromDate,
-  toDate,
-}: {
-  payments: PaymentRecord[]
-  subs: Subscription[]
-  fromDate: string
-  toDate: string
-}) {
-  const data = computeTrend(payments, subs, fromDate, toDate)
-  const hasData = data.some((d) => d.cost > 0)
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="px-5 pt-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">每月支出走勢</p>
-        <p className="mt-0.5 text-xs text-slate-500">實際付款紀錄（最多 36 個月）</p>
-      </div>
-      <div className="px-5 pb-5 pt-3">
-        {!hasData ? (
-          <p className="py-6 text-center text-sm text-slate-400">尚無付款紀錄可計算趨勢</p>
-        ) : (
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={data} margin={{ top: 5, right: 16, left: 8, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-              <YAxis
-                tick={{ fontSize: 12, fill: '#94a3b8' }}
-                tickFormatter={(v: number) => `NT$${(v / 1000).toFixed(0)}k`}
-                width={60}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                formatter={(value: number) => [formatTWD(value), '實際支出']}
-                contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
-              />
-              <Line
-                type="monotone"
-                dataKey="cost"
-                stroke={BRAND_BLUE}
-                strokeWidth={2}
-                dot={{ r: 3, fill: BRAND_BLUE, strokeWidth: 0 }}
-                activeDot={{ r: 5, fill: BRAND_BLUE, strokeWidth: 0 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-    </div>
-  )
-}
-
 // ── Trend helpers ─────────────────────────────────────────────
 function pad2(n: number) { return String(n).padStart(2, '0') }
 
@@ -297,12 +241,14 @@ function initTrendTo(): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
 }
 
+interface TrendPoint { month: string; cost: number; key: string }
+
 function computeTrend(
   payments: PaymentRecord[],
   subs: Subscription[],
   fromDate: string,
   toDate: string,
-): { month: string; cost: number }[] {
+): TrendPoint[] {
   const subMap = new Map(subs.map((s) => [s.id, s]))
   const from = new Date(fromDate)
   const to = new Date(toDate)
@@ -327,7 +273,7 @@ function computeTrend(
     monthlyAmounts[key] = (monthlyAmounts[key] ?? 0) + amountTWD
   }
 
-  const result: { month: string; cost: number }[] = []
+  const result: TrendPoint[] = []
   const today = new Date()
   const cursor = new Date(from.getFullYear(), from.getMonth(), 1)
   const toMonth = new Date(to.getFullYear(), to.getMonth(), 1)
@@ -335,11 +281,192 @@ function computeTrend(
   while (cursor <= toMonth && result.length < 36) {
     const key = `${cursor.getFullYear()}-${pad2(cursor.getMonth() + 1)}`
     const yearPrefix = cursor.getFullYear() !== today.getFullYear() ? `${cursor.getFullYear()}/` : ''
-    result.push({ month: `${yearPrefix}${cursor.getMonth() + 1}月`, cost: monthlyAmounts[key] ?? 0 })
+    result.push({ month: `${yearPrefix}${cursor.getMonth() + 1}月`, cost: monthlyAmounts[key] ?? 0, key })
     cursor.setMonth(cursor.getMonth() + 1)
   }
 
   return result
+}
+
+// ── Trend subscription detail table ──────────────────────────
+function costTWD(sub: Subscription): number {
+  if (!sub.cost) return 0
+  const cost = parseFloat(sub.cost)
+  if (isNaN(cost)) return 0
+  if (sub.currency === 'TWD' || !sub.exchange_rate) return cost
+  const rate = parseFloat(sub.exchange_rate)
+  return isNaN(rate) ? cost : cost * rate
+}
+
+function TrendSubTable({
+  payments,
+  subs,
+  fromDate,
+  toDate,
+  selectedKey,
+}: {
+  payments: PaymentRecord[]
+  subs: Subscription[]
+  fromDate: string
+  toDate: string
+  selectedKey: string | null
+}) {
+  const subMap = new Map(subs.map((s) => [s.id, s]))
+  const from = new Date(fromDate)
+  const to = new Date(toDate)
+
+  const subIds = new Set<number>()
+  for (const p of payments) {
+    const d = new Date(p.payment_date)
+    if (d < from || d > to) continue
+    const monthKey = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`
+    if (selectedKey === null || monthKey === selectedKey) {
+      subIds.add(p.subscription_id)
+    }
+  }
+
+  const rows = [...subIds]
+    .map((id) => subMap.get(id))
+    .filter((s): s is Subscription => s !== undefined)
+    .sort((a, b) => a.service_name.localeCompare(b.service_name, 'zh-TW'))
+
+  if (rows.length === 0) {
+    return <p className="py-4 text-center text-sm text-slate-400">此期間無付款記錄</p>
+  }
+
+  return (
+    <div className="mt-4 overflow-hidden rounded-lg border border-slate-200">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b bg-[#00a8e8]">
+            <th className="px-4 py-2 text-left text-xs font-medium text-white">服務名稱</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-white">帳號</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-white">部門</th>
+            <th className="px-4 py-2 text-left text-xs font-medium text-white">負責人</th>
+            <th className="px-4 py-2 text-right text-xs font-medium text-white">費用</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((sub) => (
+            <tr key={sub.id} className="border-b last:border-0 hover:bg-slate-50/60">
+              <td className="px-4 py-2 font-medium text-slate-900">{sub.service_name}</td>
+              <td className="px-4 py-2 text-slate-600">{sub.login_account || '—'}</td>
+              <td className="px-4 py-2 text-slate-600">{sub.department ?? '—'}</td>
+              <td className="px-4 py-2 text-slate-600">{sub.owner_name ?? '—'}</td>
+              <td className="px-4 py-2 text-right tabular-nums text-slate-700">
+                {sub.cost ? formatTWD(costTWD(sub)) : '—'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ── Trend chart ───────────────────────────────────────────────
+function TrendChart({
+  payments,
+  subs,
+  fromDate,
+  toDate,
+}: {
+  payments: PaymentRecord[]
+  subs: Subscription[]
+  fromDate: string
+  toDate: string
+}) {
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const data = computeTrend(payments, subs, fromDate, toDate)
+  const hasData = data.some((d) => d.cost > 0)
+
+  const selectedLabel = selectedKey
+    ? data.find((d) => d.key === selectedKey)?.month ?? null
+    : null
+
+  function handleChartClick(e: { activePayload?: { payload: TrendPoint }[] } | null) {
+    if (!e?.activePayload?.[0]) return
+    const clicked = e.activePayload[0].payload.key
+    setSelectedKey((prev) => (prev === clicked ? null : clicked))
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="px-5 pt-5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">每月支出走勢</p>
+        <p className="mt-0.5 text-xs text-slate-500">
+          實際付款紀錄（最多 36 個月）
+          {selectedLabel && (
+            <span className="ml-2 text-[#00a8e8]">
+              · 篩選：{selectedLabel}
+              <button
+                className="ml-1 underline underline-offset-2"
+                onClick={() => setSelectedKey(null)}
+              >
+                清除
+              </button>
+            </span>
+          )}
+        </p>
+      </div>
+      <div className="px-5 pb-5 pt-3">
+        {!hasData ? (
+          <p className="py-6 text-center text-sm text-slate-400">尚無付款紀錄可計算趨勢</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart
+              data={data}
+              margin={{ top: 5, right: 16, left: 8, bottom: 5 }}
+              onClick={handleChartClick}
+              className="cursor-pointer"
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <YAxis
+                tick={{ fontSize: 12, fill: '#94a3b8' }}
+                tickFormatter={(v: number) => `$${v.toLocaleString('zh-TW')}`}
+                width={70}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                formatter={(value: number) => [formatTWD(value), '實際支出']}
+                contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e2e8f0' }}
+              />
+              <Line
+                type="monotone"
+                dataKey="cost"
+                stroke={BRAND_BLUE}
+                strokeWidth={2}
+                dot={(props) => {
+                  const isSelected = data[props.index]?.key === selectedKey
+                  return (
+                    <circle
+                      key={props.index}
+                      cx={props.cx}
+                      cy={props.cy}
+                      r={isSelected ? 6 : 3}
+                      fill={BRAND_BLUE}
+                      stroke={isSelected ? '#1e293b' : 'none'}
+                      strokeWidth={isSelected ? 2 : 0}
+                    />
+                  )
+                }}
+                activeDot={{ r: 5, fill: BRAND_BLUE, strokeWidth: 0 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+        <TrendSubTable
+          payments={payments}
+          subs={subs}
+          fromDate={fromDate}
+          toDate={toDate}
+          selectedKey={selectedKey}
+        />
+      </div>
+    </div>
+  )
 }
 
 // ── Page ──────────────────────────────────────────────────────

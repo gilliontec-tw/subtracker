@@ -1,10 +1,8 @@
-version: "3.9"
-
 services:
   api:
     build:
       target: production
-    command: gunicorn api.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+    command: gunicorn api.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 120 --access-logfile -
     restart: unless-stopped
 
   scheduler:
@@ -13,6 +11,10 @@ services:
       target: production
     command: python -m infrastructure.scheduler.main
     env_file: .env
+    environment:
+      TZ: Asia/Taipei
+      NOTIFICATION_CRON_HOUR: ${NOTIFICATION_CRON_HOUR:-8}
+      NOTIFICATION_CRON_MINUTE: ${NOTIFICATION_CRON_MINUTE:-0}
     depends_on:
       db:
         condition: service_healthy
@@ -21,16 +23,26 @@ services:
     networks:
       - subtrack
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256m
 
   web:
     build:
       context: ./frontend
       target: production
     ports:
-      - "80:80"
+      - "${WEB_PORT:-80}:80"
+    environment:
+      TZ: Asia/Taipei
     depends_on:
       api:
         condition: service_healthy
     networks:
       - subtrack
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128m

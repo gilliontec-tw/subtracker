@@ -33,7 +33,7 @@ export default function LoginPage() {
     mutationFn: ({ email, password }: FormValues) => login(email, password),
     onSuccess: (user) => {
       setUser(user)
-      navigate('/subscriptions', { replace: true })
+      navigate('/dashboard', { replace: true })
     },
     onError: () => {
       toast({ title: '登入失敗', description: '帳號或密碼錯誤', variant: 'destructive' })
