@@ -47,6 +47,7 @@ const schema = z.object({
   service_name: z.string().min(1, '服務名稱為必填'),
   expiry_date: z.string().min(1, '到期日為必填'),
   login_account: z.string().min(1, '帳號為必填'),
+  login_password: z.string().optional(),
   owner_name: z.string().min(1, '負責人為必填'),
   department: z.string().min(1, '部門為必填'),
   billing_cycle: z.enum(BILLING_CYCLES, { error: '請選擇計費週期' }),
@@ -69,6 +70,7 @@ function buildPayload(values: FormValues): Record<string, unknown> {
   return {
     service_name: values.service_name,
     login_account: values.login_account,
+    login_password: values.login_password || undefined,
     expiry_date: values.expiry_date,
     owner_name: values.owner_name,
     department: values.department,
@@ -97,6 +99,7 @@ export function toFormValues(sub: Subscription): Partial<FormValues> {
   return {
     service_name: sub.service_name,
     login_account: sub.login_account,
+    login_password: sub.login_password ?? '',
     expiry_date: sub.expiry_date,
     owner_name: sub.owner_name ?? '',
     department: sub.department ?? '',
@@ -221,6 +224,10 @@ export default function SubscriptionForm({
 
           <FormField label="帳號" error={errors.login_account?.message} required>
             <Input {...register('login_account')} placeholder="user@corp.com" />
+          </FormField>
+
+          <FormField label="密碼" error={errors.login_password?.message}>
+            <Input type="password" autoComplete="new-password" {...register('login_password')} placeholder="選填" />
           </FormField>
 
           <FormField label="負責人" error={errors.owner_name?.message} required>

@@ -1,10 +1,10 @@
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
 import PaymentRecordList from '@/components/payments/PaymentRecordList'
 import { fmtDate } from '@/lib/utils'
 import type { Subscription } from '@/types/api'
@@ -19,9 +19,7 @@ const BILLING_CYCLE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   active: '啟用中',
-  renewed: '已續約',
-  cancelled: '已取消',
-  suspended: '暫停',
+  suspended: '停用',
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
@@ -40,6 +38,8 @@ interface Props {
 }
 
 export default function SubscriptionDetailDialog({ subscription: sub, open, onOpenChange }: Props) {
+  const [showPw, setShowPw] = useState(false)
+
   if (!sub) return null
 
   const costStr = sub.cost
@@ -58,18 +58,27 @@ export default function SubscriptionDetailDialog({ subscription: sub, open, onOp
           <div className="min-w-0 flex-1">
             <Row label="登入帳號" value={sub.login_account || null} />
             <Row
+              label="密碼"
+              value={
+                sub.login_password ? (
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono text-sm">{showPw ? sub.login_password : '••••••••'}</span>
+                    <button
+                      onClick={() => setShowPw((v) => !v)}
+                      className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                    >
+                      {showPw ? '隱藏' : '顯示'}
+                    </button>
+                  </span>
+                ) : null
+              }
+            />
+            <Row
               label="狀態"
               value={
-                <Badge
-                  variant={sub.status === 'active' ? undefined : 'secondary'}
-                  className={
-                    sub.status === 'active'
-                      ? 'border-transparent bg-green-100 text-green-800 hover:bg-green-100'
-                      : ''
-                  }
-                >
+                <span className={sub.status === 'active' ? 'font-medium text-emerald-600' : 'text-slate-400'}>
                   {STATUS_LABELS[sub.status] ?? sub.status}
-                </Badge>
+                </span>
               }
             />
             <Row label="到期日" value={fmtDate(sub.expiry_date)} />
@@ -81,7 +90,6 @@ export default function SubscriptionDetailDialog({ subscription: sub, open, onOp
             <Row label="付款帳號" value={sub.payment_account} />
             <Row label="負責人" value={sub.owner_name} />
             <Row label="部門" value={sub.department} />
-            <Row label="分類" value={sub.category} />
             <Row
               label="通知信箱"
               value={sub.notification_emails.length > 0 ? sub.notification_emails.join(', ') : null}

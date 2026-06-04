@@ -49,7 +49,7 @@ class SubscriptionModel(Base):
     exchange_rate = Column(Numeric(12, 6))  # 1 foreign unit = ? TWD; NULL = not set
     notes = Column(Text)
     owner_name = Column(String(255))
-    category = Column(String(100))
+    login_password = Column(String(255))
     department = Column(String(100))
     billing_cycle = Column(String(20))  # monthly|quarterly|semi_annual|annual|biennial
     payment_account = Column(String(255))

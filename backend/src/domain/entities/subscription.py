@@ -18,7 +18,7 @@ class Subscription:
     exchange_rate: Decimal | None = None
     notes: str | None = None
     owner_name: str | None = None
-    category: str | None = None
+    login_password: str | None = None
     department: str | None = None
     billing_cycle: str | None = None
     payment_account: str | None = None

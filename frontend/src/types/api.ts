@@ -24,7 +24,7 @@ export interface Subscription {
   exchange_rate: string | null
   notes: string | null
   owner_name: string | null
-  category: string | null
+  login_password: string | null
   department: string | null
   billing_cycle: BillingCycle | null
   payment_account: string | null

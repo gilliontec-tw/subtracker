@@ -24,7 +24,7 @@ def _to_entity(m: SubscriptionModel) -> Subscription:
         exchange_rate=m.exchange_rate,
         notes=m.notes,
         owner_name=m.owner_name,
-        category=m.category,
+        login_password=m.login_password,
         department=m.department,
         billing_cycle=m.billing_cycle,
         payment_account=m.payment_account,
@@ -109,7 +109,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             model.exchange_rate = entity.exchange_rate
             model.notes = entity.notes
             model.owner_name = entity.owner_name
-            model.category = entity.category
+            model.login_password = entity.login_password
             model.department = entity.department
             model.billing_cycle = entity.billing_cycle
             model.payment_account = entity.payment_account
@@ -130,7 +130,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
                 exchange_rate=entity.exchange_rate,
                 notes=entity.notes,
                 owner_name=entity.owner_name,
-                category=entity.category,
+                login_password=entity.login_password,
                 department=entity.department,
                 billing_cycle=entity.billing_cycle,
                 payment_account=entity.payment_account,
