@@ -11,7 +11,7 @@ class SubscriptionRepository(BaseRepository[Subscription, int]):
         self,
         limit: int,
         offset: int,
-        show_cancelled: bool,
+        show_suspended: bool,
     ) -> tuple[list[Subscription], int]: ...
 
     @abstractmethod

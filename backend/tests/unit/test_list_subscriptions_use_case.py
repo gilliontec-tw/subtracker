@@ -31,21 +31,21 @@ def use_case(repo):
 @pytest.mark.asyncio
 async def test_passes_pagination_params_to_repo(use_case, repo):
     repo.list_paginated = AsyncMock(return_value=([], 0))
-    await use_case.execute(limit=10, offset=20, show_cancelled=False)
-    repo.list_paginated.assert_called_once_with(limit=10, offset=20, show_cancelled=False)
+    await use_case.execute(limit=10, offset=20, show_suspended=False)
+    repo.list_paginated.assert_called_once_with(limit=10, offset=20, show_suspended=False)
 
 
 @pytest.mark.asyncio
-async def test_passes_show_cancelled_true(use_case, repo):
+async def test_passes_show_suspended_true(use_case, repo):
     repo.list_paginated = AsyncMock(return_value=([], 0))
-    await use_case.execute(limit=50, offset=0, show_cancelled=True)
-    repo.list_paginated.assert_called_once_with(limit=50, offset=0, show_cancelled=True)
+    await use_case.execute(limit=50, offset=0, show_suspended=True)
+    repo.list_paginated.assert_called_once_with(limit=50, offset=0, show_suspended=True)
 
 
 @pytest.mark.asyncio
 async def test_returns_items_and_total(use_case, repo):
     subs = [make_subscription(id=1), make_subscription(id=2)]
     repo.list_paginated = AsyncMock(return_value=(subs, 5))
-    items, total = await use_case.execute(limit=50, offset=0, show_cancelled=False)
+    items, total = await use_case.execute(limit=50, offset=0, show_suspended=False)
     assert items == subs
     assert total == 5

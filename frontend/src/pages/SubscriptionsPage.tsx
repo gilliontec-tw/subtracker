@@ -50,9 +50,11 @@ export default function SubscriptionsPage() {
   const location = useLocation()
   const { currentUser } = useAuthStore()
   const [search, setSearch] = useState<string>((location.state as { search?: string } | null)?.search ?? '')
+  const [showSuspended, setShowSuspended] = useState(false)
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['subscriptions', false],
-    queryFn: () => listSubscriptions(false),
+    queryKey: ['subscriptions', showSuspended],
+    queryFn: () => listSubscriptions(showSuspended),
   })
 
   const subscriptions = data?.items ?? []
@@ -89,6 +91,15 @@ export default function SubscriptionsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
         />
+        <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={showSuspended}
+            onChange={(e) => setShowSuspended(e.target.checked)}
+            className="size-4"
+          />
+          顯示已停用
+        </label>
         {(currentUser?.can_update || currentUser?.role === 'admin') && (
           <span className="text-xs text-muted-foreground">勾選列可批次續訂</span>
         )}

@@ -104,29 +104,29 @@ async def test_list_returns_pagination_meta(authed_client):
 async def test_cancelled_subscription_hidden_by_default(authed_client):
     csrf = _csrf(authed_client)
 
-    # Create a cancelled subscription
+    # Create a suspended subscription
     r = await authed_client.post(
         "/api/v1/subscriptions",
-        json=_create_payload(service_name="CancelledSVC", status="cancelled"),
+        json=_create_payload(service_name="SuspendedSVC", status="suspended"),
         headers={"x-csrf-token": csrf},
     )
     assert r.status_code == 201
-    cancelled_id = r.json()["data"]["id"]
+    suspended_id = r.json()["data"]["id"]
 
     try:
-        # List without show_cancelled — should not appear
-        r = await authed_client.get("/api/v1/subscriptions?show_cancelled=false")
+        # List without show_suspended — should not appear
+        r = await authed_client.get("/api/v1/subscriptions?show_suspended=false")
         ids = [s["id"] for s in r.json()["data"]]
-        assert cancelled_id not in ids
+        assert suspended_id not in ids
 
-        # List with show_cancelled=true — should appear
-        r = await authed_client.get("/api/v1/subscriptions?show_cancelled=true")
+        # List with show_suspended=true — should appear
+        r = await authed_client.get("/api/v1/subscriptions?show_suspended=true")
         ids = [s["id"] for s in r.json()["data"]]
-        assert cancelled_id in ids
+        assert suspended_id in ids
     finally:
         # Cleanup
         await authed_client.delete(
-            f"/api/v1/subscriptions/{cancelled_id}",
+            f"/api/v1/subscriptions/{suspended_id}",
             headers={"x-csrf-token": csrf},
         )
 

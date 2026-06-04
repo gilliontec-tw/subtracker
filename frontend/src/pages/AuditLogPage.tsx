@@ -99,7 +99,7 @@ export default function AuditLogPage() {
               <TableHead className="whitespace-nowrap">時間</TableHead>
               <TableHead className="whitespace-nowrap">操作者</TableHead>
               <TableHead className="whitespace-nowrap">動作</TableHead>
-              <TableHead className="whitespace-nowrap">訂閱名稱</TableHead>
+              <TableHead className="whitespace-nowrap">訂閱名稱（ID）</TableHead>
               <TableHead>變更詳情</TableHead>
             </TableRow>
           </TableHeader>
@@ -122,7 +122,10 @@ export default function AuditLogPage() {
                 <TableCell className="text-sm">
                   {ACTION_LABELS[entry.action] ?? entry.action}
                 </TableCell>
-                <TableCell className="text-sm">{entry.service_name ?? '—'}</TableCell>
+                <TableCell className="text-sm">
+                  {entry.service_name ?? '—'}
+                  <span className="ml-1 text-xs text-muted-foreground">(#{entry.resource_id})</span>
+                </TableCell>
                 <TableCell>
                   <ChangesCell entry={entry} />
                 </TableCell>

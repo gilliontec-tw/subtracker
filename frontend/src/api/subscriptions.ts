@@ -2,10 +2,10 @@ import { api } from './client'
 import type { ApiResponse, ListResponse, Subscription } from '@/types/api'
 
 export async function listSubscriptions(
-  showCancelled = false,
+  showSuspended = false,
 ): Promise<{ items: Subscription[]; total: number }> {
   const { data } = await api.get<ListResponse<Subscription>>('/api/v1/subscriptions', {
-    params: { limit: 500, offset: 0, show_cancelled: showCancelled },
+    params: { limit: 500, offset: 0, show_suspended: showSuspended },
   })
   return { items: data.data, total: data.meta.total }
 }

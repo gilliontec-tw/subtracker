@@ -10,10 +10,10 @@ class ListSubscriptionsUseCase:
         self,
         limit: int,
         offset: int,
-        show_cancelled: bool,
+        show_suspended: bool,
     ) -> tuple[list[Subscription], int]:
         return await self._repo.list_paginated(
             limit=limit,
             offset=offset,
-            show_cancelled=show_cancelled,
+            show_suspended=show_suspended,
         )

@@ -65,11 +65,11 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         self,
         limit: int,
         offset: int,
-        show_cancelled: bool,
+        show_suspended: bool,
     ) -> tuple[list[Subscription], int]:
         base_filter = [SubscriptionModel.deleted_at.is_(None)]
-        if not show_cancelled:
-            base_filter.append(SubscriptionModel.status != "cancelled")
+        if not show_suspended:
+            base_filter.append(SubscriptionModel.status != "suspended")
 
         count_result = await self._session.execute(
             select(func.count()).select_from(SubscriptionModel).where(*base_filter)

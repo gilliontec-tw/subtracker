@@ -40,12 +40,12 @@ def _get_repo(db: AsyncSession = Depends(get_db)) -> SqlSubscriptionRepository:
 async def list_subscriptions(
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-    show_cancelled: bool = False,
+    show_suspended: bool = False,
     _: User = Depends(get_current_user),
     repo: SqlSubscriptionRepository = Depends(_get_repo),
 ) -> ApiResponse[list[SubscriptionResponse]]:
     use_case = ListSubscriptionsUseCase(repo)
-    items, total = await use_case.execute(limit=limit, offset=offset, show_cancelled=show_cancelled)
+    items, total = await use_case.execute(limit=limit, offset=offset, show_suspended=show_suspended)
     return ApiResponse.ok(
         data=[SubscriptionResponse(**vars(s)) for s in items],
         meta=PaginationMeta(total=total, limit=limit, offset=offset).model_dump(),
