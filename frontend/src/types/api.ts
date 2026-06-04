@@ -1,6 +1,6 @@
 export type BillingCycle = 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 'biennial'
 export type Currency = 'TWD' | 'USD' | 'EUR' | 'JPY' | 'GBP' | 'CNY'
-export type SubscriptionStatus = 'active' | 'renewed' | 'cancelled' | 'suspended'
+export type SubscriptionStatus = 'active' | 'suspended'
 
 export interface User {
   id: number

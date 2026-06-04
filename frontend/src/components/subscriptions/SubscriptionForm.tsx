@@ -37,12 +37,10 @@ const BILLING_CYCLE_LABELS: Record<string, string> = {
 }
 
 const CURRENCIES = ['TWD', 'USD', 'EUR', 'JPY', 'GBP', 'CNY'] as const
-const STATUSES = ['active', 'renewed', 'cancelled', 'suspended'] as const
+const STATUSES = ['active', 'suspended'] as const
 const STATUS_LABELS: Record<string, string> = {
   active: '啟用中',
-  renewed: '已續約',
-  cancelled: '已取消',
-  suspended: '暫停',
+  suspended: '停用',
 }
 
 const schema = z.object({

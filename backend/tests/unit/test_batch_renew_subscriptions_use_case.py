@@ -109,20 +109,6 @@ async def test_missing_billing_cycle_returns_skipped(repo):
 
 
 @pytest.mark.asyncio
-async def test_cancelled_subscription_returns_skipped(repo):
-    sub = make_subscription(id=7, status="cancelled")
-    repo.get_by_id = AsyncMock(return_value=sub)
-    repo.save = AsyncMock()
-
-    uc = BatchRenewSubscriptionsUseCase(repo)
-    result = await uc.execute(subscription_ids=[7])
-
-    assert result["renewed"] == []
-    assert result["skipped"] == [{"id": 7, "reason": "not_active"}]
-    repo.save.assert_not_called()
-
-
-@pytest.mark.asyncio
 async def test_suspended_subscription_returns_skipped(repo):
     sub = make_subscription(id=8, status="suspended")
     repo.get_by_id = AsyncMock(return_value=sub)
@@ -192,11 +178,11 @@ async def test_audit_not_called_for_skipped_subscriptions(repo, audit_repo):
 @pytest.mark.asyncio
 async def test_mixed_batch_returns_correct_renewed_and_skipped(repo):
     sub_active = make_subscription(id=1, billing_cycle="annual", expiry_date=date(2026, 6, 1))
-    sub_cancelled = make_subscription(id=2, status="cancelled")
+    sub_suspended = make_subscription(id=2, status="suspended")
     sub_missing_cycle = make_subscription(id=3, billing_cycle=None)
 
     async def get_by_id(sub_id):
-        return {1: sub_active, 2: sub_cancelled, 3: sub_missing_cycle}.get(sub_id)
+        return {1: sub_active, 2: sub_suspended, 3: sub_missing_cycle}.get(sub_id)
 
     repo.get_by_id = AsyncMock(side_effect=get_by_id)
     repo.save = AsyncMock(side_effect=lambda e: e)

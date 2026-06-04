@@ -63,9 +63,9 @@ async def test_calls_save_with_updated_entity(use_case, repo):
     original = make_subscription()
     repo.get_by_id = AsyncMock(return_value=original)
     repo.save = AsyncMock(side_effect=lambda e: e)
-    await use_case.execute(subscription_id=1, status="cancelled")
+    await use_case.execute(subscription_id=1, status="suspended")
     saved_entity = repo.save.call_args[0][0]
-    assert saved_entity.status == "cancelled"
+    assert saved_entity.status == "suspended"
     assert saved_entity.id == 1
 
 

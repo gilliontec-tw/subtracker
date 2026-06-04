@@ -46,9 +46,7 @@ const BILLING_CYCLE_LABELS: Record<string, string> = {
 
 const STATUS_TEXT: Record<string, { label: string; className: string }> = {
   active:    { label: '啟用中', className: 'font-medium text-emerald-600' },
-  cancelled: { label: '已取消', className: 'text-slate-400' },
-  renewed:   { label: '已續訂', className: 'text-slate-500' },
-  suspended: { label: '已暫停', className: 'text-amber-600' },
+  suspended: { label: '停用', className: 'text-slate-400' },
 }
 
 function StatusBadge({ status }: { status: string }) {

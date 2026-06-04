@@ -13,7 +13,7 @@ const CYCLE_LABELS_CSV: Record<string, string> = {
   monthly: '月繳', quarterly: '季繳', semi_annual: '半年繳', annual: '年繳', biennial: '兩年繳',
 }
 const STATUS_LABELS_CSV: Record<string, string> = {
-  active: '啟用中', renewed: '已續訂', cancelled: '已取消', suspended: '已暫停',
+  active: '啟用中', suspended: '停用',
 }
 
 function downloadCSV(items: Subscription[]) {
@@ -50,11 +50,9 @@ export default function SubscriptionsPage() {
   const location = useLocation()
   const { currentUser } = useAuthStore()
   const [search, setSearch] = useState<string>((location.state as { search?: string } | null)?.search ?? '')
-  const [showCancelled, setShowCancelled] = useState(false)
-
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['subscriptions', showCancelled],
-    queryFn: () => listSubscriptions(showCancelled),
+    queryKey: ['subscriptions', false],
+    queryFn: () => listSubscriptions(false),
   })
 
   const subscriptions = data?.items ?? []
@@ -91,15 +89,6 @@ export default function SubscriptionsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
         />
-        <label className="flex cursor-pointer items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={showCancelled}
-            onChange={(e) => setShowCancelled(e.target.checked)}
-            className="size-4"
-          />
-          顯示已取消
-        </label>
         {(currentUser?.can_update || currentUser?.role === 'admin') && (
           <span className="text-xs text-muted-foreground">勾選列可批次續訂</span>
         )}
