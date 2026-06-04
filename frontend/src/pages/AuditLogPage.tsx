@@ -128,7 +128,7 @@ export default function AuditLogPage() {
                   {entry.action !== 'delete' && entry.resource_id ? (
                     <button
                       className="text-left underline-offset-2 hover:underline"
-                      onClick={() => navigate(`/subscriptions/${entry.resource_id}`)}
+                      onClick={() => navigate(`/subscriptions/${entry.resource_id}/edit`)}
                     >
                       {entry.service_name ?? '—'}
                     </button>
