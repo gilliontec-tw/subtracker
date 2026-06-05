@@ -12,8 +12,8 @@ EXPOSE 8000
 FROM base AS production
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 COPY pyproject.toml .
-RUN pip install --no-cache-dir -e "."
 COPY src/ ./src/
+RUN pip install --no-cache-dir -e "."
 COPY alembic/ ./alembic/
 COPY alembic.ini .
 COPY scripts/ ./scripts/
