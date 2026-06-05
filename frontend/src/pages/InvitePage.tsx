@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -40,7 +40,6 @@ function Field({
 
 export default function InvitePage() {
   const { token } = useParams<{ token: string }>()
-  const navigate = useNavigate()
   const [done, setDone] = useState(false)
 
   const { data, isLoading } = useQuery({
@@ -61,7 +60,7 @@ export default function InvitePage() {
     mutationFn: (values: FormValues) => acceptInvite(token!, values.password),
     onSuccess: () => {
       setDone(true)
-      setTimeout(() => navigate('/login', { replace: true }), 2000)
+      setTimeout(() => { window.location.href = '/login' }, 2000)
     },
   })
 

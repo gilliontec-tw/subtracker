@@ -22,6 +22,7 @@ import {
 import { UserPlus } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
+
 const schema = z.object({
   display_name: z.string().min(1, '顯示名稱為必填'),
   email: z.string().min(1, 'Email 為必填').email('請輸入有效的 Email'),
@@ -92,9 +93,23 @@ export default function CreateUserModal() {
     ? `${window.location.origin}/invite/${inviteToken}`
     : ''
 
-  async function copyToClipboard() {
-    await navigator.clipboard.writeText(inviteUrl)
-    setCopied(true)
+  function copyToClipboard() {
+    function doFallback() {
+      const el = document.createElement('textarea')
+      el.value = inviteUrl
+      el.style.position = 'fixed'
+      el.style.opacity = '0'
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true)
+    }
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(inviteUrl).then(() => setCopied(true)).catch(doFallback)
+    } else {
+      doFallback()
+    }
   }
 
   return (

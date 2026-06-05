@@ -50,9 +50,23 @@ export default function UsersPage() {
     ? `${window.location.origin}/invite/${resetToken}`
     : ''
 
-  async function copyToClipboard() {
-    await navigator.clipboard.writeText(resetUrl)
-    setCopied(true)
+  function copyToClipboard() {
+    function doFallback() {
+      const el = document.createElement('textarea')
+      el.value = resetUrl
+      el.style.position = 'fixed'
+      el.style.opacity = '0'
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true)
+    }
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(resetUrl).then(() => setCopied(true)).catch(doFallback)
+    } else {
+      doFallback()
+    }
   }
 
   if (currentUser?.role !== 'admin') return <Navigate to="/dashboard" replace />
