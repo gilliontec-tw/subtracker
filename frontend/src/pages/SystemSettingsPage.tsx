@@ -94,13 +94,13 @@ export default function SystemSettingsPage() {
   const { mutate: doSave, isPending: isSaving } = useMutation({
     mutationFn: (values: FormValues) =>
       updateSystemSettings({
-        smtp_host: values.smtp_host || undefined,
+        smtp_host: values.smtp_host,
         smtp_port: values.smtp_port || undefined,
-        smtp_user: values.smtp_user || undefined,
+        smtp_user: values.smtp_user,
         smtp_password: values.smtp_password || undefined,
-        smtp_from: values.smtp_from || undefined,
-        smtp_sender_name: values.smtp_sender_name || undefined,
-        app_url: values.app_url || undefined,
+        smtp_from: values.smtp_from,
+        smtp_sender_name: values.smtp_sender_name,
+        app_url: values.app_url,
         notification_cron_hour: values.notification_cron_hour,
         notification_cron_minute: values.notification_cron_minute,
       }),

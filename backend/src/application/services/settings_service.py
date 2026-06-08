@@ -43,7 +43,7 @@ class SettingsService:
 
     async def get(self, key: str) -> str | None:
         db_value = await self._repo.get(key)
-        if db_value is not None:
+        if db_value is not None and db_value != "":
             if key == _SMTP_PASSWORD_KEY:
                 if self._fernet:
                     try:
