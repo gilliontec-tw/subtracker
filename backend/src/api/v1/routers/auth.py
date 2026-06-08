@@ -83,7 +83,7 @@ async def login(
 
     repo = SqlUserRepository(db)
     user = await repo.get_by_email(body.email)
-    if not user or not verify_password(body.password, user.password_hash):
+    if not user or not user.is_active or not verify_password(body.password, user.password_hash):
         await redis.incr(fail_key)
         await redis.expire(fail_key, _FAIL_TTL)
         raise NotAuthenticatedException()
