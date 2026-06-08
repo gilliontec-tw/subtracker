@@ -53,7 +53,10 @@ export async function updateSystemSettings(payload: SettingsUpdatePayload): Prom
     const { data } = await api.put<ApiResponse<null>>('/api/v1/admin/settings', payload)
     if (!data.success) throw new Error(data.message)
   } catch (err) {
-    return extractMessage(err, '儲存設定失敗')
+    if ((err as AxiosError)?.response) {
+      return extractMessage(err, '儲存設定失敗')
+    }
+    throw err
   }
 }
 
@@ -63,6 +66,9 @@ export async function testSmtpEmail(payload: TestEmailPayload): Promise<string> 
     if (!data.success) throw new Error(data.message)
     return data.message
   } catch (err) {
-    return extractMessage(err, '測試寄信失敗')
+    if ((err as AxiosError)?.response) {
+      return extractMessage(err, '測試寄信失敗')
+    }
+    throw err
   }
 }
