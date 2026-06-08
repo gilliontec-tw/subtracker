@@ -149,7 +149,7 @@ export default function SystemSettingsPage() {
             </FormField>
 
             <FormField label="SMTP Port" error={errors.smtp_port?.message}>
-              <Input type="number" {...register('smtp_port')} placeholder="587" />
+              <Input type="number" {...register('smtp_port', { valueAsNumber: true })} placeholder="587" />
             </FormField>
 
             <FormField label="帳號" error={errors.smtp_user?.message}>
@@ -212,14 +212,14 @@ export default function SystemSettingsPage() {
               label="發送時間（小時，0–23）"
               error={errors.notification_cron_hour?.message}
             >
-              <Input type="number" min={0} max={23} {...register('notification_cron_hour')} />
+              <Input type="number" min={0} max={23} {...register('notification_cron_hour', { valueAsNumber: true })} />
             </FormField>
 
             <FormField
               label="發送時間（分鐘，0–59）"
               error={errors.notification_cron_minute?.message}
             >
-              <Input type="number" min={0} max={59} {...register('notification_cron_minute')} />
+              <Input type="number" min={0} max={59} {...register('notification_cron_minute', { valueAsNumber: true })} />
             </FormField>
           </div>
           <p className="text-xs text-muted-foreground">
