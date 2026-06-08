@@ -1,10 +1,12 @@
+import smtplib
+
 from application.services.settings_service import SettingsService
 from domain.entities.user import User
 from domain.exceptions import BadRequestException
 from fastapi import APIRouter, Depends
 from infrastructure.smtp.smtp_email_sender import SmtpEmailSender
 
-from api.dependencies import get_current_user, get_settings_service, require_admin
+from api.dependencies import get_settings_service, require_admin
 from api.v1.schemas.admin_settings import (
     SettingsResponse,
     SettingsUpdateRequest,
@@ -72,8 +74,7 @@ async def update_settings(
 @router.post("/test-email", response_model=ApiResponse[None])
 async def test_email(
     body: TestEmailRequest,
-    current_user: User = Depends(get_current_user),
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     svc: SettingsService = Depends(get_settings_service),
 ) -> ApiResponse[None]:
     password = body.smtp_password
@@ -97,7 +98,7 @@ async def test_email(
                 "如果您收到這封信，表示 SMTP 設定無誤。"
             ),
         )
-    except Exception as e:
+    except (smtplib.SMTPException, OSError) as e:
         raise BadRequestException(f"寄信失敗：{e}")
 
     return ApiResponse.ok(message=f"測試信已寄至 {current_user.email}")
