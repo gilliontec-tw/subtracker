@@ -2,15 +2,16 @@
 
 import asyncio
 import logging
-import os
 import signal
-from datetime import date
+from datetime import date, datetime
 
 from api.config import get_settings
+from application.services.settings_service import SettingsService
 from application.use_cases.check_and_notify import CheckAndNotifyUseCase
 
-from infrastructure.database.repositories.subscription_repository import (
-    SqlSubscriptionRepository,
+from infrastructure.database.repositories.subscription_repository import SqlSubscriptionRepository
+from infrastructure.database.repositories.system_setting_repository import (
+    SqlSystemSettingRepository,
 )
 from infrastructure.database.session import AsyncSessionFactory
 from infrastructure.smtp.smtp_email_sender import SmtpEmailSender
@@ -22,7 +23,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-POLL_INTERVAL = 30  # seconds between clock checks
+POLL_INTERVAL = 30
 
 _shutdown = asyncio.Event()
 
@@ -32,16 +33,28 @@ def _handle_signal(sig: int, _frame: object) -> None:
     _shutdown.set()
 
 
-async def run_notifications() -> None:
-    settings = get_settings()
-    sender = SmtpEmailSender(
-        host=settings.smtp_host,
-        port=settings.smtp_port,
-        username=settings.smtp_user,
-        password=settings.smtp_password,
-        from_addr=settings.smtp_from,
-    )
+async def _read_schedule() -> tuple[int, int]:
+    env = get_settings()
     async with AsyncSessionFactory() as session:
+        svc = SettingsService(SqlSystemSettingRepository(session), env)
+        hour = int(await svc.get("notification_cron_hour") or str(env.notification_cron_hour))
+        minute = int(await svc.get("notification_cron_minute") or str(env.notification_cron_minute))
+    return hour, minute
+
+
+async def run_notifications() -> None:
+    env = get_settings()
+    async with AsyncSessionFactory() as session:
+        svc = SettingsService(SqlSystemSettingRepository(session), env)
+        smtp_config = await svc.get_smtp_config()
+        sender = SmtpEmailSender(
+            host=smtp_config.host,
+            port=smtp_config.port,
+            username=smtp_config.user,
+            password=smtp_config.password,
+            from_addr=smtp_config.from_addr,
+            sender_name=smtp_config.sender_name,
+        )
         repo = SqlSubscriptionRepository(session)
         use_case = CheckAndNotifyUseCase(repo, sender)
         sent = await use_case.execute()
@@ -50,12 +63,9 @@ async def run_notifications() -> None:
 
 async def scheduler_loop(target_hour: int, target_minute: int) -> None:
     last_run_date: date | None = None
-
     log.info("Scheduler started — will run daily at %02d:%02d", target_hour, target_minute)
 
     while not _shutdown.is_set():
-        from datetime import datetime
-
         now = datetime.now()
         today = now.date()
 
@@ -77,8 +87,13 @@ def main() -> None:
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
 
-    target_hour = int(os.environ.get("NOTIFICATION_CRON_HOUR", "8"))
-    target_minute = int(os.environ.get("NOTIFICATION_CRON_MINUTE", "0"))
+    env = get_settings()
+    try:
+        target_hour, target_minute = asyncio.run(_read_schedule())
+    except Exception:
+        log.exception("Failed to read schedule from DB, using env defaults")
+        target_hour = env.notification_cron_hour
+        target_minute = env.notification_cron_minute
 
     asyncio.run(scheduler_loop(target_hour, target_minute))
 

@@ -2,6 +2,7 @@ import secrets
 from datetime import UTC, datetime
 
 import redis.asyncio as aioredis
+from application.services.settings_service import SettingsService
 from application.use_cases.change_password import ChangePasswordUseCase
 from application.use_cases.request_password_reset import RequestPasswordResetUseCase
 from domain.entities.user import User
@@ -20,7 +21,7 @@ from infrastructure.smtp.smtp_email_sender import SmtpEmailSender
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.config import settings
-from api.dependencies import get_current_user
+from api.dependencies import get_current_user, get_settings_service
 from api.v1.schemas.auth import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
@@ -173,16 +174,20 @@ async def refresh(
 async def forgot_password(
     body: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
+    svc: SettingsService = Depends(get_settings_service),
 ) -> ApiResponse[None]:
     repo = SqlUserRepository(db)
+    smtp_config = await svc.get_smtp_config()
     email_sender = SmtpEmailSender(
-        host=settings.smtp_host,
-        port=settings.smtp_port,
-        username=settings.smtp_user,
-        password=settings.smtp_password,
-        from_addr=settings.smtp_from,
+        host=smtp_config.host,
+        port=smtp_config.port,
+        username=smtp_config.user,
+        password=smtp_config.password,
+        from_addr=smtp_config.from_addr,
+        sender_name=smtp_config.sender_name,
     )
-    use_case = RequestPasswordResetUseCase(repo, email_sender, settings.app_url)
+    app_url = await svc.get("app_url") or settings.app_url
+    use_case = RequestPasswordResetUseCase(repo, email_sender, app_url)
     await use_case.execute(email=str(body.email))
     return ApiResponse.ok(message="若此 Email 已註冊，重設連結已寄出，請查收信箱")
 
