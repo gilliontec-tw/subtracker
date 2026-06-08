@@ -13,12 +13,13 @@ class SmtpEmailSender(EmailSender):
         username: str,
         password: str,
         from_addr: str,
+        sender_name: str = "",
     ) -> None:
         self._host = host
         self._port = port
         self._username = username
         self._password = password
-        self._from = from_addr
+        self._from = f"{sender_name} <{from_addr}>" if sender_name else from_addr
 
     async def send(self, to: list[str], subject: str, body: str) -> None:
         await asyncio.to_thread(self._send_sync, to, subject, body)
