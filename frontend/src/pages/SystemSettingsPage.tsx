@@ -12,14 +12,14 @@ import { useToast } from '@/hooks/use-toast'
 
 const schema = z.object({
   smtp_host: z.string(),
-  smtp_port: z.coerce.number().int().min(1).max(65535),
+  smtp_port: z.number().int().min(1).max(65535),
   smtp_user: z.string(),
   smtp_password: z.string(),
   smtp_from: z.string(),
   smtp_sender_name: z.string(),
   app_url: z.string(),
-  notification_cron_hour: z.coerce.number().int().min(0).max(23),
-  notification_cron_minute: z.coerce.number().int().min(0).max(59),
+  notification_cron_hour: z.number().int().min(0).max(23),
+  notification_cron_minute: z.number().int().min(0).max(59),
 })
 
 type FormValues = z.infer<typeof schema>
