@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_from: str = ""
+    smtp_sender_name: str = "SubTrack"
+
+    settings_encryption_key: str = ""
+    notification_cron_hour: int = 8
+    notification_cron_minute: int = 0
 
     app_env: str = "production"
     app_url: str = "http://localhost:5173"
