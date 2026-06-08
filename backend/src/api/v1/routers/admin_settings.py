@@ -22,18 +22,18 @@ async def get_settings(
     _: User = Depends(require_admin),
     svc: SettingsService = Depends(get_settings_service),
 ) -> ApiResponse[SettingsResponse]:
-    password = await svc.get("smtp_password")
+    s = await svc.get_all_settings()
     return ApiResponse.ok(
         data=SettingsResponse(
-            smtp_host=await svc.get("smtp_host") or "",
-            smtp_port=int(await svc.get("smtp_port") or "587"),
-            smtp_user=await svc.get("smtp_user") or "",
-            smtp_password_set=bool(password),
-            smtp_from=await svc.get("smtp_from") or "",
-            smtp_sender_name=await svc.get("smtp_sender_name") or "SubTrack",
-            app_url=await svc.get("app_url") or "",
-            notification_cron_hour=int(await svc.get("notification_cron_hour") or "8"),
-            notification_cron_minute=int(await svc.get("notification_cron_minute") or "0"),
+            smtp_host=s.get("smtp_host") or "",
+            smtp_port=int(s.get("smtp_port") or "587"),
+            smtp_user=s.get("smtp_user") or "",
+            smtp_password_set=bool(s.get("smtp_password")),
+            smtp_from=s.get("smtp_from") or "",
+            smtp_sender_name=s.get("smtp_sender_name") or "SubTrack",
+            app_url=s.get("app_url") or "",
+            notification_cron_hour=int(s.get("notification_cron_hour") or "8"),
+            notification_cron_minute=int(s.get("notification_cron_minute") or "0"),
             encryption_key_configured=svc.encryption_key_configured,
         )
     )

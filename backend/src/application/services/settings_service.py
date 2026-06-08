@@ -49,8 +49,8 @@ class SettingsService:
                     try:
                         return self._fernet.decrypt(db_value.encode()).decode()
                     except InvalidToken:
-                        return None
-                # No fernet — cannot decrypt; fall through to env fallback
+                        pass  # key was rotated — fall through to env fallback
+                # No fernet or decryption failed — fall through to env fallback
             else:
                 return db_value
         fallback_fn = _ENV_FALLBACKS.get(key)
@@ -62,6 +62,30 @@ class SettingsService:
                 raise ValueError("加密金鑰未設定（SETTINGS_ENCRYPTION_KEY），無法儲存密碼")
             value = self._fernet.encrypt(value.encode()).decode()
         await self._repo.set(key, value)
+
+    async def get_all_settings(self) -> dict[str, str | None]:
+        """Fetch all settings in a single DB round-trip and resolve each value with env fallback."""
+        all_rows = await self._repo.get_all()
+        result: dict[str, str | None] = {}
+        for key in _ENV_FALLBACKS:
+            db_value = all_rows.get(key)
+            if db_value is not None and db_value != "":
+                if key == _SMTP_PASSWORD_KEY:
+                    if self._fernet:
+                        try:
+                            result[key] = self._fernet.decrypt(db_value.encode()).decode()
+                        except InvalidToken:
+                            fallback_fn = _ENV_FALLBACKS.get(key)
+                            result[key] = fallback_fn(self._env) if fallback_fn else None
+                    else:
+                        fallback_fn = _ENV_FALLBACKS.get(key)
+                        result[key] = fallback_fn(self._env) if fallback_fn else None
+                else:
+                    result[key] = db_value
+            else:
+                fallback_fn = _ENV_FALLBACKS.get(key)
+                result[key] = fallback_fn(self._env) if fallback_fn else None
+        return result
 
     async def get_smtp_config(self) -> SmtpConfig:
         return SmtpConfig(
