@@ -44,15 +44,15 @@ class SettingsService:
     async def get(self, key: str) -> str | None:
         db_value = await self._repo.get(key)
         if db_value is not None:
-            if key == _SMTP_PASSWORD_KEY and self._fernet:
-                try:
-                    return self._fernet.decrypt(db_value.encode()).decode()
-                except InvalidToken:
-                    return None
-            elif key == _SMTP_PASSWORD_KEY:
-                # DB has encrypted value but no key to decrypt — skip
-                return None
-            return db_value
+            if key == _SMTP_PASSWORD_KEY:
+                if self._fernet:
+                    try:
+                        return self._fernet.decrypt(db_value.encode()).decode()
+                    except InvalidToken:
+                        return None
+                # No fernet — cannot decrypt; fall through to env fallback
+            else:
+                return db_value
         fallback_fn = _ENV_FALLBACKS.get(key)
         return fallback_fn(self._env) if fallback_fn else None
 

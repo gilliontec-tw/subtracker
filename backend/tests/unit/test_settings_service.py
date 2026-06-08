@@ -66,6 +66,14 @@ async def test_get_smtp_password_falls_back_to_env_when_no_key():
 
 
 @pytest.mark.asyncio
+async def test_get_smtp_password_falls_back_to_env_when_db_has_encrypted_value_but_no_key():
+    repo = AsyncMock()
+    repo.get.return_value = "some-encrypted-blob"
+    svc = SettingsService(repo, make_env(smtp_password="env-pass", settings_encryption_key=""))
+    assert await svc.get("smtp_password") == "env-pass"
+
+
+@pytest.mark.asyncio
 async def test_set_smtp_password_raises_when_no_encryption_key():
     repo = AsyncMock()
     svc = SettingsService(repo, make_env(settings_encryption_key=""))
