@@ -12,6 +12,7 @@ import UsersPage from '@/pages/UsersPage'
 import AuditLogPage from '@/pages/AuditLogPage'
 import PaymentRecordsPage from '@/pages/PaymentRecordsPage'
 import InvitePage from '@/pages/InvitePage'
+import SystemSettingsPage from '@/pages/SystemSettingsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="/users" element={<UsersPage />} />
               <Route path="/audit-log" element={<AuditLogPage />} />
               <Route path="/payments" element={<PaymentRecordsPage />} />
+              <Route path="/settings" element={<SystemSettingsPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
