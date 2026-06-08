@@ -2,9 +2,14 @@ from application.services.settings_service import SettingsService
 from domain.entities.user import User
 from domain.exceptions import BadRequestException
 from fastapi import APIRouter, Depends
+from infrastructure.smtp.smtp_email_sender import SmtpEmailSender
 
-from api.dependencies import get_settings_service, require_admin
-from api.v1.schemas.admin_settings import SettingsResponse, SettingsUpdateRequest
+from api.dependencies import get_current_user, get_settings_service, require_admin
+from api.v1.schemas.admin_settings import (
+    SettingsResponse,
+    SettingsUpdateRequest,
+    TestEmailRequest,
+)
 from api.v1.schemas.base import ApiResponse
 
 router = APIRouter(prefix="/api/v1/admin/settings", tags=["admin-settings"])
@@ -62,3 +67,37 @@ async def update_settings(
             await svc.set(key, value)
 
     return ApiResponse.ok(message="設定已儲存")
+
+
+@router.post("/test-email", response_model=ApiResponse[None])
+async def test_email(
+    body: TestEmailRequest,
+    current_user: User = Depends(get_current_user),
+    _: User = Depends(require_admin),
+    svc: SettingsService = Depends(get_settings_service),
+) -> ApiResponse[None]:
+    password = body.smtp_password
+    if not password:
+        password = await svc.get("smtp_password") or ""
+
+    sender = SmtpEmailSender(
+        host=body.smtp_host,
+        port=body.smtp_port,
+        username=body.smtp_user,
+        password=password,
+        from_addr=body.smtp_from,
+        sender_name=body.smtp_sender_name,
+    )
+    try:
+        await sender.send(
+            to=[current_user.email],
+            subject="SubTrack 郵件設定測試",
+            body=(
+                "這是一封測試信，確認您的 SMTP 設定正確。\n\n"
+                "如果您收到這封信，表示 SMTP 設定無誤。"
+            ),
+        )
+    except Exception as e:
+        raise BadRequestException(f"寄信失敗：{e}")
+
+    return ApiResponse.ok(message=f"測試信已寄至 {current_user.email}")
