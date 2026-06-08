@@ -61,11 +61,17 @@ async def run_notifications() -> None:
     log.info("Notifications sent: %d", sent)
 
 
-async def scheduler_loop(target_hour: int, target_minute: int) -> None:
+async def scheduler_loop(default_hour: int, default_minute: int) -> None:
     last_run_date: date | None = None
-    log.info("Scheduler started — will run daily at %02d:%02d", target_hour, target_minute)
+    log.info("Scheduler started — initial schedule %02d:%02d", default_hour, default_minute)
 
     while not _shutdown.is_set():
+        try:
+            target_hour, target_minute = await _read_schedule()
+        except Exception:
+            log.warning("Could not read schedule from DB, using defaults")
+            target_hour, target_minute = default_hour, default_minute
+
         now = datetime.now()
         today = now.date()
 
@@ -88,14 +94,7 @@ def main() -> None:
     signal.signal(signal.SIGINT, _handle_signal)
 
     env = get_settings()
-    try:
-        target_hour, target_minute = asyncio.run(_read_schedule())
-    except Exception:
-        log.exception("Failed to read schedule from DB, using env defaults")
-        target_hour = env.notification_cron_hour
-        target_minute = env.notification_cron_minute
-
-    asyncio.run(scheduler_loop(target_hour, target_minute))
+    asyncio.run(scheduler_loop(env.notification_cron_hour, env.notification_cron_minute))
 
 
 if __name__ == "__main__":
