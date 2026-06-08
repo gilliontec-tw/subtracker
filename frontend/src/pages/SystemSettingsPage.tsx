@@ -138,52 +138,68 @@ export default function SystemSettingsPage() {
       <form onSubmit={handleSubmit((v) => doSave(v))} className="space-y-8">
 
         {/* 郵件伺服器 */}
-        <section className="space-y-4">
+        <section className="space-y-5">
           <h3 className="text-base font-semibold">郵件伺服器（SMTP）</h3>
 
-          {settings && !settings.encryption_key_configured && (
-            <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              尚未設定加密金鑰（<code>SETTINGS_ENCRYPTION_KEY</code>），密碼無法儲存至資料庫，目前使用 .env 設定。
+          {/* 伺服器連線 */}
+          <div className="rounded-lg border p-4 space-y-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">伺服器連線</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="主機位址（Host）" error={errors.smtp_host?.message}>
+                <Input {...register('smtp_host')} placeholder="smtp.gmail.com" />
+              </FormField>
+              <FormField label="連接埠（Port）" error={errors.smtp_port?.message}>
+                <Input type="number" {...register('smtp_port', { valueAsNumber: true })} placeholder="587" />
+              </FormField>
             </div>
-          )}
+          </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField label="SMTP Host" error={errors.smtp_host?.message}>
-              <Input {...register('smtp_host')} placeholder="smtp.gmail.com" />
-            </FormField>
+          {/* 登入認證 */}
+          <div className="rounded-lg border p-4 space-y-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">登入認證</p>
+            {settings && !settings.encryption_key_configured && (
+              <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                未設定 <code>SETTINGS_ENCRYPTION_KEY</code>，密碼只能從 .env 讀取，無法透過此頁面修改。
+              </div>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="帳號（用於登入郵件伺服器）" error={errors.smtp_user?.message}>
+                <Input {...register('smtp_user')} placeholder="service@corp.com" />
+              </FormField>
+              <FormField
+                label="密碼（用於登入郵件伺服器）"
+                error={errors.smtp_password?.message}
+                hint={settings?.smtp_password_set ? '留空則不變' : '尚未設定'}
+              >
+                <Input
+                  type="password"
+                  autoComplete="new-password"
+                  {...register('smtp_password')}
+                  placeholder={settings?.smtp_password_set ? '留空則不變' : '請輸入密碼'}
+                />
+              </FormField>
+            </div>
+          </div>
 
-            <FormField label="SMTP Port" error={errors.smtp_port?.message}>
-              <Input type="number" {...register('smtp_port', { valueAsNumber: true })} placeholder="587" />
-            </FormField>
-
-            <FormField label="帳號" error={errors.smtp_user?.message}>
-              <Input {...register('smtp_user')} placeholder="noreply@corp.com" />
-            </FormField>
-
-            <FormField
-              label="密碼"
-              error={errors.smtp_password?.message}
-              hint={settings?.smtp_password_set ? '留空則不變' : '尚未設定'}
-            >
-              <Input
-                type="password"
-                autoComplete="new-password"
-                {...register('smtp_password')}
-                placeholder={settings?.smtp_password_set ? '留空則不變' : '請輸入密碼'}
-              />
-            </FormField>
-
-            <FormField label="寄件人 Email" error={errors.smtp_from?.message}>
-              <Input {...register('smtp_from')} placeholder="noreply@corp.com" />
-            </FormField>
-
-            <FormField
-              label="寄件人顯示名稱"
-              error={errors.smtp_sender_name?.message}
-              hint='顯示在收件人信箱，例如「SubTrack」'
-            >
-              <Input {...register('smtp_sender_name')} placeholder="SubTrack" />
-            </FormField>
+          {/* 寄件人設定 */}
+          <div className="rounded-lg border p-4 space-y-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">寄件人設定</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                label="寄件人地址（From）"
+                error={errors.smtp_from?.message}
+                hint="顯示在收件人信件的寄件地址"
+              >
+                <Input {...register('smtp_from')} placeholder="service@corp.com" />
+              </FormField>
+              <FormField
+                label="寄件人顯示名稱"
+                error={errors.smtp_sender_name?.message}
+                hint='收件人看到的名稱，例如「SubTrack」'
+              >
+                <Input {...register('smtp_sender_name')} placeholder="SubTrack" />
+              </FormField>
+            </div>
           </div>
 
           <Button
@@ -211,24 +227,22 @@ export default function SystemSettingsPage() {
         {/* 通知排程 */}
         <section className="space-y-4">
           <h3 className="text-base font-semibold">通知排程</h3>
+          <p className="text-sm text-muted-foreground">每天固定時間發送到期提醒信件。</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField
-              label="發送時間（小時，0–23）"
+              label="發送時間：小時（0–23）"
               error={errors.notification_cron_hour?.message}
             >
               <Input type="number" min={0} max={23} {...register('notification_cron_hour', { valueAsNumber: true })} />
             </FormField>
 
             <FormField
-              label="發送時間（分鐘，0–59）"
+              label="發送時間：分鐘（0–59）"
               error={errors.notification_cron_minute?.message}
             >
               <Input type="number" min={0} max={59} {...register('notification_cron_minute', { valueAsNumber: true })} />
             </FormField>
           </div>
-          <p className="text-xs text-muted-foreground">
-            修改後需重新啟動 scheduler 服務才會生效（<code>docker compose restart scheduler</code>）
-          </p>
         </section>
 
         <div className="border-t pt-6">
