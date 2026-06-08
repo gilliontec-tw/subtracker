@@ -56,7 +56,7 @@ export async function updateSystemSettings(payload: SettingsUpdatePayload): Prom
     if ((err as AxiosError)?.response) {
       return extractMessage(err, '儲存設定失敗')
     }
-    throw err
+    throw err instanceof Error ? err : new Error('網路錯誤，請確認連線後重試')
   }
 }
 
@@ -69,6 +69,6 @@ export async function testSmtpEmail(payload: TestEmailPayload): Promise<string> 
     if ((err as AxiosError)?.response) {
       return extractMessage(err, '測試寄信失敗')
     }
-    throw err
+    throw err instanceof Error ? err : new Error('網路錯誤，請確認連線後重試')
   }
 }
