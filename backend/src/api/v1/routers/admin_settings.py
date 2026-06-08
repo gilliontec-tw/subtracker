@@ -1,3 +1,4 @@
+import logging
 import smtplib
 
 from application.services.settings_service import SettingsService
@@ -13,6 +14,8 @@ from api.v1.schemas.admin_settings import (
     TestEmailRequest,
 )
 from api.v1.schemas.base import ApiResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/admin/settings", tags=["admin-settings"])
 
@@ -99,6 +102,7 @@ async def test_email(
             ),
         )
     except (smtplib.SMTPException, OSError) as e:
-        raise BadRequestException(f"寄信失敗：{e}")
+        logger.warning("SMTP test failed: %s", e)
+        raise BadRequestException("寄信失敗，請確認 SMTP 設定是否正確")
 
     return ApiResponse.ok(message=f"測試信已寄至 {current_user.email}")
