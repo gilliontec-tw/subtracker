@@ -1,6 +1,7 @@
 from application.services.settings_service import SettingsService
 from domain.entities.user import User
-from fastapi import APIRouter, Depends, HTTPException
+from domain.exceptions import BadRequestException
+from fastapi import APIRouter, Depends
 
 from api.dependencies import get_settings_service, require_admin
 from api.v1.schemas.admin_settings import SettingsResponse, SettingsUpdateRequest
@@ -39,9 +40,7 @@ async def update_settings(
 ) -> ApiResponse[None]:
     if body.smtp_password:
         if not svc.encryption_key_configured:
-            raise HTTPException(
-                status_code=400, detail="加密金鑰未設定（SETTINGS_ENCRYPTION_KEY），無法儲存密碼"
-            )
+            raise BadRequestException("加密金鑰未設定（SETTINGS_ENCRYPTION_KEY），無法儲存密碼")
         await svc.set("smtp_password", body.smtp_password)
 
     field_map: dict[str, str | None] = {

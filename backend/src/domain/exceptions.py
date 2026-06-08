@@ -20,3 +20,9 @@ class DuplicateEmailException(DomainException):
 
 class LastAdminException(DomainException):
     pass
+
+
+class BadRequestException(DomainException):
+    def __init__(self, message: str = "請求無效") -> None:
+        self.message = message
+        super().__init__(message)
