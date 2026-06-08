@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -48,6 +48,7 @@ function FormField({
 export default function SystemSettingsPage() {
   const currentUser = useAuthStore((s) => s.currentUser)
   const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ['system-settings'],
@@ -104,7 +105,10 @@ export default function SystemSettingsPage() {
         notification_cron_hour: values.notification_cron_hour,
         notification_cron_minute: values.notification_cron_minute,
       }),
-    onSuccess: () => toast({ title: '設定已儲存' }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['system-settings'] })
+      toast({ title: '設定已儲存' })
+    },
     onError: (err: Error) => toast({ title: err.message, variant: 'destructive' }),
   })
 
