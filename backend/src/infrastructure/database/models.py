@@ -35,6 +35,15 @@ class UserModel(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class AssetTypeModel(Base):
+    __tablename__ = "asset_types"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class SubscriptionModel(Base):
     __tablename__ = "saas_subscriptions"
 
@@ -58,6 +67,7 @@ class SubscriptionModel(Base):
     next_billing_date = Column(Date)
     last_notified_date = Column(Date)
     status = Column(String(20), server_default="active")  # active|suspended
+    asset_type_id = Column(Integer, ForeignKey("asset_types.id"), nullable=True)
     deleted_at = Column(DateTime(timezone=True))  # NULL = not deleted (soft delete)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
