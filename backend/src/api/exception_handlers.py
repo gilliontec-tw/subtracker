@@ -2,6 +2,7 @@ import logging
 
 from domain.exceptions import (
     BadRequestException,
+    ConflictException,
     DuplicateEmailException,
     ForbiddenException,
     LastAdminException,
@@ -58,6 +59,13 @@ def register_exception_handlers(app: FastAPI) -> None:
                 "message": "無法刪除唯一的管理員",
                 "meta": None,
             },
+        )
+
+    @app.exception_handler(ConflictException)
+    async def conflict_handler(request: Request, exc: ConflictException):
+        return JSONResponse(
+            status_code=409,
+            content={"success": False, "data": None, "message": exc.message, "meta": None},
         )
 
     @app.exception_handler(BadRequestException)

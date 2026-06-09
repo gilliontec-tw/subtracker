@@ -5,6 +5,7 @@ from api.config import settings
 from api.exception_handlers import register_exception_handlers
 from api.middleware.csrf import CSRFMiddleware
 from api.v1.routers.admin_settings import router as admin_settings_router
+from api.v1.routers.asset_types import router as asset_types_router
 from api.v1.routers.audit_log import router as audit_log_router
 from api.v1.routers.auth import router as auth_router
 from api.v1.routers.invite import router as invite_router
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(audit_log_router)
     app.include_router(payments_router)
     app.include_router(admin_settings_router)
+    app.include_router(asset_types_router)
 
     @app.get("/health")
     async def health() -> dict:
