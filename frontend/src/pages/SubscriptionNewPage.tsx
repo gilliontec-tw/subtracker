@@ -13,7 +13,7 @@ export default function SubscriptionNewPage() {
     mutationFn: (payload: Record<string, unknown>) => createSubscription(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] })
-      toast({ title: '訂閱已建立' })
+      toast({ title: '項目已建立' })
       navigate('/subscriptions')
     },
     onError: () => {
@@ -23,7 +23,7 @@ export default function SubscriptionNewPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">新增訂閱</h2>
+      <h2 className="text-2xl font-bold">新增項目</h2>
       <SubscriptionForm onSubmit={mutate} isPending={isPending} submitLabel="建立" />
     </div>
   )

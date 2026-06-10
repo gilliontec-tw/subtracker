@@ -85,7 +85,7 @@ export default function AppLayout() {
   const desktopNavLinks = (
     <>
       <NavLink to="/dashboard" className={navLinkClass}>總覽</NavLink>
-      <NavLink to="/subscriptions" className={navLinkClass}>訂閱列表</NavLink>
+      <NavLink to="/subscriptions" className={navLinkClass}>項目管理</NavLink>
       <NavLink to="/payments" className={navLinkClass}>付款紀錄</NavLink>
       {currentUser?.role === 'admin' && (
         <>
@@ -100,7 +100,7 @@ export default function AppLayout() {
   const mobileNavLinks = (
     <>
       <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>總覽</NavLink>
-      <NavLink to="/subscriptions" className={navLinkClass} onClick={() => setMobileOpen(false)}>訂閱列表</NavLink>
+      <NavLink to="/subscriptions" className={navLinkClass} onClick={() => setMobileOpen(false)}>項目管理</NavLink>
       <NavLink to="/payments" className={navLinkClass} onClick={() => setMobileOpen(false)}>付款紀錄</NavLink>
       {currentUser?.role === 'admin' && (
         <>

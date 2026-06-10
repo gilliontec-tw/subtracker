@@ -23,7 +23,7 @@ export default function SubscriptionEditPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] })
       queryClient.invalidateQueries({ queryKey: ['subscription', subId] })
-      toast({ title: '訂閱已更新' })
+      toast({ title: '項目已更新' })
       navigate('/subscriptions')
     },
     onError: () => {
@@ -33,12 +33,12 @@ export default function SubscriptionEditPage() {
 
   if (isLoading) return <p className="text-muted-foreground">載入中...</p>
   if (isError || !subscription) {
-    return <p className="text-destructive">找不到此訂閱，請返回列表</p>
+    return <p className="text-destructive">找不到此項目，請返回列表</p>
   }
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">編輯訂閱</h2>
+      <h2 className="text-2xl font-bold">編輯項目</h2>
       <SubscriptionForm
         defaultValues={toFormValues(subscription)}
         onSubmit={mutate}

@@ -405,7 +405,7 @@ export default function SubscriptionForm({
       <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-6">
         {isEditMode && canDelete ? (
           <Button type="button" variant="destructive" onClick={() => setDeleteOpen(true)}>
-            刪除訂閱
+            刪除項目
           </Button>
         ) : <span />}
         <div className="flex gap-3">
