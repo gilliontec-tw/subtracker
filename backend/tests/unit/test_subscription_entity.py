@@ -61,3 +61,32 @@ def test_accepts_decimal_cost_and_exchange_rate():
 def test_last_notified_date_defaults_to_none():
     sub = make_subscription()
     assert sub.last_notified_date is None
+
+
+def test_subscription_login_account_is_optional():
+    from datetime import date
+
+    s = Subscription(
+        service_name="Domain",
+        login_account=None,
+        expiry_date=date(2027, 1, 1),
+        notification_emails=[],
+        notification_days=30,
+    )
+    assert s.login_account is None
+
+
+def test_subscription_has_asset_type_fields():
+    from datetime import date
+
+    s = Subscription(
+        service_name="ERP",
+        login_account=None,
+        expiry_date=date(2027, 1, 1),
+        notification_emails=[],
+        notification_days=30,
+        asset_type_id=2,
+        asset_type_name="ERP",
+    )
+    assert s.asset_type_id == 2
+    assert s.asset_type_name == "ERP"

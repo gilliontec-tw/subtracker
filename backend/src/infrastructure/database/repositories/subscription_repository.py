@@ -8,14 +8,14 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from infrastructure.database.models import SubscriptionModel
+from infrastructure.database.models import AssetTypeModel, SubscriptionModel
 
 
-def _to_entity(m: SubscriptionModel) -> Subscription:
+def _to_entity(m: SubscriptionModel, asset_type_name: str | None = None) -> Subscription:
     return Subscription(
         id=m.id,
         service_name=m.service_name,
-        login_account=m.login_account or "",
+        login_account=m.login_account,
         expiry_date=m.expiry_date,
         notification_emails=json.loads(m.notification_emails) if m.notification_emails else [],
         notification_days=m.notification_days if m.notification_days is not None else 30,
@@ -33,10 +33,18 @@ def _to_entity(m: SubscriptionModel) -> Subscription:
         next_billing_date=m.next_billing_date,
         last_notified_date=m.last_notified_date,
         status=m.status or "active",
+        asset_type_id=m.asset_type_id,
+        asset_type_name=asset_type_name,
         deleted_at=m.deleted_at,
         created_at=m.created_at,
         updated_at=m.updated_at,
     )
+
+
+def _with_type_join(stmt):
+    return stmt.outerjoin(
+        AssetTypeModel, SubscriptionModel.asset_type_id == AssetTypeModel.id
+    ).add_columns(AssetTypeModel.name.label("asset_type_name"))
 
 
 class SqlSubscriptionRepository(SubscriptionRepository):
@@ -45,21 +53,25 @@ class SqlSubscriptionRepository(SubscriptionRepository):
 
     async def get_by_id(self, id: int) -> Subscription | None:
         result = await self._session.execute(
-            select(SubscriptionModel).where(
-                SubscriptionModel.id == id,
-                SubscriptionModel.deleted_at.is_(None),
+            _with_type_join(
+                select(SubscriptionModel).where(
+                    SubscriptionModel.id == id,
+                    SubscriptionModel.deleted_at.is_(None),
+                )
             )
         )
-        model = result.scalar_one_or_none()
-        return _to_entity(model) if model else None
+        row = result.one_or_none()
+        return _to_entity(row[0], row[1]) if row else None
 
     async def list_all(self) -> list[Subscription]:
         result = await self._session.execute(
-            select(SubscriptionModel)
-            .where(SubscriptionModel.deleted_at.is_(None))
-            .order_by(SubscriptionModel.expiry_date)
+            _with_type_join(
+                select(SubscriptionModel)
+                .where(SubscriptionModel.deleted_at.is_(None))
+                .order_by(SubscriptionModel.expiry_date)
+            )
         )
-        return [_to_entity(m) for m in result.scalars().all()]
+        return [_to_entity(row[0], row[1]) for row in result.all()]
 
     async def list_paginated(
         self,
@@ -77,13 +89,15 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         total = count_result.scalar_one()
 
         data_result = await self._session.execute(
-            select(SubscriptionModel)
-            .where(*base_filter)
-            .order_by(SubscriptionModel.expiry_date)
-            .limit(limit)
-            .offset(offset)
+            _with_type_join(
+                select(SubscriptionModel)
+                .where(*base_filter)
+                .order_by(SubscriptionModel.expiry_date)
+                .limit(limit)
+                .offset(offset)
+            )
         )
-        items = [_to_entity(m) for m in data_result.scalars().all()]
+        items = [_to_entity(row[0], row[1]) for row in data_result.all()]
         return items, total
 
     async def save(self, entity: Subscription) -> Subscription:
@@ -118,6 +132,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             model.next_billing_date = entity.next_billing_date
             model.last_notified_date = entity.last_notified_date
             model.status = entity.status
+            model.asset_type_id = entity.asset_type_id
         else:
             model = SubscriptionModel(
                 service_name=entity.service_name,
@@ -139,11 +154,12 @@ class SqlSubscriptionRepository(SubscriptionRepository):
                 next_billing_date=entity.next_billing_date,
                 last_notified_date=entity.last_notified_date,
                 status=entity.status,
+                asset_type_id=entity.asset_type_id,
             )
             self._session.add(model)
         await self._session.commit()
         await self._session.refresh(model)
-        return _to_entity(model)
+        return await self.get_by_id(model.id) or _to_entity(model)
 
     async def delete(self, id: int) -> None:
         result = await self._session.execute(

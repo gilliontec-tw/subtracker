@@ -8,7 +8,7 @@ SUPPORTED_CURRENCIES = ("TWD", "USD", "EUR", "JPY", "GBP", "CNY")
 @dataclass
 class Subscription:
     service_name: str
-    login_account: str
+    login_account: str | None
     expiry_date: date
     notification_emails: list[str]
     notification_days: int
@@ -27,6 +27,8 @@ class Subscription:
     next_billing_date: date | None = None
     last_notified_date: date | None = None
     status: str = "active"
+    asset_type_id: int | None = None
+    asset_type_name: str | None = None
 
     id: int | None = None
     deleted_at: datetime | None = None
