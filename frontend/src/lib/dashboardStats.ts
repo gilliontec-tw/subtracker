@@ -3,7 +3,8 @@ import type { Subscription, PaymentRecord } from '@/types/api'
 export interface ExpiringItem {
   id: number
   service_name: string
-  login_account: string
+  login_account: string | null
+  asset_type_name: string | null
   expiry_date: string
   daysLeft: number
   costTWD: number
@@ -75,6 +76,7 @@ export function computeStats(
       id: s.id,
       service_name: s.service_name,
       login_account: s.login_account,
+      asset_type_name: s.asset_type_name,
       expiry_date: s.expiry_date,
       daysLeft: s.daysLeft,
       costTWD: toCostTWD(s),

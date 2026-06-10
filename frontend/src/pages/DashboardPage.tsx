@@ -7,6 +7,14 @@ import {
 } from 'recharts'
 import { listSubscriptions } from '@/api/subscriptions'
 import { listByFilters } from '@/api/payment_records'
+import { listAssetTypes } from '@/api/asset_types'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { computeStats, monthlyEquivalentTWD } from '@/lib/dashboardStats'
 import type { DashboardStats, Breakdown } from '@/lib/dashboardStats'
 import { Button } from '@/components/ui/button'
@@ -59,7 +67,7 @@ function ExpiringTable({
   onRowClick: (serviceName: string) => void
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">目前沒有即將到期的訂閱</p>
+    return <p className="text-sm text-muted-foreground">目前沒有即將到期的項目</p>
   }
 
   return (
@@ -68,6 +76,7 @@ function ExpiringTable({
         <thead>
           <tr className="border-b bg-[#00a8e8]">
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">服務名稱</th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">類型</th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">帳號</th>
             <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-white">費用</th>
             <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-white">到期日</th>
@@ -84,7 +93,12 @@ function ExpiringTable({
                 onClick={() => onRowClick(item.service_name)}
               >
                 <td className="px-4 py-3 font-medium text-slate-900">{item.service_name}</td>
-                <td className="px-4 py-3 text-slate-600">{item.login_account}</td>
+                <td className="px-4 py-3">
+                  {item.asset_type_name
+                    ? <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{item.asset_type_name}</span>
+                    : <span className="text-slate-400">—</span>}
+                </td>
+                <td className="px-4 py-3 text-slate-600">{item.login_account || '—'}</td>
                 <td className="px-4 py-3 text-right tabular-nums text-slate-700">
                   {item.cost ? formatTWD(item.costTWD) : '—'}
                 </td>
@@ -476,6 +490,8 @@ export default function DashboardPage() {
   const [trendTo, setTrendTo] = useState(initTrendTo)
   const [appliedFrom, setAppliedFrom] = useState(initTrendFrom)
   const [appliedTo, setAppliedTo] = useState(initTrendTo)
+  const [selectedTypeId, setSelectedTypeId] = useState<string>('')
+
   const { data: subsData, isLoading, isError: subsError } = useQuery({
     queryKey: ['subscriptions', false],
     queryFn: () => listSubscriptions(),
@@ -486,12 +502,37 @@ export default function DashboardPage() {
     queryFn: () => listByFilters(),
   })
 
+  const { data: assetTypes = [] } = useQuery({
+    queryKey: ['asset-types'],
+    queryFn: listAssetTypes,
+  })
+
   const isError = subsError || paymentsError
-  const stats = computeStats(subsData?.items ?? [], payments ?? [])
+  const allSubs = subsData?.items ?? []
+  const filteredSubs = selectedTypeId === ''
+    ? allSubs
+    : selectedTypeId === '__none__'
+      ? allSubs.filter((s) => s.asset_type_id == null)
+      : allSubs.filter((s) => s.asset_type_id === parseInt(selectedTypeId))
+  const stats = computeStats(filteredSubs, payments ?? [])
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-slate-900">總覽</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-slate-900">總覽</h1>
+        <Select value={selectedTypeId} onValueChange={setSelectedTypeId}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="全部類型" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">全部類型</SelectItem>
+            <SelectItem value="__none__">未分類</SelectItem>
+            {assetTypes.map((t) => (
+              <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       {isLoading && <p className="text-sm text-slate-400">載入中...</p>}
       {isError && <p className="text-sm text-destructive">載入失敗，請重新整理頁面</p>}
