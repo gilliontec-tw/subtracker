@@ -166,6 +166,7 @@ export default function SubscriptionTable({ subscriptions }: Props) {
               />
             </TableHead>
             {th('服務名稱', 'service_name')}
+            <TableHead>類型</TableHead>
             {th('帳號', 'login_account')}
             {th('部門', 'department')}
             {th('負責人', 'owner_name')}
@@ -179,8 +180,8 @@ export default function SubscriptionTable({ subscriptions }: Props) {
         <TableBody>
           {sorted.length === 0 && (
             <TableRow>
-              <TableCell colSpan={hasActions ? 10 : 9} className="py-8 text-center text-muted-foreground">
-                沒有訂閱資料
+              <TableCell colSpan={hasActions ? 11 : 10} className="py-8 text-center text-muted-foreground">
+                沒有項目資料
               </TableCell>
             </TableRow>
           )}
@@ -205,6 +206,11 @@ export default function SubscriptionTable({ subscriptions }: Props) {
                 />
               </TableCell>
               <TableCell className="font-medium">{sub.service_name}</TableCell>
+              <TableCell>
+                {sub.asset_type_name
+                  ? <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{sub.asset_type_name}</span>
+                  : <span className="text-muted-foreground">—</span>}
+              </TableCell>
               <TableCell className="text-muted-foreground">{sub.login_account || '—'}</TableCell>
               <TableCell>{sub.department || '—'}</TableCell>
               <TableCell>{sub.owner_name || '—'}</TableCell>

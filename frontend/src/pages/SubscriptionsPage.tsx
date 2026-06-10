@@ -2,8 +2,16 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { listSubscriptions } from '@/api/subscriptions'
+import { listAssetTypes } from '@/api/asset_types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import SubscriptionTable from '@/components/subscriptions/SubscriptionTable'
 import { useAuthStore } from '@/stores/authStore'
 import { Download, Plus } from 'lucide-react'
@@ -17,10 +25,11 @@ const STATUS_LABELS_CSV: Record<string, string> = {
 }
 
 function downloadCSV(items: Subscription[]) {
-  const headers = ['服務名稱', '登入帳號', '部門', '負責人', '費用', '幣別', '計費週期', '到期日', '狀態']
+  const headers = ['服務名稱', '類型', '登入帳號', '部門', '負責人', '費用', '幣別', '計費週期', '到期日', '狀態']
   const rows = items.map((s) => [
     s.service_name,
-    s.login_account,
+    s.asset_type_name ?? '',
+    s.login_account ?? '',
     s.department ?? '',
     s.owner_name ?? '',
     s.cost ?? '',
@@ -51,25 +60,38 @@ export default function SubscriptionsPage() {
   const { currentUser } = useAuthStore()
   const [search, setSearch] = useState<string>((location.state as { search?: string } | null)?.search ?? '')
   const [showSuspended, setShowSuspended] = useState(false)
+  const [selectedTypeId, setSelectedTypeId] = useState<string>('')
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['subscriptions', showSuspended],
     queryFn: () => listSubscriptions(showSuspended),
   })
 
+  const { data: assetTypes = [] } = useQuery({
+    queryKey: ['asset-types'],
+    queryFn: listAssetTypes,
+  })
+
   const subscriptions = data?.items ?? []
   const q = search.toLowerCase()
-  const filtered = subscriptions.filter((s) =>
-    s.service_name.toLowerCase().includes(q) ||
-    (s.login_account ?? '').toLowerCase().includes(q) ||
-    (s.department ?? '').toLowerCase().includes(q) ||
-    (s.owner_name ?? '').toLowerCase().includes(q),
-  )
+  const filtered = subscriptions.filter((s) => {
+    const matchesSearch =
+      s.service_name.toLowerCase().includes(q) ||
+      (s.login_account ?? '').toLowerCase().includes(q) ||
+      (s.department ?? '').toLowerCase().includes(q) ||
+      (s.owner_name ?? '').toLowerCase().includes(q)
+    const matchesType = selectedTypeId === ''
+      ? true
+      : selectedTypeId === '__none__'
+        ? s.asset_type_id == null
+        : s.asset_type_id === parseInt(selectedTypeId)
+    return matchesSearch && matchesType
+  })
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">訂閱管理</h2>
+        <h2 className="text-2xl font-bold">項目管理</h2>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => downloadCSV(filtered)} disabled={filtered.length === 0}>
             <Download className="size-4" />
@@ -78,7 +100,7 @@ export default function SubscriptionsPage() {
           {(currentUser?.can_create || currentUser?.role === 'admin') && (
             <Button onClick={() => navigate('/subscriptions/new')}>
               <Plus className="size-4" />
-              新增訂閱
+              新增項目
             </Button>
           )}
         </div>
@@ -91,6 +113,18 @@ export default function SubscriptionsPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
         />
+        <Select value={selectedTypeId} onValueChange={setSelectedTypeId}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="全部類型" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">全部類型</SelectItem>
+            <SelectItem value="__none__">未分類</SelectItem>
+            {assetTypes.map((t) => (
+              <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <label className="flex cursor-pointer items-center gap-2 text-sm">
           <input
             type="checkbox"
