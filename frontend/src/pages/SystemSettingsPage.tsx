@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -6,9 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuthStore } from '@/stores/authStore'
 import { getSystemSettings, updateSystemSettings, testSmtpEmail } from '@/api/admin_settings'
+import { listAssetTypes, createAssetType, updateAssetType, deleteAssetType } from '@/api/asset_types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
+import { Pencil, Trash2, Check, X } from 'lucide-react'
 
 const schema = z.object({
   smtp_host: z.string(),
@@ -42,6 +44,105 @@ function FormField({
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
+  )
+}
+
+function AssetTypesSection() {
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
+  const [newName, setNewName] = useState('')
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [editingName, setEditingName] = useState('')
+
+  const { data: types = [] } = useQuery({
+    queryKey: ['asset-types'],
+    queryFn: listAssetTypes,
+  })
+
+  const { mutate: doCreate, isPending: isCreating } = useMutation({
+    mutationFn: () => createAssetType(newName.trim()),
+    onSuccess: () => {
+      setNewName('')
+      queryClient.invalidateQueries({ queryKey: ['asset-types'] })
+    },
+    onError: (err: Error) => toast({ title: err.message, variant: 'destructive' }),
+  })
+
+  const { mutate: doUpdate } = useMutation({
+    mutationFn: ({ id, name }: { id: number; name: string }) => updateAssetType(id, name),
+    onSuccess: () => {
+      setEditingId(null)
+      queryClient.invalidateQueries({ queryKey: ['asset-types'] })
+    },
+    onError: (err: Error) => toast({ title: err.message, variant: 'destructive' }),
+  })
+
+  const { mutate: doDelete } = useMutation({
+    mutationFn: (id: number) => deleteAssetType(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['asset-types'] }),
+    onError: (err: Error) => toast({ title: err.message, variant: 'destructive' }),
+  })
+
+  function startEdit(id: number, name: string) {
+    setEditingId(id)
+    setEditingName(name)
+  }
+
+  return (
+    <section className="space-y-4">
+      <h3 className="text-base font-semibold">項目類型</h3>
+      <div className="rounded-lg border divide-y">
+        {types.map((t) => (
+          <div key={t.id} className="flex items-center gap-2 px-4 py-2.5">
+            {editingId === t.id ? (
+              <>
+                <Input
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  className="h-7 flex-1 text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') doUpdate({ id: t.id, name: editingName.trim() })
+                    if (e.key === 'Escape') setEditingId(null)
+                  }}
+                  autoFocus
+                />
+                <Button variant="ghost" size="icon" className="size-7" onClick={() => doUpdate({ id: t.id, name: editingName.trim() })}>
+                  <Check className="size-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="size-7" onClick={() => setEditingId(null)}>
+                  <X className="size-3.5" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <span className="flex-1 text-sm">{t.name}</span>
+                <Button variant="ghost" size="icon" className="size-7" onClick={() => startEdit(t.id, t.name)}>
+                  <Pencil className="size-3.5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="size-7 text-destructive hover:text-destructive" onClick={() => doDelete(t.id)}>
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </>
+            )}
+          </div>
+        ))}
+        {types.length === 0 && (
+          <p className="px-4 py-3 text-sm text-muted-foreground">尚無類型，請在下方新增</p>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <Input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="新類型名稱"
+          className="max-w-xs"
+          onKeyDown={(e) => { if (e.key === 'Enter' && newName.trim()) doCreate() }}
+        />
+        <Button type="button" variant="outline" disabled={!newName.trim() || isCreating} onClick={() => doCreate()}>
+          新增
+        </Button>
+      </div>
+    </section>
   )
 }
 
@@ -251,6 +352,10 @@ export default function SystemSettingsPage() {
           </Button>
         </div>
       </form>
+
+      <div className="mt-10 border-t pt-8">
+        <AssetTypesSection />
+      </div>
     </div>
   )
 }
