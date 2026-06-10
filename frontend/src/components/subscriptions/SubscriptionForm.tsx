@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useNavigate } from 'react-router-dom'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { deleteSubscription } from '@/api/subscriptions'
+import { listAssetTypes } from '@/api/asset_types'
 import { useToast } from '@/hooks/use-toast'
 import PaymentRecordList from '@/components/payments/PaymentRecordList'
 import type { Subscription } from '@/types/api'
@@ -46,7 +47,8 @@ const STATUS_LABELS: Record<string, string> = {
 const schema = z.object({
   service_name: z.string().min(1, '服務名稱為必填'),
   expiry_date: z.string().min(1, '到期日為必填'),
-  login_account: z.string().min(1, '帳號為必填'),
+  login_account: z.string().optional(),
+  asset_type_id: z.string().optional(),
   login_password: z.string().optional(),
   owner_name: z.string().min(1, '負責人為必填'),
   department: z.string().min(1, '部門為必填'),
@@ -69,7 +71,8 @@ type FormValues = z.infer<typeof schema>
 function buildPayload(values: FormValues): Record<string, unknown> {
   return {
     service_name: values.service_name,
-    login_account: values.login_account,
+    login_account: values.login_account || null,
+    asset_type_id: values.asset_type_id ? parseInt(values.asset_type_id) : null,
     login_password: values.login_password || undefined,
     expiry_date: values.expiry_date,
     owner_name: values.owner_name,
@@ -98,7 +101,8 @@ function buildPayload(values: FormValues): Record<string, unknown> {
 export function toFormValues(sub: Subscription): Partial<FormValues> {
   return {
     service_name: sub.service_name,
-    login_account: sub.login_account,
+    login_account: sub.login_account ?? '',
+    asset_type_id: sub.asset_type_id != null ? String(sub.asset_type_id) : undefined,
     login_password: sub.login_password ?? '',
     expiry_date: sub.expiry_date,
     owner_name: sub.owner_name ?? '',
@@ -188,10 +192,16 @@ export default function SubscriptionForm({
     if (defaultValues) reset(defaultValues)
   }, [defaultValues, reset])
 
+  const { data: assetTypes = [] } = useQuery({
+    queryKey: ['asset-types'],
+    queryFn: listAssetTypes,
+  })
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const currency = watch('currency')
   const billingCycle = watch('billing_cycle')
   const statusVal = watch('status')
+  const assetTypeId = watch('asset_type_id')
 
   const { mutate: deleteMutate, isPending: isDeleting } = useMutation({
     mutationFn: () => deleteSubscription(subscriptionId!),
@@ -222,7 +232,26 @@ export default function SubscriptionForm({
             <Input type="date" {...register('expiry_date')} />
           </FormField>
 
-          <FormField label="帳號" error={errors.login_account?.message} required>
+          <FormField label="類型">
+            <Select
+              value={assetTypeId ?? ''}
+              onValueChange={(v) => setValue('asset_type_id', v || undefined, { shouldValidate: true })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="未分類" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">未分類</SelectItem>
+                {assetTypes.map((t) => (
+                  <SelectItem key={t.id} value={String(t.id)}>
+                    {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <FormField label="登入帳號（選填）" error={errors.login_account?.message}>
             <Input {...register('login_account')} placeholder="user@corp.com" />
           </FormField>
 
