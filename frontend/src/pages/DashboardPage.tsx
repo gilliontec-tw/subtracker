@@ -490,7 +490,7 @@ export default function DashboardPage() {
   const [trendTo, setTrendTo] = useState(initTrendTo)
   const [appliedFrom, setAppliedFrom] = useState(initTrendFrom)
   const [appliedTo, setAppliedTo] = useState(initTrendTo)
-  const [selectedTypeId, setSelectedTypeId] = useState<string>('')
+  const [selectedTypeId, setSelectedTypeId] = useState<string>('__all__')
 
   const { data: subsData, isLoading, isError: subsError } = useQuery({
     queryKey: ['subscriptions', false],
@@ -509,7 +509,7 @@ export default function DashboardPage() {
 
   const isError = subsError || paymentsError
   const allSubs = subsData?.items ?? []
-  const filteredSubs = selectedTypeId === ''
+  const filteredSubs = selectedTypeId === '__all__'
     ? allSubs
     : selectedTypeId === '__none__'
       ? allSubs.filter((s) => s.asset_type_id == null)
@@ -525,7 +525,7 @@ export default function DashboardPage() {
             <SelectValue placeholder="全部類型" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">全部類型</SelectItem>
+            <SelectItem value="__all__">全部類型</SelectItem>
             <SelectItem value="__none__">未分類</SelectItem>
             {assetTypes.map((t) => (
               <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>

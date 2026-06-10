@@ -60,7 +60,7 @@ export default function SubscriptionsPage() {
   const { currentUser } = useAuthStore()
   const [search, setSearch] = useState<string>((location.state as { search?: string } | null)?.search ?? '')
   const [showSuspended, setShowSuspended] = useState(false)
-  const [selectedTypeId, setSelectedTypeId] = useState<string>('')
+  const [selectedTypeId, setSelectedTypeId] = useState<string>('__all__')
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['subscriptions', showSuspended],
@@ -80,7 +80,7 @@ export default function SubscriptionsPage() {
       (s.login_account ?? '').toLowerCase().includes(q) ||
       (s.department ?? '').toLowerCase().includes(q) ||
       (s.owner_name ?? '').toLowerCase().includes(q)
-    const matchesType = selectedTypeId === ''
+    const matchesType = selectedTypeId === '__all__'
       ? true
       : selectedTypeId === '__none__'
         ? s.asset_type_id == null
@@ -118,7 +118,7 @@ export default function SubscriptionsPage() {
             <SelectValue placeholder="全部類型" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">全部類型</SelectItem>
+            <SelectItem value="__all__">全部類型</SelectItem>
             <SelectItem value="__none__">未分類</SelectItem>
             {assetTypes.map((t) => (
               <SelectItem key={t.id} value={String(t.id)}>{t.name}</SelectItem>
