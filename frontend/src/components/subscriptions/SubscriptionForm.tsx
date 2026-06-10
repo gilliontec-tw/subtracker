@@ -234,14 +234,14 @@ export default function SubscriptionForm({
 
           <FormField label="類型">
             <Select
-              value={assetTypeId ?? ''}
-              onValueChange={(v) => setValue('asset_type_id', v || undefined, { shouldValidate: true })}
+              value={assetTypeId ?? '__none__'}
+              onValueChange={(v) => setValue('asset_type_id', v === '__none__' ? undefined : v, { shouldValidate: true })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="未分類" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">未分類</SelectItem>
+                <SelectItem value="__none__">未分類</SelectItem>
                 {assetTypes.map((t) => (
                   <SelectItem key={t.id} value={String(t.id)}>
                     {t.name}
