@@ -23,10 +23,10 @@ class CreateSubscriptionUseCase:
     async def execute(
         self,
         service_name: str,
-        login_account: str,
         expiry_date: date,
-        notification_emails: list[str],
-        notification_days: int,
+        login_account: str | None = None,
+        notification_emails: list[str] | None = None,
+        notification_days: int = 30,
         cost: Decimal | None = None,
         currency: str = "TWD",
         exchange_rate: Decimal | None = None,
@@ -40,12 +40,13 @@ class CreateSubscriptionUseCase:
         trial_end_date: date | None = None,
         next_billing_date: date | None = None,
         status: str = "active",
+        asset_type_id: int | None = None,
     ) -> Subscription:
         entity = Subscription(
             service_name=service_name,
             login_account=login_account,
             expiry_date=expiry_date,
-            notification_emails=notification_emails,
+            notification_emails=notification_emails or [],
             notification_days=notification_days,
             cost=cost,
             currency=currency,
@@ -60,6 +61,7 @@ class CreateSubscriptionUseCase:
             trial_end_date=trial_end_date,
             next_billing_date=next_billing_date,
             status=status,
+            asset_type_id=asset_type_id,
         )
         result = await self._repo.save(entity)
         if self._audit_repo is not None:

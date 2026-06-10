@@ -10,7 +10,7 @@ CurrencyType = Literal["TWD", "USD", "EUR", "JPY", "GBP", "CNY"]
 class SubscriptionCreate(BaseModel):
     service_name: str
     expiry_date: date
-    login_account: str = ""
+    login_account: str | None = None
     notification_emails: list[str] = []
     notification_days: int = 30
     cost: Decimal | None = None
@@ -26,6 +26,7 @@ class SubscriptionCreate(BaseModel):
     trial_end_date: date | None = None
     next_billing_date: date | None = None
     status: str = "active"
+    asset_type_id: int | None = None
 
 
 class SubscriptionUpdate(BaseModel):
@@ -47,12 +48,13 @@ class SubscriptionUpdate(BaseModel):
     trial_end_date: date | None = None
     next_billing_date: date | None = None
     status: str | None = None
+    asset_type_id: int | None = None
 
 
 class SubscriptionResponse(BaseModel):
     id: int
     service_name: str
-    login_account: str
+    login_account: str | None
     expiry_date: date
     notification_emails: list[str]
     notification_days: int
@@ -69,6 +71,8 @@ class SubscriptionResponse(BaseModel):
     trial_end_date: date | None
     next_billing_date: date | None
     status: str
+    asset_type_id: int | None
+    asset_type_name: str | None
     created_at: datetime | None
     updated_at: datetime | None
 
