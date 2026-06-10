@@ -2,6 +2,12 @@ export type BillingCycle = 'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 
 export type Currency = 'TWD' | 'USD' | 'EUR' | 'JPY' | 'GBP' | 'CNY'
 export type SubscriptionStatus = 'active' | 'suspended'
 
+export interface AssetType {
+  id: number
+  name: string
+  created_at: string | null
+}
+
 export interface User {
   id: number
   email: string
@@ -15,7 +21,7 @@ export interface User {
 export interface Subscription {
   id: number
   service_name: string
-  login_account: string
+  login_account: string | null
   expiry_date: string
   notification_emails: string[]
   notification_days: number
@@ -32,6 +38,8 @@ export interface Subscription {
   trial_end_date: string | null
   next_billing_date: string | null
   status: SubscriptionStatus
+  asset_type_id: number | null
+  asset_type_name: string | null
   created_at: string
   updated_at: string
 }
