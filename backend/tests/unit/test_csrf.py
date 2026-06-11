@@ -29,8 +29,12 @@ def test_get_passes_without_csrf():
     assert r.status_code == 200
 
 
+FAKE_ACCESS_TOKEN = "fake-access-token"
+
+
 def test_post_without_any_token_returns_403():
-    r = client.post("/unsafe")
+    # 已登入（有 access_token）但沒帶 CSRF token，應被拒絕
+    r = client.post("/unsafe", cookies={"access_token": FAKE_ACCESS_TOKEN})
     assert r.status_code == 403
     assert r.json()["success"] is False
 
@@ -38,7 +42,7 @@ def test_post_without_any_token_returns_403():
 def test_post_with_matching_tokens_passes():
     r = client.post(
         "/unsafe",
-        cookies={CSRF_COOKIE_NAME: "abc123"},
+        cookies={"access_token": FAKE_ACCESS_TOKEN, CSRF_COOKIE_NAME: "abc123"},
         headers={CSRF_HEADER_NAME: "abc123"},
     )
     assert r.status_code == 200
@@ -47,7 +51,7 @@ def test_post_with_matching_tokens_passes():
 def test_post_with_mismatched_tokens_returns_403():
     r = client.post(
         "/unsafe",
-        cookies={CSRF_COOKIE_NAME: "abc123"},
+        cookies={"access_token": FAKE_ACCESS_TOKEN, CSRF_COOKIE_NAME: "abc123"},
         headers={CSRF_HEADER_NAME: "different"},
     )
     assert r.status_code == 403
@@ -59,5 +63,10 @@ def test_login_path_is_exempt():
 
 
 def test_post_with_only_header_no_cookie_returns_403():
-    r = client.post("/unsafe", headers={CSRF_HEADER_NAME: "abc123"})
+    # 已登入但只有 header 沒有 cookie，應被拒絕
+    r = client.post(
+        "/unsafe",
+        cookies={"access_token": FAKE_ACCESS_TOKEN},
+        headers={CSRF_HEADER_NAME: "abc123"},
+    )
     assert r.status_code == 403
