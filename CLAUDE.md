@@ -11,7 +11,7 @@ Do not make any changes until you have 95% confidence in what you need to build.
 
 ## Commands
 
-All backend commands run from `backend/` with the venv active (`.venv\Scripts\activate` on Windows).
+All backend commands run from `backend/` with the venv active (`. .venv/bin/activate` on Linux).
 
 ```bash
 # Run the backend API server (development)
@@ -33,7 +33,7 @@ black --check src/
 # Seed the initial admin account (run once after DB setup)
 python scripts/seed_admin.py
 
-# Run the notification job manually (normally scheduled via Windows Task Scheduler)
+# Run the notification job manually (normally scheduled via cron, daily 08:00)
 python scripts/run_notifications.py
 ```
 
@@ -121,4 +121,4 @@ All tests are pure unit tests using `MagicMock`/`AsyncMock` against repository/e
 
 ### Notifications
 
-`scripts/run_notifications.py` is the Windows Task Scheduler entry point (daily 08:00). Calls `CheckAndNotifyUseCase` → checks `Subscription.should_notify_today()` for each active subscription → sends SMTP email.
+`scripts/run_notifications.py` is the cron entry point (daily 08:00 on the Linux server). Calls `CheckAndNotifyUseCase` → checks `Subscription.should_notify_today()` for each active subscription → sends SMTP email.
