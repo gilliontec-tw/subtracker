@@ -65,6 +65,28 @@ Copy `backend/.env.example` to `backend/.env`. Required variables:
 
 DB tables must be created before first run. Schema is defined in `backend/src/infrastructure/database/models.py` — tables: `users`, `saas_subscriptions`, `payment_records`, `audit_log`, `asset_types`, `system_settings`. Migrations live in `backend/alembic/versions/`; always run `alembic upgrade head` after pulling changes that touch models.
 
+## Common Change Checklists
+
+### 新增訂閱欄位
+1. `domain/entities/subscription.py` — 加欄位
+2. `infrastructure/database/models.py` — 加 Column
+3. `alembic revision --autogenerate -m "add_field"` + `alembic upgrade head`（server 上）
+4. `infrastructure/database/repositories/subscription_repository.py` — 加入 mapping
+5. `api/v1/schemas/subscription.py` — 加入 Pydantic 欄位
+6. `frontend/src/types/api.ts` — 同步更新 TypeScript 型別
+7. `frontend/src/components/subscriptions/SubscriptionForm.tsx` — 加表單欄位（如需要）
+
+### 新增完整功能（新實體）
+依序：`domain/entities/` → `domain/repositories/` → `infrastructure/database/models.py` + migration → `infrastructure/database/repositories/` → `application/use_cases/` → `api/v1/schemas/` → `api/v1/routers/` → 在 `api/main.py` 註冊 router → `frontend/src/api/` → `frontend/src/types/api.ts`
+
+### 新增 API 端點（既有實體）
+`application/use_cases/` → `api/v1/schemas/` → `api/v1/routers/`（現有 router 加路由）→ `frontend/src/api/`
+
+### 修改後必做
+- Backend 任何改動 → `pytest`（146 tests，全綠才 push）
+- 改 `models.py` → `alembic revision --autogenerate` + server 上 `alembic upgrade head`
+- 改 backend schema → 同步更新 `frontend/src/types/api.ts`
+
 ## Architecture
 
 ### Backend — Clean Architecture
