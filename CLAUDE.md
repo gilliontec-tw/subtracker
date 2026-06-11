@@ -35,6 +35,12 @@ python scripts/seed_admin.py
 
 # Run the notification job manually (normally scheduled via cron, daily 08:00)
 python scripts/run_notifications.py
+
+# Generate a new migration after changing models.py
+alembic revision --autogenerate -m "describe_change"
+
+# Apply all pending migrations
+alembic upgrade head
 ```
 
 Frontend runs from `frontend/`:
@@ -57,7 +63,7 @@ Copy `backend/.env.example` to `backend/.env`. Required variables:
 - `SMTP_*` — SMTP credentials for renewal notification emails
 - `APP_ENV` — `development` enables `/api/docs`; anything else disables it
 
-DB tables must be created before first run. Schema is defined in `backend/src/infrastructure/database/models.py` — tables: `users`, `saas_subscriptions`, `payment_records`, `audit_log`.
+DB tables must be created before first run. Schema is defined in `backend/src/infrastructure/database/models.py` — tables: `users`, `saas_subscriptions`, `payment_records`, `audit_log`, `asset_types`, `system_settings`. Migrations live in `backend/alembic/versions/`; always run `alembic upgrade head` after pulling changes that touch models.
 
 ## Architecture
 
