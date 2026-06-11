@@ -1,0 +1,89 @@
+<h2>SubTrack 功能盤點</h2>
+<p class="subtitle">勾選你有興趣新增或改善的項目（可多選）</p>
+
+<div class="section">
+  <p class="label">🗂 訂閱列表</p>
+  <div class="options" data-multiselect>
+    <div class="option" data-choice="expiry-col" onclick="toggleSelect(this)">
+      <div class="letter">A</div>
+      <div class="content">
+        <h3>加回到期日欄位</h3>
+        <p>目前只有計費週期，看不到實際哪天到期。可讓表格同時顯示到期日 + 計費週期，或取代其中一個。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="filter-dropdowns" onclick="toggleSelect(this)">
+      <div class="letter">B</div>
+      <div class="content">
+        <h3>部門 / 狀態 篩選下拉</h3>
+        <p>目前只有文字搜尋，加入部門、狀態的 Select 篩選器，快速縮小範圍。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="export-csv" onclick="toggleSelect(this)">
+      <div class="letter">C</div>
+      <div class="content">
+        <h3>匯出 CSV</h3>
+        <p>一鍵匯出目前篩選結果的訂閱列表，給財務/會計用。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="label">💳 付款紀錄</p>
+  <div class="options" data-multiselect>
+    <div class="option" data-choice="payment-total" onclick="toggleSelect(this)">
+      <div class="letter">D</div>
+      <div class="content">
+        <h3>篩選結果合計金額</h3>
+        <p>查詢某日期區間後，表格底部顯示 TWD 合計與筆數。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="payment-export" onclick="toggleSelect(this)">
+      <div class="letter">E</div>
+      <div class="content">
+        <h3>付款紀錄匯出 CSV</h3>
+        <p>匯出篩選後的付款紀錄，含服務名稱、日期、金額、幣別。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="label">📊 Dashboard</p>
+  <div class="options" data-multiselect>
+    <div class="option" data-choice="trend-range" onclick="toggleSelect(this)">
+      <div class="letter">F</div>
+      <div class="content">
+        <h3>趨勢圖時間範圍切換</h3>
+        <p>目前固定顯示近 12 個月。加入 3M / 6M / 12M 切換按鈕。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="next-payment" onclick="toggleSelect(this)">
+      <div class="letter">G</div>
+      <div class="content">
+        <h3>下期預估費用卡片</h3>
+        <p>根據每個訂閱的 billing_cycle + 最後付款日，推算「本月預計支出」並顯示在統計卡。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="label">🔧 其他 UX</p>
+  <div class="options" data-multiselect>
+    <div class="option" data-choice="trial-highlight" onclick="toggleSelect(this)">
+      <div class="letter">H</div>
+      <div class="content">
+        <h3>試用期 (trial_end_date) 標示</h3>
+        <p>目前 trial_end_date 欄位在 UI 完全看不到。可在列表或詳情頁用標籤標出試用中的訂閱。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="auto-renew-badge" onclick="toggleSelect(this)">
+      <div class="letter">I</div>
+      <div class="content">
+        <h3>自動續訂 (auto_renew) 顯示</h3>
+        <p>auto_renew 欄位有存但沒有在列表或詳情顯示。可在表格加一個小圖示或在詳情頁補上。</p>
+      </div>
+    </div>
+  </div>
+</div>

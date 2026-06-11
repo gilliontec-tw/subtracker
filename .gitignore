@@ -32,3 +32,5 @@ htmlcov/
 # Logs
 *.log
 .worktrees/
+.claude/worktrees/
+.superpowers/
