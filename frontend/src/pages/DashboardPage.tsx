@@ -597,7 +597,7 @@ export default function DashboardPage() {
             </div>
             <TrendChart
               payments={payments ?? []}
-              subs={subsData?.items ?? []}
+              subs={filteredSubs}
               fromDate={appliedFrom}
               toDate={appliedTo}
             />
