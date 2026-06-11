@@ -1,3 +1,16 @@
+/**
+ * pages/InvitePage.tsx — 邀請連結設定密碼頁面（公開頁面，不需登入）
+ *
+ * 流程：
+ *  1. 從 URL 取得 token（/invite/:token）
+ *  2. 呼叫 GET /invite/:token 驗證 token 是否有效，取得對應的 email
+ *  3. 使用者輸入並確認密碼
+ *  4. 呼叫 POST /invite/:token 設定密碼
+ *  5. 成功後 2 秒後導向登入頁（用 window.location.href 強制完整重新整理，
+ *     確保 authStore 是乾淨的初始狀態）
+ *
+ * token 來源：管理員建立使用者後取得，或由「重設連結」功能重新產生，有效期 7 天。
+ */
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
@@ -20,6 +33,7 @@ const schema = z
   })
 type FormValues = z.infer<typeof schema>
 
+/** 表單欄位包裝：label + 輸入框 + 錯誤訊息 */
 function Field({
   label,
   error,
@@ -42,10 +56,11 @@ export default function InvitePage() {
   const { token } = useParams<{ token: string }>()
   const [done, setDone] = useState(false)
 
+  // 驗證 token 是否有效，取得對應 email 用於顯示
   const { data, isLoading } = useQuery({
     queryKey: ['invite', token],
     queryFn: () => validateInvite(token!),
-    retry: false,
+    retry: false, // token 無效就直接顯示失效頁，不重試
   })
 
   const {
@@ -60,6 +75,7 @@ export default function InvitePage() {
     mutationFn: (values: FormValues) => acceptInvite(token!, values.password),
     onSuccess: () => {
       setDone(true)
+      // 用 window.location.href 而非 navigate，確保頁面完整重整、authStore 狀態乾淨
       setTimeout(() => { window.location.href = '/login' }, 2000)
     },
   })
@@ -72,6 +88,7 @@ export default function InvitePage() {
     )
   }
 
+  // 密碼設定成功的確認畫面
   if (done) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
@@ -87,6 +104,7 @@ export default function InvitePage() {
     )
   }
 
+  // token 無效或已過期
   if (!data) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">

@@ -1,3 +1,16 @@
+/**
+ * pages/PaymentRecordsPage.tsx — 付款紀錄頁面
+ *
+ * 顯示所有付款紀錄，支援依日期範圍與訂閱名稱篩選。
+ * 日期範圍與服務名稱設定完後需點「查詢」才觸發 API（避免輸入過程中頻繁請求）。
+ *
+ * 功能說明：
+ *  - 表格底部顯示筆數與 TWD 合計（非 TWD 以訂閱的當前匯率換算）
+ *  - 無法換算的外幣付款（缺匯率設定）會顯示提示
+ *  - 新增付款時需選擇訂閱（下拉選單來自 activeSubscriptions）
+ *  - 編輯付款時不需選訂閱（PaymentRecordFormDialog 根據 record 是否存在切換模式）
+ *  - CSV 匯出帶 BOM 確保 Excel 顯示中文正確
+ */
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listByFilters, deletePayment } from '@/api/payment_records'

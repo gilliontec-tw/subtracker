@@ -1,3 +1,15 @@
+/**
+ * pages/UsersPage.tsx — 使用者管理頁面（僅管理員可存取）
+ *
+ * 功能：
+ *  - 顯示所有使用者（含已停用）的列表
+ *  - 新增使用者（由 CreateUserModal 處理，完成後顯示邀請連結）
+ *  - 編輯使用者名稱與角色（EditUserModal）
+ *  - 停用 / 刪除使用者（DeleteUserDialog）
+ *  - 重設密碼連結：呼叫 regenerateInvite → 產生新 token → 顯示連結供管理員複製傳送
+ *
+ * 非管理員進入此頁面時直接導向 /dashboard。
+ */
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useQuery, useMutation } from '@tanstack/react-query'
@@ -32,9 +44,11 @@ export default function UsersPage() {
     queryFn: listUsers,
   })
   const { toast } = useToast()
+  /** 重設連結 Dialog 中顯示的 token，null 表示 Dialog 關閉 */
   const [resetToken, setResetToken] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  /** 重新產生邀請連結，成功後開啟 Dialog 顯示連結 */
   const { mutate: doRegenerate, isPending: isRegenerating } = useMutation({
     mutationFn: (id: number) => regenerateInvite(id),
     onSuccess: (data) => {
@@ -46,10 +60,15 @@ export default function UsersPage() {
     },
   })
 
+  /** 完整的邀請 URL，使用目前頁面的 origin 確保在任何環境都正確 */
   const resetUrl = resetToken
     ? `${window.location.origin}/invite/${resetToken}`
     : ''
 
+  /**
+   * 複製邀請連結到剪貼簿。
+   * 優先使用 Clipboard API，不支援時退回 execCommand 方式（相容舊版瀏覽器）。
+   */
   function copyToClipboard() {
     function doFallback() {
       const el = document.createElement('textarea')
@@ -69,6 +88,7 @@ export default function UsersPage() {
     }
   }
 
+  // 非管理員直接導回 Dashboard
   if (currentUser?.role !== 'admin') return <Navigate to="/dashboard" replace />
   if (isLoading) {
     return <div className="text-muted-foreground">載入中...</div>
@@ -121,6 +141,7 @@ export default function UsersPage() {
                 <TableCell>{fmtDate(user.created_at ?? '') || '—'}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    {/* 只有啟用中的使用者才能重設密碼連結 */}
                     {user.is_active && (
                       <Button
                         variant="ghost"
@@ -141,6 +162,7 @@ export default function UsersPage() {
         </Table>
       </div>
 
+      {/* 重設密碼連結 Dialog */}
       <Dialog
         open={!!resetToken}
         onOpenChange={(v) => { if (!v) { setResetToken(null); setCopied(false) } }}

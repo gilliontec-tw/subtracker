@@ -1,3 +1,17 @@
+/**
+ * pages/SystemSettingsPage.tsx — 系統設定頁面（僅管理員可存取）
+ *
+ * 分為兩大區塊：
+ *  1. 系統設定表單（SMTP 郵件、App URL、通知排程）
+ *  2. 項目類型管理（AssetTypesSection）
+ *
+ * SMTP 密碼特殊處理：
+ *  - 讀取時後端不回傳明文，只回傳 smtp_password_set（boolean）
+ *  - 表單預設空字串，留空送出表示「不更新密碼」
+ *  - encryption_key_configured 為 false 時顯示警告，表示後端未設定加密金鑰，密碼無法儲存
+ *
+ * 測試寄信功能：使用表單「目前填入的值」寄測試信，不需要先儲存。
+ */
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -12,6 +26,7 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { Pencil, Trash2, Check, X } from 'lucide-react'
 
+/** 系統設定表單的驗證規則 */
 const schema = z.object({
   smtp_host: z.string(),
   smtp_port: z.number().int().min(1).max(65535),
@@ -26,6 +41,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
+/** 表單欄位包裝：label + 輸入框 + 提示文字 + 錯誤訊息 */
 function FormField({
   label,
   error,
@@ -47,6 +63,11 @@ function FormField({
   )
 }
 
+/**
+ * 項目類型管理區塊（獨立元件）。
+ * 支援新增、行內編輯（Enter 確認 / Escape 取消）、刪除。
+ * 刪除時若有訂閱正在使用該類型，後端回傳錯誤，透過 toast 顯示。
+ */
 function AssetTypesSection() {
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -83,6 +104,7 @@ function AssetTypesSection() {
     onError: (err: Error) => toast({ title: err.message, variant: 'destructive' }),
   })
 
+  /** 進入行內編輯模式，預填現有名稱 */
   function startEdit(id: number, name: string) {
     setEditingId(id)
     setEditingName(name)
@@ -95,6 +117,7 @@ function AssetTypesSection() {
         {types.map((t) => (
           <div key={t.id} className="flex items-center gap-2 px-4 py-2.5">
             {editingId === t.id ? (
+              // 編輯模式：輸入框 + 確認 / 取消按鈕
               <>
                 <Input
                   value={editingName}
@@ -114,6 +137,7 @@ function AssetTypesSection() {
                 </Button>
               </>
             ) : (
+              // 顯示模式：名稱 + 編輯 / 刪除按鈕
               <>
                 <span className="flex-1 text-sm">{t.name}</span>
                 <Button variant="ghost" size="icon" className="size-7" onClick={() => startEdit(t.id, t.name)}>
@@ -130,6 +154,7 @@ function AssetTypesSection() {
           <p className="px-4 py-3 text-sm text-muted-foreground">尚無類型，請在下方新增</p>
         )}
       </div>
+      {/* 新增類型輸入框，Enter 或點擊新增按鈕送出 */}
       <div className="flex gap-2">
         <Input
           value={newName}
@@ -177,6 +202,7 @@ export default function SystemSettingsPage() {
     },
   })
 
+  // 設定載入後填入表單，smtp_password 故意留空（顯示 hint 說明留空不變）
   useEffect(() => {
     if (settings) {
       reset({
@@ -193,6 +219,7 @@ export default function SystemSettingsPage() {
     }
   }, [settings, reset])
 
+  /** 儲存設定，smtp_password 空字串視為不更新（由後端判斷） */
   const { mutate: doSave, isPending: isSaving } = useMutation({
     mutationFn: (values: FormValues) =>
       updateSystemSettings({
@@ -213,6 +240,10 @@ export default function SystemSettingsPage() {
     onError: (err: Error) => toast({ title: err.message, variant: 'destructive' }),
   })
 
+  /**
+   * 測試寄信：取用表單「目前填入的值」（不需先儲存），
+   * 直接呼叫後端試寄一封測試信到 smtp_from 信箱。
+   */
   const { mutate: doTestEmail, isPending: isTesting } = useMutation({
     mutationFn: () => {
       const v = getValues()
@@ -229,6 +260,7 @@ export default function SystemSettingsPage() {
     onError: (err: Error) => toast({ title: err.message, variant: 'destructive' }),
   })
 
+  // 非管理員直接導回 Dashboard
   if (currentUser?.role !== 'admin') return <Navigate to="/dashboard" replace />
   if (isLoading) return <div className="text-muted-foreground">載入中...</div>
 
@@ -238,7 +270,7 @@ export default function SystemSettingsPage() {
 
       <form onSubmit={handleSubmit((v) => doSave(v))} className="space-y-8">
 
-        {/* 郵件伺服器 */}
+        {/* 郵件伺服器設定 */}
         <section className="space-y-5">
           <h3 className="text-base font-semibold">郵件伺服器（SMTP）</h3>
 
@@ -258,6 +290,7 @@ export default function SystemSettingsPage() {
           {/* 登入認證 */}
           <div className="rounded-lg border p-4 space-y-4">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">登入認證</p>
+            {/* encryption_key_configured 為 false 時表示後端未設定加密金鑰，密碼無法透過 UI 儲存 */}
             {settings && !settings.encryption_key_configured && (
               <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
                 未設定 <code>SETTINGS_ENCRYPTION_KEY</code>，密碼只能從 .env 讀取，無法透過此頁面修改。
@@ -325,7 +358,7 @@ export default function SystemSettingsPage() {
           </FormField>
         </section>
 
-        {/* 通知排程 */}
+        {/* 通知排程設定 */}
         <section className="space-y-4">
           <h3 className="text-base font-semibold">通知排程</h3>
           <p className="text-sm text-muted-foreground">每天固定時間發送到期提醒信件。</p>
@@ -353,6 +386,7 @@ export default function SystemSettingsPage() {
         </div>
       </form>
 
+      {/* 項目類型管理（獨立元件，與上方表單的儲存邏輯分開） */}
       <div className="mt-10 border-t pt-8">
         <AssetTypesSection />
       </div>

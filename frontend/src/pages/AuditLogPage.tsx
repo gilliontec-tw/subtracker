@@ -1,3 +1,15 @@
+/**
+ * pages/AuditLogPage.tsx — 稽核日誌頁面
+ *
+ * 顯示指定日期範圍內的訂閱操作記錄（新增、編輯、刪除）。
+ * 預設顯示最近 30 天。日期選擇後需點擊「查詢」才觸發 API，
+ * 避免每次改日期就發送請求。
+ *
+ * 功能說明：
+ *  - 編輯操作顯示各欄位的 before → after 變更詳情
+ *  - 未刪除的訂閱名稱可點擊跳轉到編輯頁
+ *  - 刪除的訂閱只顯示名稱，不可點擊（資料已不存在）
+ */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'

@@ -1,3 +1,10 @@
+/**
+ * pages/LoginPage.tsx — 登入頁面
+ *
+ * 以 email + password 進行登入，成功後後端設定 httpOnly cookie，
+ * 前端將使用者資料寫入 authStore 後導向 /dashboard。
+ * 若已登入（currentUser 不為 null）則直接導向 /subscriptions。
+ */
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -40,6 +47,7 @@ export default function LoginPage() {
     },
   })
 
+  // 已登入直接跳轉，避免重複顯示登入頁
   if (currentUser) return <Navigate to="/subscriptions" replace />
 
   return (

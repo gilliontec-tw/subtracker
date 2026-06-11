@@ -1,3 +1,9 @@
+/**
+ * pages/SubscriptionNewPage.tsx — 新增訂閱項目頁面
+ *
+ * 使用 SubscriptionForm 元件渲染表單，表單送出後呼叫 createSubscription API。
+ * 建立成功後清除訂閱快取並導回 /subscriptions 列表頁。
+ */
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createSubscription } from '@/api/subscriptions'

@@ -1,3 +1,16 @@
+/**
+ * layouts/AppLayout.tsx — 主應用程式版面（含頂部導覽列）
+ *
+ * 提供所有受保護頁面的共同外殼：
+ *  - 頂部導覽列：品牌名稱、導覽連結、使用者名稱、修改密碼、登出
+ *  - 行動版漢堡選單（sm 以下顯示）
+ *  - 修改密碼 Dialog（內含 react-hook-form + zod 驗證）
+ *  - 主內容區塊：<Outlet /> 渲染子頁面
+ *
+ * 導覽連結顯示規則：
+ *  - 所有使用者：總覽、項目管理、付款紀錄
+ *  - 僅管理員：使用者管理、稽核日誌、系統設定
+ */
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
@@ -18,6 +31,7 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Menu, X } from 'lucide-react'
 
+/** 修改密碼表單的驗證規則，確認密碼必須與新密碼一致 */
 const pwSchema = z
   .object({
     current_password: z.string().min(1, '請輸入目前密碼'),
@@ -30,6 +44,7 @@ const pwSchema = z
   })
 type PwForm = z.infer<typeof pwSchema>
 
+/** 表單欄位包裝元件：label + 輸入框 + 錯誤訊息的標準排列 */
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
@@ -54,6 +69,7 @@ export default function AppLayout() {
     formState: { errors },
   } = useForm<PwForm>({ resolver: zodResolver(pwSchema) })
 
+  /** 登出：呼叫後端清除 cookie，然後清除 authStore 並導向登入頁 */
   const { mutate: doLogout } = useMutation({
     mutationFn: logout,
     onSuccess: () => {
@@ -65,6 +81,7 @@ export default function AppLayout() {
     },
   })
 
+  /** 修改密碼：成功後關閉 Dialog 並重設表單 */
   const { mutate: doChangePw, isPending: isChanging } = useMutation({
     mutationFn: (v: PwForm) => changePassword(v.current_password, v.new_password),
     onSuccess: () => {
@@ -77,11 +94,16 @@ export default function AppLayout() {
     },
   })
 
+  /** NavLink 的 className 函式，啟用中的連結顯示白色底線標示 */
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     isActive
       ? 'text-white font-semibold border-b-2 border-white/80 pb-0.5 transition-colors'
       : 'text-white/85 transition-colors hover:text-white font-medium'
 
+  /**
+   * 桌面版導覽連結（sm 以上顯示）。
+   * 管理員限定連結只在 role === 'admin' 時渲染。
+   */
   const desktopNavLinks = (
     <>
       <NavLink to="/dashboard" className={navLinkClass}>總覽</NavLink>
@@ -97,6 +119,10 @@ export default function AppLayout() {
     </>
   )
 
+  /**
+   * 行動版導覽連結（漢堡選單展開時顯示），點擊後自動關閉選單。
+   * 內容與 desktopNavLinks 相同，但每個連結加上 onClick 關閉選單。
+   */
   const mobileNavLinks = (
     <>
       <NavLink to="/dashboard" className={navLinkClass} onClick={() => setMobileOpen(false)}>總覽</NavLink>
@@ -143,6 +169,7 @@ export default function AppLayout() {
               >
                 登出
               </Button>
+              {/* 行動版漢堡按鈕，sm 以上隱藏 */}
               <Button
                 type="button"
                 variant="ghost"
@@ -156,6 +183,7 @@ export default function AppLayout() {
           </div>
         </div>
 
+        {/* 行動版展開選單 */}
         {mobileOpen && (
           <div className="border-t border-white/20 px-4 py-3 sm:hidden">
             <p className="mb-2 text-xs text-white/50">{currentUser?.display_name}</p>
@@ -166,6 +194,7 @@ export default function AppLayout() {
         )}
       </header>
 
+      {/* 修改密碼 Dialog：關閉時重設表單，避免下次開啟殘留舊值 */}
       <Dialog open={pwOpen} onOpenChange={(o) => { setPwOpen(o); if (!o) reset() }}>
         <DialogContent>
           <DialogHeader>
@@ -193,6 +222,7 @@ export default function AppLayout() {
         </DialogContent>
       </Dialog>
 
+      {/* 主內容區，子頁面透過 <Outlet /> 渲染 */}
       <main className="flex-1 bg-slate-50 px-4 py-6 sm:px-6 sm:py-8">
         <div className="mx-auto max-w-7xl">
           <Outlet />

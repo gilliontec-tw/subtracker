@@ -1,3 +1,13 @@
+/**
+ * pages/SubscriptionEditPage.tsx — 編輯訂閱項目頁面
+ *
+ * 從 URL params 取得訂閱 id，載入現有資料後用 toFormValues 轉換為表單格式，
+ * 傳入 SubscriptionForm 作為 defaultValues。
+ * 儲存成功後同時清除列表快取與當筆快取，確保資料一致。
+ *
+ * subscriptionId / serviceName 傳給 SubscriptionForm 後，
+ * 表單會進入「編輯模式」，顯示付款紀錄區塊與刪除按鈕。
+ */
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getSubscription, updateSubscription } from '@/api/subscriptions'

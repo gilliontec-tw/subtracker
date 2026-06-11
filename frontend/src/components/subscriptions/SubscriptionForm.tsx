@@ -1,3 +1,17 @@
+/**
+ * components/subscriptions/SubscriptionForm.tsx — 訂閱表單元件
+ *
+ * 新增與編輯訂閱共用同一個表單元件，由父頁面傳入不同的 props 決定行為：
+ *  - 無 subscriptionId → 新增模式（無刪除按鈕、無付款紀錄區塊）
+ *  - 有 subscriptionId → 編輯模式（顯示刪除按鈕與內嵌付款紀錄列表）
+ *
+ * 重要設計說明：
+ *  1. shadcn Select 元件不允許空字串作為值，類型選擇使用 '__none__' 作為「未分類」的 sentinel
+ *  2. Select 欄位無法透過 react-hook-form 的 register 綁定，需用 setValue + shouldValidate
+ *  3. toFormValues 函式供 SubscriptionEditPage 將後端資料轉換為表單格式
+ *  4. buildPayload 將表單字串值轉換為 API 所需格式（空字串轉 null / undefined、
+ *     notification_emails 字串轉陣列）
+ */
 import { useEffect, useState } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
