@@ -184,7 +184,7 @@ REDIS_URL=redis://redis:6379/0
 JWT_ACCESS_SECRET_KEY=<執行 openssl rand -hex 32 產生>
 JWT_REFRESH_SECRET_KEY=<執行 openssl rand -hex 32 產生>
 
-CORS_ORIGINS=http://192.168.1.7
+CORS_ORIGINS=["http://192.168.1.7"]
 APP_ENV=production
 APP_URL=http://192.168.1.7
 
