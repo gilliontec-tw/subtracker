@@ -1,7 +1,0 @@
-{"type":"click","text":"A\n      \n        加回到期日欄位\n        目前只有計費週期，看不到實際哪天到期。可讓表格同時顯示到期日 + 計費週期，或取代其中一個。","choice":"expiry-col","id":null,"timestamp":1780459180079}
-{"type":"click","text":"A\n      \n        加回到期日欄位\n        目前只有計費週期，看不到實際哪天到期。可讓表格同時顯示到期日 + 計費週期，或取代其中一個。","choice":"expiry-col","id":null,"timestamp":1780459181256}
-{"type":"click","text":"A\n      \n        加回到期日欄位\n        目前只有計費週期，看不到實際哪天到期。可讓表格同時顯示到期日 + 計費週期，或取代其中一個。","choice":"expiry-col","id":null,"timestamp":1780459207215}
-{"type":"click","text":"C\n      \n        匯出 CSV\n        一鍵匯出目前篩選結果的訂閱列表，給財務/會計用。","choice":"export-csv","id":null,"timestamp":1780459225606}
-{"type":"click","text":"D\n      \n        篩選結果合計金額\n        查詢某日期區間後，表格底部顯示 TWD 合計與筆數。","choice":"payment-total","id":null,"timestamp":1780459241078}
-{"type":"click","text":"F\n      \n        趨勢圖時間範圍切換\n        目前固定顯示近 12 個月。加入 3M / 6M / 12M 切換按鈕。","choice":"trend-range","id":null,"timestamp":1780459250205}
-{"type":"click","text":"I\n      \n        自動續訂 (auto_renew) 顯示\n        auto_renew 欄位有存但沒有在列表或詳情顯示。可在表格加一個小圖示或在詳情頁補上。","choice":"auto-renew-badge","id":null,"timestamp":1780459283822}

@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(git.exe log *)",
-      "Bash(python.exe -m pytest tests/unit/test_list_audit_log_use_case.py -v --tb=short)"
-    ]
-  }
-}
