@@ -59,7 +59,7 @@ Copy `backend/.env.example` to `backend/.env`. Required variables:
 - `DATABASE_URL` — PostgreSQL via asyncpg, e.g. `postgresql+asyncpg://user:pass@localhost:5432/subtrack`
 - `REDIS_URL` — e.g. `redis://localhost:6379/0` (used for login rate-limiting and refresh token blacklist)
 - `JWT_ACCESS_SECRET_KEY` / `JWT_REFRESH_SECRET_KEY` — sign JWT tokens
-- `CORS_ORIGINS` — comma-separated list, e.g. `http://localhost:5173`
+- `CORS_ORIGINS` — frontend origin, e.g. `http://192.168.1.7` (production) or `http://localhost:5173` (local dev)
 - `SMTP_*` — SMTP credentials for renewal notification emails
 - `APP_ENV` — `development` enables `/api/docs`; anything else disables it
 
