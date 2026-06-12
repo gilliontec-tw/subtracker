@@ -25,7 +25,7 @@ class GroupModel(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     members = relationship("UserGroupModel", back_populates="group", cascade="all, delete-orphan")
-    subscriptions = relationship("SubscriptionModel", back_populates="group")
+    subscriptions = relationship("SubscriptionModel", back_populates="group", passive_deletes=True)
 
 
 class UserGroupModel(Base):

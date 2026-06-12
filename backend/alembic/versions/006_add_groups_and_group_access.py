@@ -46,7 +46,10 @@ def upgrade() -> None:
     # Add group_id to saas_subscriptions
     op.add_column(
         "saas_subscriptions",
-        sa.Column("group_id", sa.Integer(), sa.ForeignKey("groups.id"), nullable=True),
+        sa.Column("group_id", sa.Integer(), nullable=True),
+    )
+    op.create_foreign_key(
+        "fk_saas_subscriptions_group_id", "saas_subscriptions", "groups", ["group_id"], ["id"]
     )
 
     # Drop can_* columns from users
@@ -68,6 +71,7 @@ def downgrade() -> None:
     )
 
     # Remove group_id from saas_subscriptions
+    op.drop_constraint("fk_saas_subscriptions_group_id", "saas_subscriptions", type_="foreignkey")
     op.drop_column("saas_subscriptions", "group_id")
 
     # Drop tables
