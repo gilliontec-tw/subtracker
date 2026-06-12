@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast'
 
 const schema = z
   .object({
-    email: z.string().min(1, '請輸入 Email'),
+    email: z.string().email('請輸入有效的 Email 格式'),
     new_password: z.string().min(8, '密碼至少 8 個字元'),
     confirm_password: z.string().min(1, '請確認密碼'),
   })

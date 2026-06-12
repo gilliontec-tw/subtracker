@@ -197,11 +197,26 @@ async def forgot_password(
 @router.post("/reset-password-direct")
 async def reset_password_direct(
     body: DirectPasswordResetRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
+    redis: aioredis.Redis = Depends(get_redis),
 ) -> ApiResponse[None]:
+    ip = request.client.host if request.client else "unknown"
+    reset_key = f"reset_fail:{ip}"
+    fail_count = await redis.get(reset_key)
+    if fail_count and int(fail_count) >= _MAX_FAILS:
+        return ApiResponse.fail("嘗試次數過多，請一分鐘後再試")  # type: ignore[return-value]
+
     repo = SqlUserRepository(db)
     use_case = DirectPasswordResetUseCase(repo)
-    await use_case.execute(email=body.email, new_password=body.new_password)
+    try:
+        await use_case.execute(email=body.email, new_password=body.new_password)
+    except Exception:
+        await redis.incr(reset_key)
+        await redis.expire(reset_key, _FAIL_TTL)
+        raise
+
+    await redis.delete(reset_key)
     return ApiResponse.ok(message="密碼已重設")
 
 
