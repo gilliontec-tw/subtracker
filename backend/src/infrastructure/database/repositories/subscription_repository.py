@@ -8,10 +8,14 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from infrastructure.database.models import AssetTypeModel, SubscriptionModel
+from infrastructure.database.models import AssetTypeModel, GroupModel, SubscriptionModel
 
 
-def _to_entity(m: SubscriptionModel, asset_type_name: str | None = None) -> Subscription:
+def _to_entity(
+    m: SubscriptionModel,
+    asset_type_name: str | None = None,
+    group_name: str | None = None,
+) -> Subscription:
     return Subscription(
         id=m.id,
         service_name=m.service_name,
@@ -35,16 +39,23 @@ def _to_entity(m: SubscriptionModel, asset_type_name: str | None = None) -> Subs
         status=m.status or "active",
         asset_type_id=m.asset_type_id,
         asset_type_name=asset_type_name,
+        group_id=m.group_id,
+        group_name=group_name,
         deleted_at=m.deleted_at,
         created_at=m.created_at,
         updated_at=m.updated_at,
     )
 
 
-def _with_type_join(stmt):
-    return stmt.outerjoin(
-        AssetTypeModel, SubscriptionModel.asset_type_id == AssetTypeModel.id
-    ).add_columns(AssetTypeModel.name.label("asset_type_name"))
+def _with_joins(stmt):
+    return (
+        stmt.outerjoin(AssetTypeModel, SubscriptionModel.asset_type_id == AssetTypeModel.id)
+        .outerjoin(GroupModel, SubscriptionModel.group_id == GroupModel.id)
+        .add_columns(
+            AssetTypeModel.name.label("asset_type_name"),
+            GroupModel.name.label("group_name"),
+        )
+    )
 
 
 class SqlSubscriptionRepository(SubscriptionRepository):
@@ -53,7 +64,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
 
     async def get_by_id(self, id: int) -> Subscription | None:
         result = await self._session.execute(
-            _with_type_join(
+            _with_joins(
                 select(SubscriptionModel).where(
                     SubscriptionModel.id == id,
                     SubscriptionModel.deleted_at.is_(None),
@@ -61,27 +72,33 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             )
         )
         row = result.one_or_none()
-        return _to_entity(row[0], row[1]) if row else None
+        return _to_entity(row[0], row[1], row[2]) if row else None
 
     async def list_all(self) -> list[Subscription]:
         result = await self._session.execute(
-            _with_type_join(
+            _with_joins(
                 select(SubscriptionModel)
                 .where(SubscriptionModel.deleted_at.is_(None))
                 .order_by(SubscriptionModel.expiry_date)
             )
         )
-        return [_to_entity(row[0], row[1]) for row in result.all()]
+        return [_to_entity(row[0], row[1], row[2]) for row in result.all()]
 
     async def list_paginated(
         self,
         limit: int,
         offset: int,
         show_suspended: bool,
+        group_ids: list[int] | None = None,
     ) -> tuple[list[Subscription], int]:
+        if group_ids is not None and not group_ids:
+            return [], 0
+
         base_filter = [SubscriptionModel.deleted_at.is_(None)]
         if not show_suspended:
             base_filter.append(SubscriptionModel.status != "suspended")
+        if group_ids is not None:
+            base_filter.append(SubscriptionModel.group_id.in_(group_ids))
 
         count_result = await self._session.execute(
             select(func.count()).select_from(SubscriptionModel).where(*base_filter)
@@ -89,7 +106,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
         total = count_result.scalar_one()
 
         data_result = await self._session.execute(
-            _with_type_join(
+            _with_joins(
                 select(SubscriptionModel)
                 .where(*base_filter)
                 .order_by(SubscriptionModel.expiry_date)
@@ -97,7 +114,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
                 .offset(offset)
             )
         )
-        items = [_to_entity(row[0], row[1]) for row in data_result.all()]
+        items = [_to_entity(row[0], row[1], row[2]) for row in data_result.all()]
         return items, total
 
     async def save(self, entity: Subscription) -> Subscription:
@@ -133,6 +150,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
             model.last_notified_date = entity.last_notified_date
             model.status = entity.status
             model.asset_type_id = entity.asset_type_id
+            model.group_id = entity.group_id
         else:
             model = SubscriptionModel(
                 service_name=entity.service_name,
@@ -155,6 +173,7 @@ class SqlSubscriptionRepository(SubscriptionRepository):
                 last_notified_date=entity.last_notified_date,
                 status=entity.status,
                 asset_type_id=entity.asset_type_id,
+                group_id=entity.group_id,
             )
             self._session.add(model)
         await self._session.commit()

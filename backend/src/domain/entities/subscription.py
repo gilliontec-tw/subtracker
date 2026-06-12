@@ -29,6 +29,8 @@ class Subscription:
     status: str = "active"
     asset_type_id: int | None = None
     asset_type_name: str | None = None
+    group_id: int | None = None
+    group_name: str | None = None
 
     id: int | None = None
     deleted_at: datetime | None = None

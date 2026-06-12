@@ -12,6 +12,7 @@ class SubscriptionRepository(BaseRepository[Subscription, int]):
         limit: int,
         offset: int,
         show_suspended: bool,
+        group_ids: list[int] | None = None,
     ) -> tuple[list[Subscription], int]: ...
 
     @abstractmethod

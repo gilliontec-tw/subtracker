@@ -27,6 +27,7 @@ class SubscriptionCreate(BaseModel):
     next_billing_date: date | None = None
     status: str = "active"
     asset_type_id: int | None = None
+    group_id: int | None = None
 
 
 class SubscriptionUpdate(BaseModel):
@@ -49,6 +50,7 @@ class SubscriptionUpdate(BaseModel):
     next_billing_date: date | None = None
     status: str | None = None
     asset_type_id: int | None = None
+    group_id: int | None = None
 
 
 class SubscriptionResponse(BaseModel):
@@ -73,6 +75,8 @@ class SubscriptionResponse(BaseModel):
     status: str
     asset_type_id: int | None
     asset_type_name: str | None
+    group_id: int | None
+    group_name: str | None
     created_at: datetime | None
     updated_at: datetime | None
 

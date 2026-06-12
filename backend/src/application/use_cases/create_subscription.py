@@ -41,6 +41,7 @@ class CreateSubscriptionUseCase:
         next_billing_date: date | None = None,
         status: str = "active",
         asset_type_id: int | None = None,
+        group_id: int | None = None,
     ) -> Subscription:
         entity = Subscription(
             service_name=service_name,
@@ -62,6 +63,7 @@ class CreateSubscriptionUseCase:
             next_billing_date=next_billing_date,
             status=status,
             asset_type_id=asset_type_id,
+            group_id=group_id,
         )
         result = await self._repo.save(entity)
         if self._audit_repo is not None:
