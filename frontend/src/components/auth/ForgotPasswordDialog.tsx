@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation } from '@tanstack/react-query'
+import type { AxiosError } from 'axios'
 import { resetPasswordDirect } from '@/api/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -71,9 +72,8 @@ export default function ForgotPasswordDialog({ open, onOpenChange }: Props) {
       onOpenChange(false)
     },
     onError: (err) => {
-      const axiosErr = err as { response?: { data?: { message?: string } } }
       const msg =
-        axiosErr.response?.data?.message ??
+        (err as AxiosError<{ message: string }>).response?.data?.message ??
         (err as Error).message ??
         '重設失敗，請稍後再試'
       setApiError(msg)
