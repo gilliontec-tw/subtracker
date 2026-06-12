@@ -271,6 +271,7 @@ function computeTrend(
   for (const p of payments) {
     const d = new Date(p.payment_date)
     if (d < from || d > to) continue
+    if (!subMap.has(p.subscription_id)) continue
     const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`
     const amount = parseFloat(p.amount)
     if (isNaN(amount)) continue
