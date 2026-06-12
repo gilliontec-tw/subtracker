@@ -47,3 +47,15 @@ export async function changePassword(
   )
   if (!data.success) throw new Error(data.message)
 }
+
+/** 直接重設密碼（不需 Email 驗證）。帳號不存在時後端回 400，axios 會 throw */
+export async function resetPasswordDirect(
+  email: string,
+  newPassword: string,
+): Promise<void> {
+  const { data } = await api.post<ApiResponse<null>>(
+    '/api/v1/auth/reset-password-direct',
+    { email, new_password: newPassword },
+  )
+  if (!data.success) throw new Error(data.message)
+}
