@@ -1,10 +1,4 @@
-/**
- * pages/LoginPage.tsx — 登入頁面
- *
- * 以 email + password 進行登入，成功後後端設定 httpOnly cookie，
- * 前端將使用者資料寫入 authStore 後導向 /dashboard。
- * 若已登入（currentUser 不為 null）則直接導向 /subscriptions。
- */
+import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
 import AuthLayout from '@/layouts/AuthLayout'
+import ForgotPasswordDialog from '@/components/auth/ForgotPasswordDialog'
 
 const schema = z.object({
   email: z.string().min(1, '請輸入 Email'),
@@ -29,6 +24,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const { currentUser, setUser } = useAuthStore()
   const { toast } = useToast()
+  const [forgotOpen, setForgotOpen] = useState(false)
 
   const {
     register,
@@ -47,7 +43,6 @@ export default function LoginPage() {
     },
   })
 
-  // 已登入直接跳轉，避免重複顯示登入頁
   if (currentUser) return <Navigate to="/subscriptions" replace />
 
   return (
@@ -88,9 +83,19 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? '登入中...' : '登入'}
             </Button>
+            <div className="text-right">
+              <button
+                type="button"
+                className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                onClick={() => setForgotOpen(true)}
+              >
+                忘記密碼？
+              </button>
+            </div>
           </form>
         </CardContent>
       </Card>
+      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} />
     </AuthLayout>
   )
 }
