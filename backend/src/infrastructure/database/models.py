@@ -17,6 +17,27 @@ class Base(DeclarativeBase):
     pass
 
 
+class GroupModel(Base):
+    __tablename__ = "groups"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    members = relationship("UserGroupModel", back_populates="group", cascade="all, delete-orphan")
+    subscriptions = relationship("SubscriptionModel", back_populates="group")
+
+
+class UserGroupModel(Base):
+    __tablename__ = "user_groups"
+
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    group_id = Column(Integer, ForeignKey("groups.id"), primary_key=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    group = relationship("GroupModel", back_populates="members")
+
+
 class UserModel(Base):
     __tablename__ = "users"
 
@@ -25,9 +46,6 @@ class UserModel(Base):
     display_name = Column(String(255), nullable=False)
     password_hash = Column(String(255))
     role = Column(String(20), nullable=False, server_default="user")
-    can_create = Column(Boolean, nullable=False, server_default="false")
-    can_update = Column(Boolean, nullable=False, server_default="false")
-    can_delete = Column(Boolean, nullable=False, server_default="false")
     is_active = Column(Boolean, nullable=False, server_default="true")
     invite_token = Column(String(255), unique=True)
     invite_token_expires_at = Column(DateTime(timezone=True))
@@ -51,28 +69,30 @@ class SubscriptionModel(Base):
     service_name = Column(String(255), nullable=False)
     login_account = Column(String(255))
     expiry_date = Column(Date, nullable=False)
-    notification_emails = Column(Text)  # JSON-encoded list of email strings
+    notification_emails = Column(Text)
     notification_days = Column(Integer, server_default="30")
     cost = Column(Numeric(10, 2))
     currency = Column(String(10), server_default="TWD")
-    exchange_rate = Column(Numeric(12, 6))  # 1 foreign unit = ? TWD; NULL = not set
+    exchange_rate = Column(Numeric(12, 6))
     notes = Column(Text)
     owner_name = Column(String(255))
     login_password = Column(String(255))
     department = Column(String(100))
-    billing_cycle = Column(String(20))  # monthly|quarterly|semi_annual|annual|biennial
+    billing_cycle = Column(String(20))
     payment_account = Column(String(255))
     auto_renew = Column(Boolean, server_default="false")
     trial_end_date = Column(Date)
     next_billing_date = Column(Date)
     last_notified_date = Column(Date)
-    status = Column(String(20), server_default="active")  # active|suspended
+    status = Column(String(20), server_default="active")
     asset_type_id = Column(Integer, ForeignKey("asset_types.id"), nullable=True)
-    deleted_at = Column(DateTime(timezone=True))  # NULL = not deleted (soft delete)
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
+    deleted_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     payments = relationship("PaymentRecordModel", back_populates="subscription")
+    group = relationship("GroupModel", back_populates="subscriptions")
 
 
 class PaymentRecordModel(Base):
@@ -83,7 +103,7 @@ class PaymentRecordModel(Base):
     payment_date = Column(Date, nullable=False)
     amount = Column(Numeric(10, 2), nullable=False)
     currency = Column(String(10), nullable=False, server_default="TWD")
-    source = Column(String(10), nullable=False, server_default="manual")  # auto|manual
+    source = Column(String(10), nullable=False, server_default="manual")
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     created_by = Column(Integer, ForeignKey("users.id"))
@@ -99,7 +119,7 @@ class AuditLogModel(Base):
     action = Column(String(50), nullable=False)
     resource_type = Column(String(50))
     resource_id = Column(Integer)
-    details = Column(Text)  # JSON-encoded dict
+    details = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
