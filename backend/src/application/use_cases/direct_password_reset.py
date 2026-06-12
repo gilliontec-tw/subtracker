@@ -1,6 +1,6 @@
+import bcrypt
 from domain.exceptions import BadRequestException
 from domain.repositories.user_repository import UserRepository
-from infrastructure.auth.password import hash_password
 
 
 class DirectPasswordResetUseCase:
@@ -12,5 +12,5 @@ class DirectPasswordResetUseCase:
         if user is None or not user.is_active:
             raise BadRequestException("此帳號不存在")
 
-        user.password_hash = hash_password(new_password)
+        user.password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
         await self._repo.save(user)
