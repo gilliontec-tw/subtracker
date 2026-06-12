@@ -104,3 +104,11 @@ async def test_remove_user_from_group(repo):
     uc = RemoveUserFromGroupUseCase(repo)
     await uc.execute(group_id=1, user_id=5)
     repo.remove_member.assert_called_once_with(1, 5)
+
+
+@pytest.mark.asyncio
+async def test_remove_user_from_group_not_found_raises(repo):
+    repo.get_by_id = AsyncMock(return_value=None)
+    uc = RemoveUserFromGroupUseCase(repo)
+    with pytest.raises(NotFoundException):
+        await uc.execute(group_id=99, user_id=5)
