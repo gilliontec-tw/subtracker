@@ -7,9 +7,6 @@ def test_user_defaults_have_none_id():
         display_name="Test User",
         password_hash="hash",
         role="user",
-        can_create=False,
-        can_update=False,
-        can_delete=False,
         is_active=True,
     )
     assert user.id is None
@@ -23,10 +20,20 @@ def test_user_with_admin_role():
         display_name="Admin",
         password_hash="hash",
         role="admin",
-        can_create=True,
-        can_update=True,
-        can_delete=True,
         is_active=True,
     )
     assert user.role == "admin"
-    assert user.can_create is True
+    assert user.is_active is True
+
+
+def test_user_role_is_stored():
+    user = User(
+        email="user@example.com",
+        display_name="Regular User",
+        password_hash="hash",
+        role="user",
+        is_active=True,
+    )
+    assert user.role == "user"
+    assert user.email == "user@example.com"
+    assert user.display_name == "Regular User"

@@ -13,12 +13,7 @@ from infrastructure.database.repositories.subscription_repository import (
 from infrastructure.database.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import (
-    get_current_user,
-    require_can_create,
-    require_can_delete,
-    require_can_update,
-)
+from api.dependencies import get_current_user
 from api.v1.schemas.base import ApiResponse, PaginationMeta
 from api.v1.schemas.subscription import (
     BatchRenewRequest,
@@ -55,7 +50,7 @@ async def list_subscriptions(
 @router.post("", response_model=ApiResponse[SubscriptionResponse], status_code=201)
 async def create_subscription(
     body: SubscriptionCreate,
-    current_user: User = Depends(require_can_create),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[SubscriptionResponse]:
     repo = SqlSubscriptionRepository(db)
@@ -73,7 +68,7 @@ async def create_subscription(
 @router.post("/batch-renew", response_model=ApiResponse[BatchRenewResponse])
 async def batch_renew(
     body: BatchRenewRequest,
-    current_user: User = Depends(require_can_update),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[BatchRenewResponse]:
     repo = SqlSubscriptionRepository(db)
@@ -108,7 +103,7 @@ async def get_subscription(
 async def update_subscription(
     id: int,
     body: SubscriptionUpdate,
-    current_user: User = Depends(require_can_update),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[SubscriptionResponse]:
     repo = SqlSubscriptionRepository(db)
@@ -126,7 +121,7 @@ async def update_subscription(
 @router.delete("/{id}", response_model=ApiResponse[None])
 async def delete_subscription(
     id: int,
-    current_user: User = Depends(require_can_delete),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[None]:
     repo = SqlSubscriptionRepository(db)

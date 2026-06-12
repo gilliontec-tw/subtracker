@@ -7,10 +7,7 @@ class User:
     email: str
     display_name: str
     password_hash: str
-    role: str  # 'admin' | 'manager' | 'user'
-    can_create: bool
-    can_update: bool
-    can_delete: bool
+    role: str  # 'admin' | 'user'
     is_active: bool
     id: int | None = None
     invite_token: str | None = None

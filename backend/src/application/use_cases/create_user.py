@@ -15,7 +15,6 @@ class CreateUserUseCase:
         if existing is not None:
             raise DuplicateEmailException(email)
 
-        is_admin = role == "admin"
         token = str(uuid.uuid4())
         expires_at = datetime.now(UTC).replace(tzinfo=None) + timedelta(days=7)
 
@@ -24,9 +23,6 @@ class CreateUserUseCase:
             display_name=display_name,
             password_hash="",
             role=role,
-            can_create=is_admin,
-            can_update=is_admin,
-            can_delete=is_admin,
             is_active=True,
             invite_token=token,
             invite_token_expires_at=expires_at,

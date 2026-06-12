@@ -13,9 +13,6 @@ def _to_entity(m: UserModel) -> User:
         display_name=m.display_name,
         password_hash=m.password_hash or "",
         role=m.role,
-        can_create=m.can_create,
-        can_update=m.can_update,
-        can_delete=m.can_delete,
         is_active=m.is_active,
         invite_token=m.invite_token,
         invite_token_expires_at=(
@@ -61,9 +58,6 @@ class SqlUserRepository(UserRepository):
             model.display_name = entity.display_name
             model.password_hash = entity.password_hash
             model.role = entity.role
-            model.can_create = entity.can_create
-            model.can_update = entity.can_update
-            model.can_delete = entity.can_delete
             model.is_active = entity.is_active
             model.invite_token = entity.invite_token
             model.invite_token_expires_at = entity.invite_token_expires_at
@@ -73,9 +67,6 @@ class SqlUserRepository(UserRepository):
                 display_name=entity.display_name,
                 password_hash=entity.password_hash,
                 role=entity.role,
-                can_create=entity.can_create,
-                can_update=entity.can_update,
-                can_delete=entity.can_delete,
                 is_active=entity.is_active,
                 invite_token=entity.invite_token,
                 invite_token_expires_at=entity.invite_token_expires_at,

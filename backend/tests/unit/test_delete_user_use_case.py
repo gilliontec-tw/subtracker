@@ -38,7 +38,7 @@ async def test_deletes_non_admin(use_case, repo):
 
 @pytest.mark.asyncio
 async def test_raises_when_deleting_last_admin(use_case, repo):
-    admin = make_user(id=1, role="admin", can_create=True, can_update=True, can_delete=True)
+    admin = make_user(id=1, role="admin")
     repo.get_by_id = AsyncMock(return_value=admin)
     repo.list_all = AsyncMock(return_value=[admin])
 
@@ -48,10 +48,8 @@ async def test_raises_when_deleting_last_admin(use_case, repo):
 
 @pytest.mark.asyncio
 async def test_deletes_admin_when_another_admin_exists(use_case, repo):
-    admin1 = make_user(id=1, role="admin", can_create=True, can_update=True, can_delete=True)
-    admin2 = make_user(
-        id=2, email="a2@corp.com", role="admin", can_create=True, can_update=True, can_delete=True
-    )
+    admin1 = make_user(id=1, role="admin")
+    admin2 = make_user(id=2, email="a2@corp.com", role="admin")
     repo.get_by_id = AsyncMock(return_value=admin1)
     repo.list_all = AsyncMock(return_value=[admin1, admin2])
     repo.delete = AsyncMock()

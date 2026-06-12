@@ -15,12 +15,7 @@ from infrastructure.database.repositories.subscription_repository import (
 from infrastructure.database.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import (
-    get_current_user,
-    require_can_create,
-    require_can_delete,
-    require_can_update,
-)
+from api.dependencies import get_current_user
 from api.v1.schemas.base import ApiResponse
 from api.v1.schemas.payment_record import (
     PaymentRecordCreate,
@@ -54,7 +49,7 @@ async def list_payments(
 @router.post("", response_model=ApiResponse[PaymentRecordResponse], status_code=201)
 async def create_payment(
     body: PaymentRecordCreate,
-    current_user: User = Depends(require_can_create),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[PaymentRecordResponse]:
     sub_repo = SqlSubscriptionRepository(db)
@@ -68,7 +63,7 @@ async def create_payment(
 async def update_payment(
     id: int,
     body: PaymentRecordUpdate,
-    _: User = Depends(require_can_update),
+    _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[PaymentRecordResponse]:
     repo = SqlPaymentRecordRepository(db)
@@ -80,7 +75,7 @@ async def update_payment(
 @router.delete("/{id}", response_model=ApiResponse[None])
 async def delete_payment(
     id: int,
-    _: User = Depends(require_can_delete),
+    _: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[None]:
     repo = SqlPaymentRecordRepository(db)

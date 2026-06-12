@@ -40,38 +40,6 @@ async def require_admin(
     return current_user
 
 
-async def require_manager(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    if current_user.role not in ("admin", "manager"):
-        raise ForbiddenException()
-    return current_user
-
-
-async def require_can_create(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    if current_user.role in ("admin", "manager") or current_user.can_create:
-        return current_user
-    raise ForbiddenException()
-
-
-async def require_can_update(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    if current_user.role in ("admin", "manager") or current_user.can_update:
-        return current_user
-    raise ForbiddenException()
-
-
-async def require_can_delete(
-    current_user: User = Depends(get_current_user),
-) -> User:
-    if current_user.role in ("admin", "manager") or current_user.can_delete:
-        return current_user
-    raise ForbiddenException()
-
-
 async def get_settings_service(db: AsyncSession = Depends(get_db)) -> SettingsService:
     from api.config import settings as env_settings
 

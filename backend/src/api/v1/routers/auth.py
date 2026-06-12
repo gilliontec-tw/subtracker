@@ -104,9 +104,6 @@ async def login(
             email=user.email,
             display_name=user.display_name,
             role=user.role,
-            can_create=user.can_create,
-            can_update=user.can_update,
-            can_delete=user.can_delete,
         )
     )
 
@@ -242,8 +239,5 @@ async def me(
             email=current_user.email,
             display_name=current_user.display_name,
             role=current_user.role,
-            can_create=current_user.can_create,
-            can_update=current_user.can_update,
-            can_delete=current_user.can_delete,
         )
     )

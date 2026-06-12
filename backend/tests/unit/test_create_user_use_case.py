@@ -32,27 +32,23 @@ async def test_creates_user_with_invite_token(use_case, repo):
 
 
 @pytest.mark.asyncio
-async def test_admin_role_sets_all_permissions(use_case, repo):
+async def test_admin_role_is_stored(use_case, repo):
     repo.get_by_email = AsyncMock(return_value=None)
     repo.save = AsyncMock(side_effect=lambda u: u)
 
     user = await use_case.execute(email="admin@corp.com", display_name="Admin", role="admin")
 
-    assert user.can_create is True
-    assert user.can_update is True
-    assert user.can_delete is True
+    assert user.role == "admin"
 
 
 @pytest.mark.asyncio
-async def test_user_role_has_no_permissions(use_case, repo):
+async def test_user_role_is_stored(use_case, repo):
     repo.get_by_email = AsyncMock(return_value=None)
     repo.save = AsyncMock(side_effect=lambda u: u)
 
     user = await use_case.execute(email="user@corp.com", display_name="User", role="user")
 
-    assert user.can_create is False
-    assert user.can_update is False
-    assert user.can_delete is False
+    assert user.role == "user"
 
 
 @pytest.mark.asyncio

@@ -18,10 +18,6 @@ class UpdateUserUseCase:
             if admin_count <= 1:
                 raise LastAdminException("Cannot demote the only admin")
 
-        is_admin = role == "admin"
         user.display_name = display_name
         user.role = role
-        user.can_create = is_admin
-        user.can_update = is_admin
-        user.can_delete = is_admin
         return await self._repo.save(user)

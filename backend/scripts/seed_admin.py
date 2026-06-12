@@ -28,9 +28,6 @@ async def main() -> None:
             display_name="Admin",
             password_hash=hash_password("testpass123"),
             role="admin",
-            can_create=True,
-            can_update=True,
-            can_delete=True,
             is_active=True,
         )
         session.add(admin)

@@ -25,6 +25,3 @@ class UserResponse(BaseModel):
     email: str
     display_name: str
     role: str
-    can_create: bool
-    can_update: bool
-    can_delete: bool
