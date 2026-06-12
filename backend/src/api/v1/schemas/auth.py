@@ -15,6 +15,11 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(min_length=8)
 
 
+class DirectPasswordResetRequest(BaseModel):
+    email: str
+    new_password: str = Field(min_length=8)
+
+
 class UserResponse(BaseModel):
     id: int
     email: str

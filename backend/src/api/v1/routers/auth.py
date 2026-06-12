@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import redis.asyncio as aioredis
 from application.services.settings_service import SettingsService
 from application.use_cases.change_password import ChangePasswordUseCase
+from application.use_cases.direct_password_reset import DirectPasswordResetUseCase
 from application.use_cases.request_password_reset import RequestPasswordResetUseCase
 from domain.entities.user import User
 from domain.exceptions import NotAuthenticatedException
@@ -24,6 +25,7 @@ from api.config import settings
 from api.dependencies import get_current_user, get_settings_service
 from api.v1.schemas.auth import (
     ChangePasswordRequest,
+    DirectPasswordResetRequest,
     ForgotPasswordRequest,
     LoginRequest,
     UserResponse,
@@ -190,6 +192,17 @@ async def forgot_password(
     use_case = RequestPasswordResetUseCase(repo, email_sender, app_url)
     await use_case.execute(email=str(body.email))
     return ApiResponse.ok(message="若此 Email 已註冊，重設連結已寄出，請查收信箱")
+
+
+@router.post("/reset-password-direct")
+async def reset_password_direct(
+    body: DirectPasswordResetRequest,
+    db: AsyncSession = Depends(get_db),
+) -> ApiResponse[None]:
+    repo = SqlUserRepository(db)
+    use_case = DirectPasswordResetUseCase(repo)
+    await use_case.execute(email=body.email, new_password=body.new_password)
+    return ApiResponse.ok(message="密碼已重設")
 
 
 @router.post("/change-password")
