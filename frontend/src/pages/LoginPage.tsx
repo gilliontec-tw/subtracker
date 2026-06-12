@@ -25,6 +25,7 @@ export default function LoginPage() {
   const { currentUser, setUser } = useAuthStore()
   const { toast } = useToast()
   const [forgotOpen, setForgotOpen] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const {
     register,
@@ -72,13 +73,22 @@ export default function LoginPage() {
               </label>
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
                 {...register('password')}
               />
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
+              <label className="flex items-center gap-1.5 cursor-pointer w-fit">
+                <input
+                  type="checkbox"
+                  checked={showPassword}
+                  onChange={(e) => setShowPassword(e.target.checked)}
+                  className="h-3.5 w-3.5"
+                />
+                <span className="text-xs text-muted-foreground">顯示密碼</span>
+              </label>
             </div>
             <Button type="submit" className="w-full" disabled={isPending}>
               {isPending ? '登入中...' : '登入'}
