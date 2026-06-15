@@ -4,12 +4,10 @@ from application.use_cases.delete_subscription import DeleteSubscriptionUseCase
 from application.use_cases.get_subscription import GetSubscriptionUseCase
 from application.use_cases.list_subscriptions import ListSubscriptionsUseCase
 from application.use_cases.update_subscription import UpdateSubscriptionUseCase
-from domain.entities.subscription import Subscription
 from domain.entities.user import User
-from domain.exceptions import ForbiddenException, NotFoundException
+from domain.exceptions import ForbiddenException
 from fastapi import APIRouter, Depends, Query
 from infrastructure.database.repositories.audit_log_repository import SqlAuditLogRepository
-from infrastructure.database.repositories.group_repository import SqlGroupRepository
 from infrastructure.database.repositories.subscription_repository import (
     SqlSubscriptionRepository,
 )
@@ -17,6 +15,7 @@ from infrastructure.database.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_current_user
+from api.v1.group_access import assert_subscription_access, get_user_group_ids
 from api.v1.schemas.base import ApiResponse, PaginationMeta
 from api.v1.schemas.subscription import (
     BatchRenewRequest,
@@ -30,33 +29,6 @@ from api.v1.schemas.subscription import (
 router = APIRouter(prefix="/api/v1/subscriptions", tags=["subscriptions"])
 
 
-def _get_repo(db: AsyncSession = Depends(get_db)) -> SqlSubscriptionRepository:
-    return SqlSubscriptionRepository(db)
-
-
-async def _get_user_group_ids(current_user: User, db: AsyncSession) -> list[int] | None:
-    """Returns None for admin (no filter), list of group_ids for regular users."""
-    if current_user.role == "admin":
-        return None
-    group_repo = SqlGroupRepository(db)
-    return await group_repo.get_group_ids_for_user(current_user.id)
-
-
-async def _assert_subscription_access(
-    sub: Subscription | None, current_user: User, db: AsyncSession
-) -> Subscription:
-    """Raises NotFoundException if user has no access. Returns sub if accessible."""
-    if sub is None:
-        raise NotFoundException()
-    if current_user.role == "admin":
-        return sub
-    group_repo = SqlGroupRepository(db)
-    group_ids = await group_repo.get_group_ids_for_user(current_user.id)
-    if sub.group_id is None or sub.group_id not in group_ids:
-        raise NotFoundException()
-    return sub
-
-
 @router.get("", response_model=ApiResponse[list[SubscriptionResponse]])
 async def list_subscriptions(
     limit: int = Query(default=50, ge=1, le=500),
@@ -66,7 +38,7 @@ async def list_subscriptions(
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[list[SubscriptionResponse]]:
     repo = SqlSubscriptionRepository(db)
-    group_ids = await _get_user_group_ids(current_user, db)
+    group_ids = await get_user_group_ids(current_user, db)
     use_case = ListSubscriptionsUseCase(repo)
     items, total = await use_case.execute(
         limit=limit, offset=offset, show_suspended=show_suspended, group_ids=group_ids
@@ -84,7 +56,7 @@ async def create_subscription(
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[SubscriptionResponse]:
     if current_user.role != "admin" and body.group_id is not None:
-        group_ids = await _get_user_group_ids(current_user, db)
+        group_ids = await get_user_group_ids(current_user, db)
         if body.group_id not in group_ids:
             raise ForbiddenException("只能將訂閱加入自己的群組")
     repo = SqlSubscriptionRepository(db)
@@ -110,7 +82,7 @@ async def batch_renew(
 
     subscription_ids = body.subscription_ids
     if current_user.role != "admin":
-        group_ids = await _get_user_group_ids(current_user, db)
+        group_ids = await get_user_group_ids(current_user, db)
         accessible: list[int] = []
         for sub_id in subscription_ids:
             sub = await repo.get_by_id(sub_id)
@@ -142,7 +114,7 @@ async def get_subscription(
     repo = SqlSubscriptionRepository(db)
     use_case = GetSubscriptionUseCase(repo)
     sub = await use_case.execute(subscription_id=id)
-    sub = await _assert_subscription_access(sub, current_user, db)
+    sub = await assert_subscription_access(sub, current_user, db)
     return ApiResponse.ok(data=SubscriptionResponse(**vars(sub)))
 
 
@@ -155,12 +127,11 @@ async def update_subscription(
 ) -> ApiResponse[SubscriptionResponse]:
     repo = SqlSubscriptionRepository(db)
     existing = await repo.get_by_id(id)
-    await _assert_subscription_access(existing, current_user, db)
-    # If non-admin is changing group_id, verify they belong to the target group
+    await assert_subscription_access(existing, current_user, db)
     if current_user.role != "admin":
         update_data = body.model_dump(exclude_unset=True)
         if "group_id" in update_data and update_data["group_id"] is not None:
-            group_ids = await _get_user_group_ids(current_user, db)
+            group_ids = await get_user_group_ids(current_user, db)
             if update_data["group_id"] not in group_ids:
                 raise ForbiddenException("只能將訂閱移至自己的群組")
     audit_repo = SqlAuditLogRepository(db)
@@ -182,7 +153,7 @@ async def delete_subscription(
 ) -> ApiResponse[None]:
     repo = SqlSubscriptionRepository(db)
     existing = await repo.get_by_id(id)
-    await _assert_subscription_access(existing, current_user, db)
+    await assert_subscription_access(existing, current_user, db)
     audit_repo = SqlAuditLogRepository(db)
     use_case = DeleteSubscriptionUseCase(
         repo,
