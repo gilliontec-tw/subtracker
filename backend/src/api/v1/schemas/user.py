@@ -7,6 +7,11 @@ from pydantic import BaseModel, EmailStr, Field
 RoleType = Literal["admin", "user"]
 
 
+class GroupInfo(BaseModel):
+    id: int
+    name: str
+
+
 class UserListItemResponse(BaseModel):
     id: int
     email: str
@@ -14,6 +19,7 @@ class UserListItemResponse(BaseModel):
     role: str
     is_active: bool
     created_at: str | None
+    groups: list[GroupInfo] = []
 
 
 class CreateUserRequest(BaseModel):

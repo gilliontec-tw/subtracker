@@ -6,15 +6,18 @@ from application.use_cases.update_user import UpdateUserUseCase
 from domain.entities.user import User
 from domain.exceptions import ForbiddenException
 from fastapi import APIRouter, Depends
+from infrastructure.database.repositories.group_repository import SqlGroupRepository
 from infrastructure.database.repositories.user_repository import SqlUserRepository
 from infrastructure.database.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import require_admin
 from api.v1.schemas.base import ApiResponse
+from api.v1.schemas.group import GroupBasicResponse
 from api.v1.schemas.user import (
     CreateUserRequest,
     CreateUserResponse,
+    GroupInfo,
     RegenerateInviteResponse,
     UpdateUserRequest,
     UserListItemResponse,
@@ -42,7 +45,17 @@ async def list_users(
 ):
     repo = SqlUserRepository(db)
     users = await repo.list_all()
-    return ApiResponse.ok(data=[_to_response(u) for u in users])
+    group_repo = SqlGroupRepository(db)
+    user_ids = [u.id for u in users if u.id is not None]
+    groups_by_user = await group_repo.get_groups_by_user_ids(user_ids)
+    items = [
+        UserListItemResponse(
+            **_to_response(u).model_dump(exclude={"groups"}),
+            groups=[GroupInfo(id=g.id, name=g.name) for g in groups_by_user.get(u.id, [])],
+        )
+        for u in users
+    ]
+    return ApiResponse.ok(data=items)
 
 
 @router.post("", response_model=ApiResponse[CreateUserResponse], status_code=201)
@@ -71,7 +84,13 @@ async def update_user(
     repo = SqlUserRepository(db)
     use_case = UpdateUserUseCase(repo)
     user = await use_case.execute(id=id, display_name=body.display_name, role=body.role)
-    return ApiResponse.ok(data=_to_response(user))
+    group_repo = SqlGroupRepository(db)
+    groups = await group_repo.get_groups_for_user(user.id)
+    response = UserListItemResponse(
+        **_to_response(user).model_dump(exclude={"groups"}),
+        groups=[GroupInfo(id=g.id, name=g.name) for g in groups],
+    )
+    return ApiResponse.ok(data=response)
 
 
 @router.patch("/{id}/status", response_model=ApiResponse[UserListItemResponse])
@@ -86,7 +105,13 @@ async def toggle_status(
     repo = SqlUserRepository(db)
     use_case = ToggleUserStatusUseCase(repo)
     user = await use_case.execute(id=id, is_active=body.is_active)
-    return ApiResponse.ok(data=_to_response(user))
+    group_repo = SqlGroupRepository(db)
+    groups = await group_repo.get_groups_for_user(user.id)
+    response = UserListItemResponse(
+        **_to_response(user).model_dump(exclude={"groups"}),
+        groups=[GroupInfo(id=g.id, name=g.name) for g in groups],
+    )
+    return ApiResponse.ok(data=response)
 
 
 @router.delete("/{id}", response_model=ApiResponse[None])
@@ -113,3 +138,14 @@ async def regenerate_invite(
     use_case = RegenerateInviteUseCase(repo)
     user = await use_case.execute(user_id=id)
     return ApiResponse.ok(data=RegenerateInviteResponse(invite_token=user.invite_token))
+
+
+@router.get("/{id}/groups", response_model=ApiResponse[list[GroupBasicResponse]])
+async def get_user_groups(
+    id: int,
+    _=Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    group_repo = SqlGroupRepository(db)
+    groups = await group_repo.get_groups_for_user(id)
+    return ApiResponse.ok(data=[GroupBasicResponse(id=g.id, name=g.name) for g in groups])

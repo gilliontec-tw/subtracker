@@ -8,6 +8,7 @@ from api.v1.routers.admin_settings import router as admin_settings_router
 from api.v1.routers.asset_types import router as asset_types_router
 from api.v1.routers.audit_log import router as audit_log_router
 from api.v1.routers.auth import router as auth_router
+from api.v1.routers.groups import router as groups_router
 from api.v1.routers.invite import router as invite_router
 from api.v1.routers.payments import router as payments_router
 from api.v1.routers.subscriptions import router as subscriptions_router
@@ -40,6 +41,7 @@ def create_app() -> FastAPI:
     app.include_router(payments_router)
     app.include_router(admin_settings_router)
     app.include_router(asset_types_router)
+    app.include_router(groups_router)
 
     @app.get("/health")
     async def health() -> dict:
