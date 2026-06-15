@@ -37,9 +37,11 @@ import {
 } from '@/components/ui/dialog'
 import { deleteSubscription } from '@/api/subscriptions'
 import { listAssetTypes } from '@/api/asset_types'
+import { listGroups, getUserGroups } from '@/api/groups'
+import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/use-toast'
 import PaymentRecordList from '@/components/payments/PaymentRecordList'
-import type { Subscription } from '@/types/api'
+import type { Group, Subscription } from '@/types/api'
 
 const BILLING_CYCLES = ['monthly', 'quarterly', 'semi_annual', 'annual', 'biennial'] as const
 const BILLING_CYCLE_LABELS: Record<string, string> = {
@@ -77,6 +79,7 @@ const schema = z.object({
   notification_days: z.string().refine((v) => parseInt(v) > 0, '必須大於 0 天'),
   status: z.enum(STATUSES),
   notes: z.string().optional(),
+  group_id: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -107,6 +110,10 @@ function buildPayload(values: FormValues): Record<string, unknown> {
     notification_days: Math.max(1, parseInt(values.notification_days) || 30),
     status: values.status,
     notes: values.notes || undefined,
+    group_id:
+      values.group_id && values.group_id !== '__none__'
+        ? parseInt(values.group_id)
+        : null,
   }
 }
 
@@ -134,6 +141,7 @@ export function toFormValues(sub: Subscription): Partial<FormValues> {
     notification_days: String(sub.notification_days),
     status: sub.status,
     notes: sub.notes ?? '',
+    group_id: sub.group_id != null ? String(sub.group_id) : undefined,
   }
 }
 
@@ -209,11 +217,21 @@ export default function SubscriptionForm({
     queryFn: listAssetTypes,
   })
 
+  const currentUser = useAuthStore((s) => s.currentUser)
+
+  const { data: groupOptions = [] } = useQuery<Group[]>({
+    queryKey: currentUser?.role === 'admin' ? ['groups'] : ['user-groups', currentUser?.id],
+    queryFn: () =>
+      currentUser?.role === 'admin' ? listGroups() : getUserGroups(currentUser!.id),
+    enabled: !!currentUser,
+  })
+
   // eslint-disable-next-line react-hooks/incompatible-library
   const currency = watch('currency')
   const billingCycle = watch('billing_cycle')
   const statusVal = watch('status')
   const assetTypeId = watch('asset_type_id')
+  const groupIdVal = watch('group_id')
 
   const { mutate: deleteMutate, isPending: isDeleting } = useMutation({
     mutationFn: () => deleteSubscription(subscriptionId!),
@@ -257,6 +275,31 @@ export default function SubscriptionForm({
                 {assetTypes.map((t) => (
                   <SelectItem key={t.id} value={String(t.id)}>
                     {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormField>
+
+          <FormField label="所屬群組">
+            <Select
+              value={groupIdVal ?? '__none__'}
+              onValueChange={(v) =>
+                setValue('group_id', v === '__none__' ? undefined : v, {
+                  shouldValidate: true,
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="選擇群組（可留空）" />
+              </SelectTrigger>
+              <SelectContent>
+                {currentUser?.role === 'admin' && (
+                  <SelectItem value="__none__">（未分組）</SelectItem>
+                )}
+                {groupOptions.map((g) => (
+                  <SelectItem key={g.id} value={String(g.id)}>
+                    {g.name}
                   </SelectItem>
                 ))}
               </SelectContent>
