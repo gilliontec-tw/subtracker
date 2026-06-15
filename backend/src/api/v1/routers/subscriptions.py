@@ -107,13 +107,24 @@ async def batch_renew(
 ) -> ApiResponse[BatchRenewResponse]:
     repo = SqlSubscriptionRepository(db)
     audit_repo = SqlAuditLogRepository(db)
+
+    subscription_ids = body.subscription_ids
+    if current_user.role != "admin":
+        group_ids = await _get_user_group_ids(current_user, db)
+        accessible: list[int] = []
+        for sub_id in subscription_ids:
+            sub = await repo.get_by_id(sub_id)
+            if sub is not None and sub.group_id is not None and sub.group_id in (group_ids or []):
+                accessible.append(sub_id)
+        subscription_ids = accessible
+
     uc = BatchRenewSubscriptionsUseCase(
         repo,
         audit_repo=audit_repo,
         actor_user_id=current_user.id,
         actor_email=current_user.email,
     )
-    result = await uc.execute(subscription_ids=body.subscription_ids)
+    result = await uc.execute(subscription_ids=subscription_ids)
     return ApiResponse.ok(
         data=BatchRenewResponse(
             renewed=[SubscriptionResponse(**vars(s)) for s in result["renewed"]],
