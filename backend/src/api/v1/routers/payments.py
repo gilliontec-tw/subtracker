@@ -7,7 +7,6 @@ from application.use_cases.update_payment_record import UpdatePaymentRecordUseCa
 from domain.entities.user import User
 from domain.exceptions import NotFoundException
 from fastapi import APIRouter, Depends, Query
-from infrastructure.database.repositories.group_repository import SqlGroupRepository
 from infrastructure.database.repositories.payment_record_repository import (
     SqlPaymentRecordRepository,
 )
@@ -18,6 +17,7 @@ from infrastructure.database.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.dependencies import get_current_user
+from api.v1.group_access import assert_subscription_access, get_user_group_ids
 from api.v1.schemas.base import ApiResponse
 from api.v1.schemas.payment_record import (
     PaymentRecordCreate,
@@ -26,20 +26,6 @@ from api.v1.schemas.payment_record import (
 )
 
 router = APIRouter(prefix="/api/v1/payments", tags=["payments"])
-
-
-async def _assert_subscription_access(
-    subscription_id: int, current_user: User, db: AsyncSession
-) -> None:
-    """Raises NotFoundException if the current user cannot access the subscription."""
-    if current_user.role == "admin":
-        return
-    sub = await SqlSubscriptionRepository(db).get_by_id(subscription_id)
-    if sub is None:
-        raise NotFoundException()
-    group_ids = await SqlGroupRepository(db).get_group_ids_for_user(current_user.id)
-    if sub.group_id is None or sub.group_id not in group_ids:
-        raise NotFoundException()
 
 
 @router.get("", response_model=ApiResponse[list[PaymentRecordResponse]])
@@ -52,10 +38,9 @@ async def list_payments(
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[list[PaymentRecordResponse]]:
     if subscription_id is not None:
-        await _assert_subscription_access(subscription_id, current_user, db)
-    group_ids: list[int] | None = None
-    if current_user.role != "admin":
-        group_ids = await SqlGroupRepository(db).get_group_ids_for_user(current_user.id)
+        sub = await SqlSubscriptionRepository(db).get_by_id(subscription_id)
+        await assert_subscription_access(sub, current_user, db)
+    group_ids = await get_user_group_ids(current_user, db)
     repo = SqlPaymentRecordRepository(db)
     use_case = ListPaymentRecordsUseCase(repo)
     records = await use_case.execute(
@@ -74,8 +59,9 @@ async def create_payment(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[PaymentRecordResponse]:
-    await _assert_subscription_access(body.subscription_id, current_user, db)
     sub_repo = SqlSubscriptionRepository(db)
+    sub = await sub_repo.get_by_id(body.subscription_id)
+    await assert_subscription_access(sub, current_user, db)
     repo = SqlPaymentRecordRepository(db)
     use_case = CreatePaymentRecordUseCase(repo, sub_repo, actor_user_id=current_user.id)
     record = await use_case.execute(**body.model_dump())
@@ -93,7 +79,8 @@ async def update_payment(
     payment = await repo.get_by_id(id)
     if payment is None:
         raise NotFoundException()
-    await _assert_subscription_access(payment.subscription_id, current_user, db)
+    sub = await SqlSubscriptionRepository(db).get_by_id(payment.subscription_id)
+    await assert_subscription_access(sub, current_user, db)
     use_case = UpdatePaymentRecordUseCase(repo)
     record = await use_case.execute(payment_id=id, **body.model_dump(exclude_unset=True))
     return ApiResponse.ok(data=PaymentRecordResponse(**vars(record)))
@@ -109,7 +96,8 @@ async def delete_payment(
     payment = await repo.get_by_id(id)
     if payment is None:
         raise NotFoundException()
-    await _assert_subscription_access(payment.subscription_id, current_user, db)
+    sub = await SqlSubscriptionRepository(db).get_by_id(payment.subscription_id)
+    await assert_subscription_access(sub, current_user, db)
     use_case = DeletePaymentRecordUseCase(repo)
     await use_case.execute(payment_id=id)
     return ApiResponse.ok(message="付款紀錄已刪除")
