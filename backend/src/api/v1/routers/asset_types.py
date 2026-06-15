@@ -31,7 +31,7 @@ async def list_asset_types(
 @router.post("", response_model=ApiResponse[AssetTypeResponse], status_code=201)
 async def create_asset_type(
     body: AssetTypeCreate,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),
     repo: SqlAssetTypeRepository = Depends(_get_repo),
 ) -> ApiResponse[AssetTypeResponse]:
     result = await CreateAssetTypeUseCase(repo).execute(name=body.name, created_by=current_user.id)

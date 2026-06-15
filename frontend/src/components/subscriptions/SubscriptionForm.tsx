@@ -36,7 +36,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { deleteSubscription } from '@/api/subscriptions'
-import { listAssetTypes } from '@/api/asset_types'
+import { createAssetType, listAssetTypes } from '@/api/asset_types'
 import { listGroups, getUserGroups } from '@/api/groups'
 import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/use-toast'
@@ -189,6 +189,7 @@ export default function SubscriptionForm({
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [newTypeName, setNewTypeName] = useState('')
   const canDelete = true
 
   const {
@@ -215,6 +216,17 @@ export default function SubscriptionForm({
   const { data: assetTypes = [] } = useQuery({
     queryKey: ['asset-types'],
     queryFn: listAssetTypes,
+  })
+
+  const { mutate: addType, isPending: isAddingType } = useMutation({
+    mutationFn: (name: string) => createAssetType(name),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ['asset-types'] })
+      setValue('asset_type_id', String(created.id), { shouldValidate: true })
+      setNewTypeName('')
+      toast({ title: `類型「${created.name}」已新增` })
+    },
+    onError: () => toast({ title: '新增類型失敗，名稱可能重複', variant: 'destructive' }),
   })
 
   const currentUser = useAuthStore((s) => s.currentUser)
@@ -279,6 +291,27 @@ export default function SubscriptionForm({
                 ))}
               </SelectContent>
             </Select>
+            <div className="flex gap-1 mt-1">
+              <Input
+                value={newTypeName}
+                onChange={(e) => setNewTypeName(e.target.value)}
+                placeholder="新增類型..."
+                className="h-7 text-xs"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); if (newTypeName.trim()) addType(newTypeName.trim()) }
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 px-2 text-xs"
+                disabled={!newTypeName.trim() || isAddingType}
+                onClick={() => newTypeName.trim() && addType(newTypeName.trim())}
+              >
+                新增
+              </Button>
+            </div>
           </FormField>
 
           <FormField label="所屬群組">
