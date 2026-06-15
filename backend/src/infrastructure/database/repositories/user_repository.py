@@ -46,6 +46,12 @@ class SqlUserRepository(UserRepository):
         model = result.scalar_one_or_none()
         return _to_entity(model) if model else None
 
+    async def get_users_by_ids(self, user_ids: list[int]) -> list[User]:
+        if not user_ids:
+            return []
+        result = await self._session.execute(select(UserModel).where(UserModel.id.in_(user_ids)))
+        return [_to_entity(m) for m in result.scalars().all()]
+
     async def list_all(self) -> list[User]:
         result = await self._session.execute(select(UserModel))
         return [_to_entity(m) for m in result.scalars().all()]

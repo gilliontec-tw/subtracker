@@ -10,3 +10,6 @@ class UserRepository(BaseRepository[User, int]):
 
     @abstractmethod
     async def get_by_invite_token(self, token: str) -> User | None: ...
+
+    @abstractmethod
+    async def get_users_by_ids(self, user_ids: list[int]) -> list[User]: ...

@@ -3,6 +3,7 @@ from application.use_cases.create_group import CreateGroupUseCase
 from application.use_cases.delete_group import DeleteGroupUseCase
 from application.use_cases.list_groups import ListGroupsUseCase
 from application.use_cases.remove_user_from_group import RemoveUserFromGroupUseCase
+from domain.exceptions import NotFoundException
 from fastapi import APIRouter, Depends
 from infrastructure.database.repositories.group_repository import SqlGroupRepository
 from infrastructure.database.repositories.user_repository import SqlUserRepository
@@ -65,20 +66,21 @@ async def list_group_members(
 ) -> ApiResponse[list[GroupMemberResponse]]:
     group_repo = SqlGroupRepository(db)
     user_repo = SqlUserRepository(db)
+    group = await group_repo.get_by_id(group_id)
+    if group is None:
+        raise NotFoundException()
     user_ids = await group_repo.get_member_user_ids(group_id)
-    members = []
-    for uid in user_ids:
-        user = await user_repo.get_by_id(uid)
-        if user:
-            members.append(
-                GroupMemberResponse(
-                    id=user.id,
-                    email=user.email,
-                    display_name=user.display_name,
-                    role=user.role,
-                    is_active=user.is_active,
-                )
-            )
+    users = await user_repo.get_users_by_ids(user_ids)
+    members = [
+        GroupMemberResponse(
+            id=u.id,
+            email=u.email,
+            display_name=u.display_name,
+            role=u.role,
+            is_active=u.is_active,
+        )
+        for u in users
+    ]
     return ApiResponse.ok(data=members)
 
 
