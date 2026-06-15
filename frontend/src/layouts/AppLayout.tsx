@@ -113,6 +113,7 @@ export default function AppLayout() {
         <>
           <NavLink to="/users" className={navLinkClass}>使用者管理</NavLink>
           <NavLink to="/audit-log" className={navLinkClass}>稽核日誌</NavLink>
+          <NavLink to="/groups" className={navLinkClass}>群組管理</NavLink>
           <NavLink to="/settings" className={navLinkClass}>系統設定</NavLink>
         </>
       )}
@@ -132,6 +133,7 @@ export default function AppLayout() {
         <>
           <NavLink to="/users" className={navLinkClass} onClick={() => setMobileOpen(false)}>使用者管理</NavLink>
           <NavLink to="/audit-log" className={navLinkClass} onClick={() => setMobileOpen(false)}>稽核日誌</NavLink>
+          <NavLink to="/groups" className={navLinkClass} onClick={() => setMobileOpen(false)}>群組管理</NavLink>
           <NavLink to="/settings" className={navLinkClass} onClick={() => setMobileOpen(false)}>系統設定</NavLink>
         </>
       )}
