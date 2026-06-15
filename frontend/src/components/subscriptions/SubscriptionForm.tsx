@@ -13,7 +13,6 @@
  *     notification_emails 字串轉陣列）
  */
 import { useEffect, useState } from 'react'
-import { useAuthStore } from '@/stores/authStore'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -182,8 +181,7 @@ export default function SubscriptionForm({
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const currentUser = useAuthStore((s) => s.currentUser)
-  const canDelete = currentUser?.can_delete || currentUser?.role === 'admin'
+  const canDelete = true
 
   const {
     register,

@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import { ChevronDown, ChevronUp, ChevronsUpDown, Pencil } from 'lucide-react'
 import SubscriptionDetailDialog from './SubscriptionDetailDialog'
 import BatchRenewDialog from './BatchRenewDialog'
-import { useAuthStore } from '@/stores/authStore'
 import type { Subscription } from '@/types/api'
 import { fmtDate } from '@/lib/utils'
 
@@ -101,14 +100,13 @@ interface Props {
 
 export default function SubscriptionTable({ subscriptions }: Props) {
   const navigate = useNavigate()
-  const { currentUser } = useAuthStore()
   const [sortKey, setSortKey] = useState<SortKey>('service_name')
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [detailSub, setDetailSub] = useState<Subscription | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [batchOpen, setBatchOpen] = useState(false)
 
-  const canUpdate = (currentUser?.can_update || currentUser?.role === 'admin') ?? false
+  const canUpdate = true
   const hasActions = canUpdate
 
   function handleSort(col: SortKey) {

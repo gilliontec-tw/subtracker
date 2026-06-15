@@ -26,7 +26,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import SubscriptionTable from '@/components/subscriptions/SubscriptionTable'
-import { useAuthStore } from '@/stores/authStore'
 import { Download, Plus } from 'lucide-react'
 import type { Subscription } from '@/types/api'
 
@@ -77,7 +76,6 @@ function downloadCSV(items: Subscription[]) {
 export default function SubscriptionsPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser } = useAuthStore()
   // 從 Dashboard 跳轉時帶入的搜尋關鍵字，預設空字串
   const [search, setSearch] = useState<string>((location.state as { search?: string } | null)?.search ?? '')
   const [showSuspended, setShowSuspended] = useState(false)
@@ -122,12 +120,10 @@ export default function SubscriptionsPage() {
             <Download className="size-4" />
             匯出 CSV
           </Button>
-          {(currentUser?.can_create || currentUser?.role === 'admin') && (
-            <Button onClick={() => navigate('/subscriptions/new')}>
-              <Plus className="size-4" />
-              新增項目
-            </Button>
-          )}
+          <Button onClick={() => navigate('/subscriptions/new')}>
+            <Plus className="size-4" />
+            新增項目
+          </Button>
         </div>
       </div>
 
@@ -159,9 +155,7 @@ export default function SubscriptionsPage() {
           />
           顯示已停用
         </label>
-        {(currentUser?.can_update || currentUser?.role === 'admin') && (
-          <span className="text-xs text-muted-foreground">勾選列可批次續訂</span>
-        )}
+        <span className="text-xs text-muted-foreground">勾選列可批次續訂</span>
       </div>
 
       {isLoading && <p className="text-muted-foreground">載入中...</p>}

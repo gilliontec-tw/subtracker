@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/table'
 import { Pencil, Trash2, Plus } from 'lucide-react'
 import PaymentRecordFormDialog from './PaymentRecordFormDialog'
-import { useAuthStore } from '@/stores/authStore'
 import { useToast } from '@/hooks/use-toast'
 import { fmtDate } from '@/lib/utils'
 import type { PaymentRecord } from '@/types/api'
@@ -31,7 +30,6 @@ interface Props {
 }
 
 export default function PaymentRecordList({ subscriptionId, readOnly = false }: Props) {
-  const { currentUser } = useAuthStore()
   const { toast } = useToast()
   const queryClient = useQueryClient()
   const [formOpen, setFormOpen] = useState(false)
@@ -57,9 +55,9 @@ export default function PaymentRecordList({ subscriptionId, readOnly = false }: 
   })
 
   const records = data ?? []
-  const canCreate = !readOnly && (currentUser?.can_create || currentUser?.role === 'admin')
-  const canUpdate = !readOnly && (currentUser?.can_update || currentUser?.role === 'admin')
-  const canDelete = !readOnly && (currentUser?.can_delete || currentUser?.role === 'admin')
+  const canCreate = !readOnly
+  const canUpdate = !readOnly
+  const canDelete = !readOnly
   const hasActions = canUpdate || canDelete
 
   return (
