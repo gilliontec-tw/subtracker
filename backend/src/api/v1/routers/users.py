@@ -11,7 +11,7 @@ from infrastructure.database.repositories.user_repository import SqlUserReposito
 from infrastructure.database.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import require_admin
+from api.dependencies import get_current_user, require_admin
 from api.v1.schemas.base import ApiResponse
 from api.v1.schemas.group import GroupBasicResponse
 from api.v1.schemas.user import (
@@ -143,9 +143,11 @@ async def regenerate_invite(
 @router.get("/{id}/groups", response_model=ApiResponse[list[GroupBasicResponse]])
 async def get_user_groups(
     id: int,
-    _=Depends(require_admin),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    if current_user.role != "admin" and current_user.id != id:
+        raise ForbiddenException()
     group_repo = SqlGroupRepository(db)
     groups = await group_repo.get_groups_for_user(id)
     return ApiResponse.ok(data=[GroupBasicResponse(id=g.id, name=g.name) for g in groups])
