@@ -37,7 +37,7 @@ async def test_date_range_path_calls_list_by_filters():
     from_date = date(2026, 5, 1)
     to_date = date(2026, 5, 31)
     result = await uc.execute(from_date=from_date, to_date=to_date, service_name="GitHub")
-    repo.list_by_filters.assert_called_once_with(from_date, to_date, "GitHub")
+    repo.list_by_filters.assert_called_once_with(from_date, to_date, "GitHub", None)
     assert len(result) == 1
 
 
@@ -47,5 +47,5 @@ async def test_no_params_calls_list_by_filters_with_none():
     repo.list_by_filters = AsyncMock(return_value=[])
     uc = ListPaymentRecordsUseCase(repo)
     result = await uc.execute()
-    repo.list_by_filters.assert_called_once_with(None, None, None)
+    repo.list_by_filters.assert_called_once_with(None, None, None, None)
     assert result == []

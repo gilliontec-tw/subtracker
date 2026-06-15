@@ -48,9 +48,14 @@ async def list_payments(
     from_date: date | None = Query(default=None),
     to_date: date | None = Query(default=None),
     service_name: str | None = Query(default=None),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ApiResponse[list[PaymentRecordResponse]]:
+    if subscription_id is not None:
+        await _assert_subscription_access(subscription_id, current_user, db)
+    group_ids: list[int] | None = None
+    if current_user.role != "admin":
+        group_ids = await SqlGroupRepository(db).get_group_ids_for_user(current_user.id)
     repo = SqlPaymentRecordRepository(db)
     use_case = ListPaymentRecordsUseCase(repo)
     records = await use_case.execute(
@@ -58,6 +63,7 @@ async def list_payments(
         from_date=from_date,
         to_date=to_date,
         service_name=service_name,
+        group_ids=group_ids,
     )
     return ApiResponse.ok(data=[PaymentRecordResponse(**vars(r)) for r in records])
 

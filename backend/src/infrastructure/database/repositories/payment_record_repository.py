@@ -114,7 +114,10 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
         from_date: date | None,
         to_date: date | None,
         service_name: str | None,
+        group_ids: list[int] | None = None,
     ) -> list[PaymentRecord]:
+        if group_ids is not None and not group_ids:
+            return []
         filters = []
         if from_date is not None:
             filters.append(PaymentRecordModel.payment_date >= from_date)
@@ -122,6 +125,8 @@ class SqlPaymentRecordRepository(PaymentRecordRepository):
             filters.append(PaymentRecordModel.payment_date <= to_date)
         if service_name:
             filters.append(SubscriptionModel.service_name.ilike(f"%{service_name}%"))
+        if group_ids is not None:
+            filters.append(SubscriptionModel.group_id.in_(group_ids))
         result = await self._session.execute(
             select(
                 PaymentRecordModel,

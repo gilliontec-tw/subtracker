@@ -20,6 +20,7 @@ class PaymentRecordRepository(ABC):
         from_date: date | None,
         to_date: date | None,
         service_name: str | None,
+        group_ids: list[int] | None = None,
     ) -> list[PaymentRecord]: ...
 
     @abstractmethod
